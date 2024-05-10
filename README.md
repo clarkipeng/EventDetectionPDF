@@ -27,9 +27,9 @@ For training our models from scratch,  we recommend using a Linux based computer
 * 5+ GiB physical storage space*
 * 1 CUDA enabled GPU (please refer to [https://developer.nvidia.com/cuda-gpus](https://developer.nvidia.com/cuda-gpus) for a detailed list).
 
-It is possible to train the model on smaller machines, and without GPUs, but doing so may take considerable time (~12 min vs 8 sec for 1 epoch). Likewise, more resources will speed up training. The data is automatically preprocessed in the script. However, if the preprocessing step exceeds the system memory, data should be preprocessed with the ```process_sleep_dataset``` <add link> function on virtual machine with more system memory, e.g., Kaggle's kernels or Google Colab's notebooks.
+It is possible to train the model on smaller machines, and without GPUs, but doing so may take considerable time (1-2 min vs 8 sec per epoch). Likewise, more resources will speed up training. The data is automatically preprocessed in the script. However, if the preprocessing step exceeds the system memory, data should be preprocessed with the [```process_sleep_dataset```](https://github.com/clarkipeng/SleepRegressionCPD/blob/b39819c3f26d81214b49c3d9914f6613f4227078/sleep/load_dataset.py#L214) function on virtual machine with more system memory, e.g., Kaggle's kernels or Google Colab's notebooks.
 
-*The required hard-disk space depends on number of models/objectives used. The predictions for each model are cached, each new model/objective combination takes ~100Mb more disk memory for each.
+*The required hard-disk space depends on number of models/objectives used. The predictions for each model are cached, each new model/objective combination takes ~100Mb more disk memory each.
 
 **Software Requirements:**
 
@@ -71,7 +71,7 @@ After you have done all the necessary steps listed above, you are ready to train
 ```
 python train.py --datadir [path_to_dataset] --model [model_name] --objective[objective_name]
 ```
-Model choices range from *rnn*, *unet*, *unet_t*, to *prectime*. Objective range from *seg1*, *seg2*, *hard*, *gau*, to *custom*.
+Model choices can be *rnn*, *unet*, *unet_t*, or *prectime*. Objectives can be *hard*, *gau*, *custom*, *seg1*, *seg2*, or *seg* (which evaluates both segmentation methods),.
 
 In order to evaluate the trained models, run: 
 ```

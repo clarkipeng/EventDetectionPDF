@@ -3,8 +3,8 @@ sys.path.append('../')
 
 from train import train
 from eval import get_optimal_cutoff
-from sleep.utils import get_loss
-from sleep.load_dataset import SleepDataset
+from src.utils import get_loss
+from src.load_dataset import SleepDataset
 
 import torch
 import argparse

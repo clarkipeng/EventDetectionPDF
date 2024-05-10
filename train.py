@@ -20,10 +20,10 @@ from torch.utils.data import DataLoader, Dataset
 
 from sklearn.model_selection import KFold
 
-from SleepEventDetection.sleep.load_dataset import SleepDataset
-from SleepEventDetection.sleep.utils import get_loss
-from SleepEventDetection.models.load_model import get_model
-from SleepEventDetection.eval import evaluate, get_optimal_cutoff
+from src.load_dataset import SleepDataset
+from src.utils import get_loss
+from models.load_model import get_model
+from eval import evaluate, get_optimal_cutoff
 from timm.scheduler import CosineLRScheduler
 
 

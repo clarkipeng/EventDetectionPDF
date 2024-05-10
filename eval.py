@@ -23,9 +23,9 @@ from scipy.ndimage import gaussian_filter1d
 import matplotlib.pyplot as plt
 from numba import njit, jit
 
-from SleepEventDetection.sleep.load_dataset import SleepDataset, normalize_error
-from SleepEventDetection.sleep.EDAP import score
-from SleepEventDetection.sleep.utils import get_loss
+from src.load_dataset import SleepDataset, normalize_error
+from src.EDAP import score
+from src.utils import get_loss
 
     
 tolerances = {
@@ -216,7 +216,11 @@ def get_optimal_cutoff(objective : str,
                 dataset : Dataset,
                 save_pred_dir : str,
                 ):
-    def get_score(cutoff, smooth_param, tolerances):
+    objectives = [objective]
+    if objective == 'seg':
+        objectives = ['seg1','seg2']
+        
+    def get_score(objective, cutoff, smooth_param, tolerances):
         
         truth = dataset.events
         submission = pd.DataFrame()
@@ -251,43 +255,44 @@ def get_optimal_cutoff(objective : str,
         submission = submission[['row_id','series_id','step','event','score']]
         
         mAP_score = score(truth, submission, tolerances, **column_names)
-#         mAP_score = fast_score(truth, submission)
         return mAP_score
     
-    default_score = get_score(0.5, None, tolerances)
-    print('default score =', default_score)
-                
-    if objective[:3] == 'seg':
-        max_pred = 1
-        cutoff_space = np.linspace(0,max_pred,15)
-        smooth_space = [None] + [i for i in range(1,21,10)]
-    else:
-        max_pred = 1/normalize_error(objective)
-        cutoff_space = np.linspace(0,max_pred,15)
-        smooth_space = [None] + [i for i in range(1,21,10)]
-    
-    best_score, best_param = 0, (None, None)
-    for cutoff in tqdm(cutoff_space):
-        for smooth_param in smooth_space:
-            
-            mAP_score = get_score(cutoff, smooth_param, tolerances)
-            best_score = max(mAP_score, best_score)
-            
-            if best_score == mAP_score:
-                best_param = (cutoff, smooth_param)
-    
-    print(f'best params = {best_param}')
-    print(f'best score = {best_score}')
-    tol_scores = []
-    for tol in tolerances['wakeup']:
-        tolerances_ = {
-            "onset" : [tol],
-            'wakeup': [tol]    
-        }
-        mAP_score = get_score(best_param[0], best_param[1], tolerances_)
-        tol_scores.append(tol_scores)
-        print(f'tolerance {tol} = {mAP_score}')
-    return best_score, best_param, tol_scores
+    for obj in objectives:
+        print(f'{obj} results: ')
+        
+        default_score = get_score(obj, 0.5, None, tolerances)
+        print('  default score =', default_score)
+
+        if obj[:3] == 'seg':
+            max_pred = 1
+            cutoff_space = np.linspace(0,max_pred,15)
+            smooth_space = [None] + [i for i in range(1,21,10)]
+        else:
+            max_pred = 1/normalize_error(obj)
+            cutoff_space = np.linspace(0,max_pred,15)
+            smooth_space = [None] + [i for i in range(1,21,10)]
+
+        best_score, best_param = 0, (None, None)
+        for cutoff in tqdm(cutoff_space):
+            for smooth_param in tqdm(smooth_space):
+
+                mAP_score = get_score(obj, cutoff, smooth_param, tolerances)
+                best_score = max(mAP_score, best_score)
+
+                if best_score == mAP_score:
+                    best_param = (cutoff, smooth_param)
+
+        print(f'  best param = {best_param}')
+        print(f'  best score = {best_score}')
+        tol_scores = []
+        for tol in tolerances['wakeup']:
+            tolerances_ = {
+                "onset" : [tol],
+                'wakeup': [tol]    
+            }
+            mAP_score = get_score(obj, best_param[0], best_param[1], tolerances_)
+            tol_scores.append(tol_scores)
+            print(f'   tolerance {tol} = {mAP_score}')
 
 def get_best_scores(
     data_dir : str,
@@ -318,8 +323,7 @@ def get_best_scores(
             sequence_length = sequence_length,
             target_type = objective,
         )
-    best_score, tol_scores, best_param = get_optimal_cutoff(objective, full_dataset, save_pred_dir)
-    print(best_param)
+    get_optimal_cutoff(objective, full_dataset, save_pred_dir)
 
 
 

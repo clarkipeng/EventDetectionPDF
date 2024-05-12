@@ -27,7 +27,7 @@ For training our models from scratch,  we recommend using a Linux based computer
 * 5+ GiB physical storage space*
 * 1 CUDA enabled GPU (please refer to [https://developer.nvidia.com/cuda-gpus](https://developer.nvidia.com/cuda-gpus) for a detailed list).
 
-It is possible to train the model on smaller machines, and without GPUs, but doing so may take considerable time (1-2 min vs 8 sec per epoch). Likewise, more resources will speed up training. The data is automatically preprocessed in the script. However, if the preprocessing step exceeds the system memory, data should be preprocessed with the [```process_sleep_dataset```](https://github.com/clarkipeng/SleepRegressionCPD/blob/b39819c3f26d81214b49c3d9914f6613f4227078/sleep/load_dataset.py#L214) function on virtual machine with more system memory, e.g., Kaggle's kernels or Google Colab's notebooks.
+It is possible to train the model on smaller machines, and without GPUs, but doing so may take considerable time (1-2 min vs 8 sec per epoch). Likewise, more resources will speed up training. The data is automatically preprocessed in the script. However, if the preprocessing step exceeds the system memory, data should be preprocessed with the [```process_sleep_dataset```](https://github.com/clarkipeng/SleepRegressionCPD/blob/main/src/load_dataset.py#L214) function on virtual machine with more system memory, e.g., Kaggle's kernels or Google Colab's notebooks.
 
 *The required hard-disk space depends on number of models/objectives used. The predictions for each model are cached, each new model/objective combination takes ~100Mb more disk memory each.
 
@@ -42,8 +42,7 @@ If you are going to run these scripts yourself from scratch, we highly recommend
 Please refer to [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/) for additional details.
 
 ## Installation Guide
-On a Linux machine with at least 1 CUDA enabled GPU available and `anaconda` 
-or `miniconda` installed, run the following commands to download the required packages.
+On a computer with `pip` installed, run the following commands to download the required packages.
 
 ```
 git clone https://github.com/clark/.git
@@ -69,7 +68,7 @@ We have 3 different scripts to aid in training and evaluation. These scripts are
 After you have done all the necessary steps listed above, you are ready to train and evaluate the models. In order to train a model on a certain objective, you can simply run the following script with the names of the models and objectives: 
 
 ```
-python train.py --datadir [path_to_dataset] --model [model_name] --objective[objective_name]
+python train.py --datadir [path_to_dataset] --model [model_name] --objective [objective_name]
 ```
 Model choices can be *rnn*, *unet*, *unet_t*, or *prectime*. Objectives can be *hard*, *gau*, *custom*, *seg1*, *seg2*, or *seg* (which evaluates both segmentation methods),.
 
@@ -83,60 +82,68 @@ In order to train all models on all objectives, run:
 python train_all.py --datadir [path_to_dataset]
 ```
 
-Here is a sample of the training script's output: 
+#### Example
+Here is a example of running the training script on a machine with an A100 GPU and 32 GB of RAM:
 ```
-fold 0, epoch 1/10: 0.5671964131650471, 0.4234076938458851, 0.31992529231908395
-fold 0, epoch 2/10: 0.29704598230975016, 0.6864788130990096, 0.08083032501344567
-fold 0, epoch 3/10: 0.2191676085903531, 0.5923197992146015, 0.11066386464176817
-fold 0, epoch 4/10: 0.20828872919082642, 0.9550961809498923, 0.07028854306906512
-fold 0, epoch 5/10: 0.19250523476373582, 0.44821978711656163, 0.16583883340180539
-fold 0, epoch 6/10: 0.1849517673254013, 0.454849069246224, 0.1284257481328586
-fold 0, epoch 7/10: 0.17295101214022862, 0.4682254411280155, 0.1978212962032277
-fold 0, epoch 8/10: 0.17070088429110392, 0.432587339037231, 0.21699563620228057
-fold 0, epoch 9/10: 0.1600088438107854, 0.49922254362276625, 0.18229525573739774
-fold 0, epoch 10/10: 0.15780407119364964, 0.4201317543962172, 0.23296281634201355
-fold 1, epoch 1/10: 0.5483487645785013, 0.4680862590886544, 0.18323421882567298
-fold 1, epoch 2/10: 0.3187335119360969, 0.46725796659787494, 0.10480827214394019
-fold 1, epoch 3/10: 0.2443289224590574, 0.37346307069495105, 0.1960867786987105
-fold 1, epoch 4/10: 0.20523616884435927, 0.3566333326524582, 0.1875781833001176
-fold 1, epoch 5/10: 0.18336566431181772, 0.3343870410884636, 0.19519207240391212
-fold 1, epoch 6/10: 0.20561428226175762, 0.46166559082010517, 0.16433296611616088
-fold 1, epoch 7/10: 0.17510004057770684, 0.4174952756451524, 0.17953786043311037
-fold 1, epoch 8/10: 0.16072067263580503, 0.4000339227310125, 0.15939044648403256
-fold 1, epoch 9/10: 0.16655622990358443, 0.35755097336959146, 0.19767021852032862
-fold 1, epoch 10/10: 0.15015163272619247, 0.29273444457330566, 0.2539439317167594
-fold 2, epoch 1/10: 0.5716611416566939, 0.44695411557736603, 0.3704339427564968
-fold 2, epoch 2/10: 0.30280167148226783, 0.5337080663960913, 0.07620227404235262
-fold 2, epoch 3/10: 0.25504277859415325, 0.33226127976524655, 0.12377035172468662
-fold 2, epoch 4/10: 0.21594843836057753, 0.2971419591618621, 0.20882337498810477
-fold 2, epoch 5/10: 0.19351212609381901, 0.24783526242211246, 0.26625211557722595
-fold 2, epoch 6/10: 0.17813395034699214, 0.21275146764473638, 0.3853267492283511
-fold 2, epoch 7/10: 0.1783287145552181, 0.20156077646474907, 0.3576166921813896
-fold 2, epoch 8/10: 0.1534084223565601, 0.2731242938965991, 0.2476186956908779
-fold 2, epoch 9/10: 0.16390727105594816, 0.25416029028702475, 0.2957066108423385
-fold 2, epoch 10/10: 0.15014894058307013, 0.25443818193414935, 0.28567584360145826
-fold 3, epoch 1/10: 0.5586394227686382, 0.48854703229406604, 0.25436108213664976
-fold 3, epoch 2/10: 0.2893033680461702, 0.3698693669360617, 0.19252852677887927
-fold 3, epoch 3/10: 0.21832286105269477, 0.5886409913284191, 0.06944601142260409
-fold 3, epoch 4/10: 0.23850345753488086, 0.2573538360496362, 0.2743737832262192
-fold 3, epoch 5/10: 0.2123905136471703, 0.24408283613730167, 0.3160624596505167
-fold 3, epoch 6/10: 0.19378373700947987, 0.20700542445200076, 0.3928765627199209
-fold 3, epoch 7/10: 0.18373608873004005, 0.19282431204033934, 0.3524866896348051
-fold 3, epoch 8/10: 0.1810820684546516, 0.19001440012800522, 0.40478266054188033
-fold 3, epoch 9/10: 0.170177637111573, 0.18557492951336113, 0.40961172855500694
-fold 3, epoch 10/10: 0.17092583115611756, 0.18621937409583209, 0.41553354565278633
-best cutoff = 1.0
-best score = 0.2918882416699422
-tolerance 12 = 0.010204054951315433
-tolerance 36 = 0.07261413401159846
-tolerance 60 = 0.15295192056427098
-tolerance 90 = 0.2517985226366843
-tolerance 120 = 0.3253561944472322
-tolerance 150 = 0.3697693880261175
-tolerance 180 = 0.39780092367320635
-tolerance 240 = 0.4301438533392494
-tolerance 300 = 0.44834313361339495
-tolerance 360 = 0.45965576171985667
+python train.py --model rnn --objective seg --epochs 10 --folds 4
+```
+Which has the following output:
+```
+fold 0, epoch 1/10: train loss: 6.567397832870483, valid loss: 6.930822197241443, valid mAP: 0.023725936361229667
+fold 0, epoch 2/10: train loss: 6.78070236387707, valid loss: 6.907888797138418, valid mAP: 0.10914835690691285
+fold 0, epoch 3/10: train loss: 6.679683798835391, valid loss: 6.875822243280709, valid mAP: 0.23762788267994644
+fold 0, epoch 4/10: train loss: 6.7658633050464445, valid loss: 6.803971287767802, valid mAP: 0.4163512646526496
+fold 0, epoch 5/10: train loss: 6.409579731169201, valid loss: 6.758766402517046, valid mAP: 0.5198809448631438
+fold 0, epoch 6/10: train loss: 6.453846749805269, valid loss: 6.72255140713283, valid mAP: 0.5747572606165572
+fold 0, epoch 7/10: train loss: 6.510752859569731, valid loss: 6.703539259944644, valid mAP: 0.6029398896699416
+fold 0, epoch 8/10: train loss: 6.657302674793062, valid loss: 6.692005929883037, valid mAP: 0.6203016541866593
+fold 0, epoch 9/10: train loss: 6.529280798775809, valid loss: 6.688343141334397, valid mAP: 0.614679353918786
+fold 0, epoch 10/10: train loss: 6.4540394601367765, valid loss: 6.687655284255743, valid mAP: 0.6100686457820407
+fold 1, epoch 1/10: train loss: 6.878575847262428, valid loss: 7.165012356379758, valid mAP: 0.026449483645454887
+fold 1, epoch 2/10: train loss: 6.660974343617757, valid loss: 7.139738639816642, valid mAP: 0.08194746778660686
+fold 1, epoch 3/10: train loss: 6.648147060757592, valid loss: 7.100208722810814, valid mAP: 0.20839383224864505
+fold 1, epoch 4/10: train loss: 6.560608795710972, valid loss: 7.02604735000194, valid mAP: 0.431084970328621
+fold 1, epoch 5/10: train loss: 6.436552115849087, valid loss: 6.96284599310678, valid mAP: 0.5535395656379856
+fold 1, epoch 6/10: train loss: 6.188678911754063, valid loss: 6.9215892566287, valid mAP: 0.5928761880922007
+fold 1, epoch 7/10: train loss: 6.218804075604393, valid loss: 6.896084146871083, valid mAP: 0.608177435122389
+fold 1, epoch 8/10: train loss: 6.160753295535133, valid loss: 6.884603602838689, valid mAP: 0.6023296312636748
+fold 1, epoch 9/10: train loss: 6.352500415983654, valid loss: 6.881422186351341, valid mAP: 0.6119293322268933
+fold 1, epoch 10/10: train loss: 6.206567832401821, valid loss: 6.880311411144077, valid mAP: 0.6084792277383417
+fold 2, epoch 1/10: train loss: 6.805354277292888, valid loss: 6.674842920356794, valid mAP: 0.01632034699850942
+fold 2, epoch 2/10: train loss: 6.774743068785894, valid loss: 6.653295650443845, valid mAP: 0.10311424578058237
+fold 2, epoch 3/10: train loss: 6.763583569299607, valid loss: 6.63547653440332, valid mAP: 0.21338767548111703
+fold 2, epoch 4/10: train loss: 6.904300212860107, valid loss: 6.59302644615156, valid mAP: 0.4290074214995284
+fold 2, epoch 5/10: train loss: 6.6846467199779696, valid loss: 6.515500627674054, valid mAP: 0.538883034249319
+fold 2, epoch 6/10: train loss: 6.73179292678833, valid loss: 6.483213160348975, valid mAP: 0.5899375408186134
+fold 2, epoch 7/10: train loss: 6.780517248880296, valid loss: 6.463352131238882, valid mAP: 0.6002036830425237
+fold 2, epoch 8/10: train loss: 6.468309697650728, valid loss: 6.451126497616802, valid mAP: 0.6125391887380383
+fold 2, epoch 9/10: train loss: 6.542498497735886, valid loss: 6.444739273168903, valid mAP: 0.6256097831702581
+fold 2, epoch 10/10: train loss: 6.504251502809071, valid loss: 6.443862869795682, valid mAP: 0.6286895503900445
+fold 3, epoch 1/10: train loss: 7.531470934549968, valid loss: 6.099467979825062, valid mAP: 0.012911559282793049
+fold 3, epoch 2/10: train loss: 6.723584493001302, valid loss: 6.081378569178607, valid mAP: 0.038799227297509536
+fold 3, epoch 3/10: train loss: 6.891559010460263, valid loss: 6.068587892391867, valid mAP: 0.11954856493338833
+fold 3, epoch 4/10: train loss: 7.002564180464971, valid loss: 6.023344616365174, valid mAP: 0.3053650198495621
+fold 3, epoch 5/10: train loss: 7.033120382399786, valid loss: 5.962538446367219, valid mAP: 0.4746323772465527
+fold 3, epoch 6/10: train loss: 6.73004842939831, valid loss: 5.928792620536642, valid mAP: 0.5526360826985095
+fold 3, epoch 7/10: train loss: 6.812300954546247, valid loss: 5.905685964215925, valid mAP: 0.5891628880283393
+fold 3, epoch 8/10: train loss: 6.796495460328602, valid loss: 5.895802779150182, valid mAP: 0.6033776688176755
+fold 3, epoch 9/10: train loss: 6.862480027335031, valid loss: 5.890804661356884, valid mAP: 0.5996965166696722
+fold 3, epoch 10/10: train loss: 6.608388991582961, valid loss: 5.89002806790497, valid mAP: 0.5943980291333677
+rnn hard results: 
+ default score = 0.5664155029082533
+ optimize hyperparams:
+  best params: cutoff = 0.0, smoothing = 11
+  best score = 0.6166905528872586
+   tolerance 12 = 0.03872348644742643
+   tolerance 36 = 0.2953151010695607
+   tolerance 60 = 0.5226400268910409
+   tolerance 90 = 0.6570232916251942
+   tolerance 120 = 0.712453832558264
+   tolerance 150 = 0.7449724346306841
+   tolerance 180 = 0.7662430131158864
+   tolerance 240 = 0.7922328553750166
+   tolerance 300 = 0.8119013357894826
+   tolerance 360 = 0.82540015137003
 ```
 
 ## References

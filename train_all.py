@@ -2,7 +2,6 @@ import sys, os
 sys.path.append('../')
 
 from train import train
-from eval import get_optimal_cutoff
 from src.utils import get_loss
 from src.load_dataset import SleepDataset
 

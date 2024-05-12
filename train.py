@@ -212,7 +212,7 @@ def train(
                                             workers,
                                             (save_pred_dir if epoch == epochs else None) # only save predictons on last epoch
                                             )
-            print(f'fold {fold}, epoch {epoch}/{epochs}: {train_loss}, {valid_loss}, {valid_mAP}')
+            print(f'fold {fold}, epoch {epoch}/{epochs}: train loss: {train_loss}, valid loss: {valid_loss}, valid mAP: {valid_mAP}')
             history["train_loss"].append(train_loss)
             history["valid_mAP"].append(valid_mAP)
             history["valid_loss"].append(valid_loss)
@@ -239,7 +239,7 @@ def train(
             sequence_length = sequence_length,
             target_type = objective,
         )
-    best_score, tol_scores, best_param = get_optimal_cutoff(objective, full_dataset, save_pred_dir)
+    get_optimal_cutoff(model_name, objective, full_dataset, save_pred_dir, workers = workers)
 
 
 

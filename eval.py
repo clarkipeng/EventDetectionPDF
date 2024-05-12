@@ -5,6 +5,7 @@ import gc
 import random
 import argparse
 import warnings
+import itertools
 
 import numpy as np
 import pandas as pd
@@ -57,10 +58,14 @@ def get_candidates(predictions : np.ndarray,
                    objective : str,
                    max_distance : int,
                    day_length : int,
-                   threshold : float = 0.002, #between 0 and 1
+                   threshold : float = None, #between 0 and 1
                    smooth : int = None,
                    ):
     days = len(predictions) // day_length +1
+    
+    if threshold == None:
+        # default values
+        threshold = (0.5 if (objective[:3] == 'seg') else 0) 
     if smooth:
         for i in range(predictions.shape[1]):
             predictions[:,i] = gaussian_filter1d(predictions[:,i], smooth)
@@ -212,14 +217,19 @@ def evaluate(
     gc.collect()
     return valid_loss, mAP_score
 
-def get_optimal_cutoff(objective : str,
+def get_optimal_cutoff(
+                model_name : str,
+                objective : str,
                 dataset : Dataset,
                 save_pred_dir : str,
+                workers : int = 1,
                 ):
-    objectives = [objective]
+    
     if objective == 'seg':
         objectives = ['seg1','seg2']
-        
+    else:
+        objectives = [objective]
+
     def get_score(objective, cutoff, smooth_param, tolerances):
         
         truth = dataset.events
@@ -255,34 +265,35 @@ def get_optimal_cutoff(objective : str,
         submission = submission[['row_id','series_id','step','event','score']]
         
         mAP_score = score(truth, submission, tolerances, **column_names)
+#         mAP_score = fast_score(truth, submission)
         return mAP_score
     
     for obj in objectives:
-        print(f'{obj} results: ')
+        print(f'{model_name} {obj} results: ')
         
         default_score = get_score(obj, 0.5, None, tolerances)
-        print('  default score =', default_score)
+        print(' default score =', default_score)
 
-        if obj[:3] == 'seg':
+        if objective[:3] == 'seg':
             max_pred = 1
             cutoff_space = np.linspace(0,max_pred,15)
             smooth_space = [None] + [i for i in range(1,21,10)]
         else:
-            max_pred = 1/normalize_error(obj)
+            max_pred = 1/normalize_error(objective)
             cutoff_space = np.linspace(0,max_pred,15)
             smooth_space = [None] + [i for i in range(1,21,10)]
 
+        print(' optimize hyperparams:')
         best_score, best_param = 0, (None, None)
-        for cutoff in tqdm(cutoff_space):
-            for smooth_param in tqdm(smooth_space):
+        for cutoff, smooth_param in tqdm(itertools.product(cutoff_space, smooth_space), desc="Optimizing", total = len(cutoff_space)*len(smooth_space)):
 
-                mAP_score = get_score(obj, cutoff, smooth_param, tolerances)
-                best_score = max(mAP_score, best_score)
+            mAP_score = get_score(obj, cutoff, smooth_param, tolerances)
+            best_score = max(mAP_score, best_score)
 
-                if best_score == mAP_score:
-                    best_param = (cutoff, smooth_param)
+            if best_score == mAP_score:
+                best_param = (cutoff, smooth_param)
 
-        print(f'  best param = {best_param}')
+        print(f'  best params: cutoff = {best_param[0]}, smoothing = {best_param[1]}')
         print(f'  best score = {best_score}')
         tol_scores = []
         for tol in tolerances['wakeup']:
@@ -307,6 +318,7 @@ def get_best_scores(
     normalize : bool = False,
     use_time_cat  : bool = True,
     device : str = ('cuda' if torch.cuda.is_available() else 'cpu'),
+    workers : int = 1,
 ):
     model_path = f'./experiments/{model_name}'
     
@@ -323,7 +335,7 @@ def get_best_scores(
             sequence_length = sequence_length,
             target_type = objective,
         )
-    get_optimal_cutoff(objective, full_dataset, save_pred_dir)
+    get_optimal_cutoff(model_name, objective, full_dataset, save_pred_dir, workers = workers)
 
 
 

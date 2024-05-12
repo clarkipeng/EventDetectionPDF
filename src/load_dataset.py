@@ -114,7 +114,7 @@ def get_targets(length, locations, ttype = 'gau', sigma = 50, normalize = True):
         for c, loc in enumerate(locations):
             for i in loc:
                 i1,i2 = max(0,i-360),min(length,i+360+1)
-                target[i1:i2, c] = gauss[(i1-(i-360)):(720+1-((i+360+1)-i2))]
+                target[i1:i2, c] = custom[(i1-(i-360)):(720+1-((i+360+1)-i2))]
         target_variance = 0.104027685061522240 # normalize_error(ttype)
     if normalize:
         target = target / target_variance

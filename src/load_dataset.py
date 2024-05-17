@@ -185,7 +185,7 @@ class data_reader:
     def verify(self, data_name):
         "function for data name verification"
         if data_name not in self.valid_names:
-            print("PLEASE ENTER A VALID DATASET NAME, VALID NAMES ARE : ", valid_names)
+            print("PLEASE ENTER A VALID DATASET NAME, VALID NAMES ARE : ", self.valid_names)
         return
     
     def cleaning(self, data):

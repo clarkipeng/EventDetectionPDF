@@ -218,7 +218,7 @@ def train(
                 ),  # only save predictons on last epoch
             )
             print(
-                f"fold {fold}, epoch {epoch}/{epochs}: train loss: {train_loss}, valid loss: {valid_loss}, valid mAP: {valid_mAP}"
+                f"fold {fold}, epoch {epoch}/{epochs}: train loss: {train_loss:.3f}, valid loss: {valid_loss:.3f}, valid mAP: {valid_mAP:.3f}"
             )
             history["train_loss"].append(train_loss)
             history["valid_mAP"].append(valid_mAP)

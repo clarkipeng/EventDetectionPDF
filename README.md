@@ -89,61 +89,61 @@ python train.py --model rnn --objective seg --epochs 10 --folds 4
 ```
 Which has the following output:
 ```
-fold 0, epoch 1/10: train loss: 6.567397832870483, valid loss: 6.930822197241443, valid mAP: 0.023725936361229667
-fold 0, epoch 2/10: train loss: 6.78070236387707, valid loss: 6.907888797138418, valid mAP: 0.10914835690691285
-fold 0, epoch 3/10: train loss: 6.679683798835391, valid loss: 6.875822243280709, valid mAP: 0.23762788267994644
-fold 0, epoch 4/10: train loss: 6.7658633050464445, valid loss: 6.803971287767802, valid mAP: 0.4163512646526496
-fold 0, epoch 5/10: train loss: 6.409579731169201, valid loss: 6.758766402517046, valid mAP: 0.5198809448631438
-fold 0, epoch 6/10: train loss: 6.453846749805269, valid loss: 6.72255140713283, valid mAP: 0.5747572606165572
-fold 0, epoch 7/10: train loss: 6.510752859569731, valid loss: 6.703539259944644, valid mAP: 0.6029398896699416
-fold 0, epoch 8/10: train loss: 6.657302674793062, valid loss: 6.692005929883037, valid mAP: 0.6203016541866593
-fold 0, epoch 9/10: train loss: 6.529280798775809, valid loss: 6.688343141334397, valid mAP: 0.614679353918786
-fold 0, epoch 10/10: train loss: 6.4540394601367765, valid loss: 6.687655284255743, valid mAP: 0.6100686457820407
-fold 1, epoch 1/10: train loss: 6.878575847262428, valid loss: 7.165012356379758, valid mAP: 0.026449483645454887
-fold 1, epoch 2/10: train loss: 6.660974343617757, valid loss: 7.139738639816642, valid mAP: 0.08194746778660686
-fold 1, epoch 3/10: train loss: 6.648147060757592, valid loss: 7.100208722810814, valid mAP: 0.20839383224864505
-fold 1, epoch 4/10: train loss: 6.560608795710972, valid loss: 7.02604735000194, valid mAP: 0.431084970328621
-fold 1, epoch 5/10: train loss: 6.436552115849087, valid loss: 6.96284599310678, valid mAP: 0.5535395656379856
-fold 1, epoch 6/10: train loss: 6.188678911754063, valid loss: 6.9215892566287, valid mAP: 0.5928761880922007
-fold 1, epoch 7/10: train loss: 6.218804075604393, valid loss: 6.896084146871083, valid mAP: 0.608177435122389
-fold 1, epoch 8/10: train loss: 6.160753295535133, valid loss: 6.884603602838689, valid mAP: 0.6023296312636748
-fold 1, epoch 9/10: train loss: 6.352500415983654, valid loss: 6.881422186351341, valid mAP: 0.6119293322268933
-fold 1, epoch 10/10: train loss: 6.206567832401821, valid loss: 6.880311411144077, valid mAP: 0.6084792277383417
-fold 2, epoch 1/10: train loss: 6.805354277292888, valid loss: 6.674842920356794, valid mAP: 0.01632034699850942
-fold 2, epoch 2/10: train loss: 6.774743068785894, valid loss: 6.653295650443845, valid mAP: 0.10311424578058237
-fold 2, epoch 3/10: train loss: 6.763583569299607, valid loss: 6.63547653440332, valid mAP: 0.21338767548111703
-fold 2, epoch 4/10: train loss: 6.904300212860107, valid loss: 6.59302644615156, valid mAP: 0.4290074214995284
-fold 2, epoch 5/10: train loss: 6.6846467199779696, valid loss: 6.515500627674054, valid mAP: 0.538883034249319
-fold 2, epoch 6/10: train loss: 6.73179292678833, valid loss: 6.483213160348975, valid mAP: 0.5899375408186134
-fold 2, epoch 7/10: train loss: 6.780517248880296, valid loss: 6.463352131238882, valid mAP: 0.6002036830425237
-fold 2, epoch 8/10: train loss: 6.468309697650728, valid loss: 6.451126497616802, valid mAP: 0.6125391887380383
-fold 2, epoch 9/10: train loss: 6.542498497735886, valid loss: 6.444739273168903, valid mAP: 0.6256097831702581
-fold 2, epoch 10/10: train loss: 6.504251502809071, valid loss: 6.443862869795682, valid mAP: 0.6286895503900445
-fold 3, epoch 1/10: train loss: 7.531470934549968, valid loss: 6.099467979825062, valid mAP: 0.012911559282793049
-fold 3, epoch 2/10: train loss: 6.723584493001302, valid loss: 6.081378569178607, valid mAP: 0.038799227297509536
-fold 3, epoch 3/10: train loss: 6.891559010460263, valid loss: 6.068587892391867, valid mAP: 0.11954856493338833
-fold 3, epoch 4/10: train loss: 7.002564180464971, valid loss: 6.023344616365174, valid mAP: 0.3053650198495621
-fold 3, epoch 5/10: train loss: 7.033120382399786, valid loss: 5.962538446367219, valid mAP: 0.4746323772465527
-fold 3, epoch 6/10: train loss: 6.73004842939831, valid loss: 5.928792620536642, valid mAP: 0.5526360826985095
-fold 3, epoch 7/10: train loss: 6.812300954546247, valid loss: 5.905685964215925, valid mAP: 0.5891628880283393
-fold 3, epoch 8/10: train loss: 6.796495460328602, valid loss: 5.895802779150182, valid mAP: 0.6033776688176755
-fold 3, epoch 9/10: train loss: 6.862480027335031, valid loss: 5.890804661356884, valid mAP: 0.5996965166696722
-fold 3, epoch 10/10: train loss: 6.608388991582961, valid loss: 5.89002806790497, valid mAP: 0.5943980291333677
+fold 0, epoch 1/10: train loss: 6.567, valid loss: 6.930, valid mAP: 0.023
+fold 0, epoch 2/10: train loss: 6.780, valid loss: 6.907, valid mAP: 0.109
+fold 0, epoch 3/10: train loss: 6.679, valid loss: 6.875, valid mAP: 0.237
+fold 0, epoch 4/10: train loss: 6.765, valid loss: 6.803, valid mAP: 0.416
+fold 0, epoch 5/10: train loss: 6.409, valid loss: 6.758, valid mAP: 0.519
+fold 0, epoch 6/10: train loss: 6.453, valid loss: 6.722, valid mAP: 0.574
+fold 0, epoch 7/10: train loss: 6.510, valid loss: 6.703, valid mAP: 0.602
+fold 0, epoch 8/10: train loss: 6.657, valid loss: 6.692, valid mAP: 0.620
+fold 0, epoch 9/10: train loss: 6.529, valid loss: 6.688, valid mAP: 0.614
+fold 0, epoch 10/10: train loss: 6.454, valid loss: 6.687, valid mAP: 0.610
+fold 1, epoch 1/10: train loss: 6.878, valid loss: 7.165, valid mAP: 0.026
+fold 1, epoch 2/10: train loss: 6.660, valid loss: 7.139, valid mAP: 0.081
+fold 1, epoch 3/10: train loss: 6.648, valid loss: 7.100, valid mAP: 0.208
+fold 1, epoch 4/10: train loss: 6.560, valid loss: 7.026, valid mAP: 0.431
+fold 1, epoch 5/10: train loss: 6.436, valid loss: 6.962, valid mAP: 0.553
+fold 1, epoch 6/10: train loss: 6.188, valid loss: 6.921, valid mAP: 0.592
+fold 1, epoch 7/10: train loss: 6.218, valid loss: 6.896, valid mAP: 0.608
+fold 1, epoch 8/10: train loss: 6.160, valid loss: 6.884, valid mAP: 0.602
+fold 1, epoch 9/10: train loss: 6.352, valid loss: 6.881, valid mAP: 0.611
+fold 1, epoch 10/10: train loss: 6.206, valid loss: 6.880, valid mAP: 0.608
+fold 2, epoch 1/10: train loss: 6.805, valid loss: 6.674, valid mAP: 0.0163
+fold 2, epoch 2/10: train loss: 6.774, valid loss: 6.653, valid mAP: 0.103
+fold 2, epoch 3/10: train loss: 6.763, valid loss: 6.635, valid mAP: 0.213
+fold 2, epoch 4/10: train loss: 6.904, valid loss: 6.593, valid mAP: 0.429
+fold 2, epoch 5/10: train loss: 6.684, valid loss: 6.515, valid mAP: 0.538
+fold 2, epoch 6/10: train loss: 6.731, valid loss: 6.483, valid mAP: 0.589
+fold 2, epoch 7/10: train loss: 6.780, valid loss: 6.463, valid mAP: 0.600
+fold 2, epoch 8/10: train loss: 6.468, valid loss: 6.451, valid mAP: 0.612
+fold 2, epoch 9/10: train loss: 6.542, valid loss: 6.444, valid mAP: 0.625
+fold 2, epoch 10/10: train loss: 6.504, valid loss: 6.443, valid mAP: 0.628
+fold 3, epoch 1/10: train loss: 7.531, valid loss: 6.099, valid mAP: 0.012
+fold 3, epoch 2/10: train loss: 6.723, valid loss: 6.081, valid mAP: 0.038
+fold 3, epoch 3/10: train loss: 6.891, valid loss: 6.068, valid mAP: 0.119
+fold 3, epoch 4/10: train loss: 7.002, valid loss: 6.023, valid mAP: 0.305
+fold 3, epoch 5/10: train loss: 7.033, valid loss: 5.962, valid mAP: 0.474
+fold 3, epoch 6/10: train loss: 6.730, valid loss: 5.928, valid mAP: 0.552
+fold 3, epoch 7/10: train loss: 6.812, valid loss: 5.905, valid mAP: 0.589
+fold 3, epoch 8/10: train loss: 6.796, valid loss: 5.895, valid mAP: 0.603
+fold 3, epoch 9/10: train loss: 6.8624, valid loss: 5.890, valid mAP: 0.599
+fold 3, epoch 10/10: train loss: 6.608, valid loss: 5.890, valid mAP: 0.594
 rnn hard results: 
- default score = 0.5664155029082533
+ default score = 0.566
  optimize hyperparams:
   best params: cutoff = 0.0, smoothing = 11
-  best score = 0.6166905528872586
-   tolerance 12 = 0.03872348644742643
-   tolerance 36 = 0.2953151010695607
-   tolerance 60 = 0.5226400268910409
-   tolerance 90 = 0.6570232916251942
-   tolerance 120 = 0.712453832558264
-   tolerance 150 = 0.7449724346306841
-   tolerance 180 = 0.7662430131158864
-   tolerance 240 = 0.7922328553750166
-   tolerance 300 = 0.8119013357894826
-   tolerance 360 = 0.82540015137003
+  best score = 0.616
+   tolerance 12 = 0.0387
+   tolerance 36 = 0.295
+   tolerance 60 = 0.522
+   tolerance 90 = 0.657
+   tolerance 120 = 0.712
+   tolerance 150 = 0.744
+   tolerance 180 = 0.766
+   tolerance 240 = 0.792
+   tolerance 300 = 0.811
+   tolerance 360 = 0.825
 ```
 
 ## References

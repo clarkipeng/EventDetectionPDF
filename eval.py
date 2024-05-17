@@ -326,7 +326,7 @@ def get_optimal_cutoff(
         print(f"{model_name} {obj} results: ")
 
         default_score = get_score(obj, 0.5, None, tolerances)
-        print(" default score =", default_score)
+        print(f" default score = {default_score:.3f}")
 
         if objective[:3] == "seg":
             max_pred = 1
@@ -352,13 +352,13 @@ def get_optimal_cutoff(
                 best_param = (cutoff, smooth_param)
 
         print(f"  best params: cutoff = {best_param[0]}, smoothing = {best_param[1]}")
-        print(f"  best score = {best_score}")
+        print(f"  best score = {best_score:.3f}")
         tol_scores = []
         for tol in tolerances["wakeup"]:
             tolerances_ = {"onset": [tol], "wakeup": [tol]}
             mAP_score = get_score(obj, best_param[0], best_param[1], tolerances_)
             tol_scores.append(tol_scores)
-            print(f"   tolerance {tol} = {mAP_score}")
+            print(f"   tolerance {tol} = {mAP_score:.3f}")
 
 
 def get_best_scores(

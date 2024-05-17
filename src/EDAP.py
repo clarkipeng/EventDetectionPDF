@@ -58,7 +58,9 @@ def score(
         score_column_name,
     ]:
         if column_name not in submission.columns:
-            raise ParticipantVisibleError(f"Submission must have column '{column_name}'.")
+            raise ParticipantVisibleError(
+                f"Submission must have column '{column_name}'."
+            )
 
     if not pd.api.types.is_numeric_dtype(submission[time_column_name]):
         raise ParticipantVisibleError(
@@ -109,7 +111,9 @@ def event_detection_ap(
         pass
 
     # Extract ground-truth events.
-    ground_truths = solution.query("event not in ['start', 'end']").reset_index(drop=True)
+    ground_truths = solution.query("event not in ['start', 'end']").reset_index(
+        drop=True
+    )
 
     # Map each event class to its prevalence (needed for recall calculation)
     class_counts = ground_truths.value_counts(event_column_name).to_dict()
@@ -154,7 +158,9 @@ def event_detection_ap(
     for key in aggregation_keys.itertuples(index=False):
         dets = detections_grouped.get_group(key)
         gts = ground_truths_grouped.get_group(key)
-        detections_matched.append(match_detections(dets["tolerance"].iloc[0], gts, dets))
+        detections_matched.append(
+            match_detections(dets["tolerance"].iloc[0], gts, dets)
+        )
     detections_matched = pd.concat(detections_matched)
 
     # Compute AP per event x tolerance group
@@ -185,7 +191,9 @@ def find_nearest_time_idx(times, target_time, excluded_indices, tolerance):
     best_error = float("inf")
 
     offset_range = min(len(times), tolerance)
-    for offset in range(-offset_range, offset_range):  # Check the exact, one before, and one after
+    for offset in range(
+        -offset_range, offset_range
+    ):  # Check the exact, one before, and one after
         check_idx = idx + offset
         if 0 <= check_idx < len(times) and check_idx not in excluded_indices:
             error = abs(times[check_idx] - target_time)
@@ -199,9 +207,13 @@ def find_nearest_time_idx(times, target_time, excluded_indices, tolerance):
 def match_detections(
     tolerance: float, ground_truths: pd.DataFrame, detections: pd.DataFrame
 ) -> pd.DataFrame:
-    detections_sorted = detections.sort_values(score_column_name, ascending=False).dropna()
+    detections_sorted = detections.sort_values(
+        score_column_name, ascending=False
+    ).dropna()
     is_matched = np.full_like(detections_sorted[event_column_name], False, dtype=bool)
-    ground_truths_times = ground_truths.sort_values(time_column_name)[time_column_name].tolist()
+    ground_truths_times = ground_truths.sort_values(time_column_name)[
+        time_column_name
+    ].tolist()
     matched_gt_indices: set[int] = set()
 
     for i, det in enumerate(detections_sorted.itertuples(index=False)):
@@ -257,6 +269,7 @@ def average_precision_score(matches: np.ndarray, scores: np.ndarray, p: int) -> 
     # Compute step integral
     return -np.sum(np.diff(recall) * np.array(precision)[:-1])
 
+
 def aggregate_data_by_series_event(df, step_range):
     """
     :param df: DataFrame to aggregate.
@@ -266,43 +279,58 @@ def aggregate_data_by_series_event(df, step_range):
 
     aggregated_data = []
 
-    # Sorting the DataFrame by 'series_id' and 'step' 
-    sorted_df = df.sort_values(by=['series_id', 'step'])
+    # Sorting the DataFrame by 'series_id' and 'step'
+    sorted_df = df.sort_values(by=["series_id", "step"])
 
-    for (series_id, event), group in sorted_df.groupby(['series_id', 'event']):
-        start_step = group['step'].iloc[0]
+    for (series_id, event), group in sorted_df.groupby(["series_id", "event"]):
+        start_step = group["step"].iloc[0]
         current_segment = []
 
         for _, row in group.iterrows():
-            if row['step'] - start_step <= step_range:
+            if row["step"] - start_step <= step_range:
                 current_segment.append(row)
             else:
                 if current_segment:
                     segment_df = pd.DataFrame(current_segment)
-                    average_step = segment_df['step'].mean()
-                    average_score = segment_df['score'].mean()
-                    aggregated_data.append({'series_id': series_id, 'event': event, 'step': average_step, 'score': average_score})
-                start_step = row['step']
+                    average_step = segment_df["step"].mean()
+                    average_score = segment_df["score"].mean()
+                    aggregated_data.append(
+                        {
+                            "series_id": series_id,
+                            "event": event,
+                            "step": average_step,
+                            "score": average_score,
+                        }
+                    )
+                start_step = row["step"]
                 current_segment = [row]
 
         # Aggregating the last segment for each series_id and event
         if current_segment:
             segment_df = pd.DataFrame(current_segment)
-            average_step = segment_df['step'].mean()
-            average_score = segment_df['score'].mean()
-            aggregated_data.append({'series_id': series_id, 'event': event, 'step': average_step, 'score': average_score})
+            average_step = segment_df["step"].mean()
+            average_score = segment_df["score"].mean()
+            aggregated_data.append(
+                {
+                    "series_id": series_id,
+                    "event": event,
+                    "step": average_step,
+                    "score": average_score,
+                }
+            )
 
     # Creating the final DataFrame, converting 'step' to int64, and adding 'row_id'
     final_df = pd.DataFrame(aggregated_data)
-    final_df['step'] = final_df['step'].astype('int64')
-    final_df = final_df.sort_values(by=['series_id', 'step']).reset_index(drop=True)
+    final_df["step"] = final_df["step"].astype("int64")
+    final_df = final_df.sort_values(by=["series_id", "step"]).reset_index(drop=True)
     final_df.reset_index(inplace=True)
-    final_df.rename(columns={'index': 'row_id'}, inplace=True)
+    final_df.rename(columns={"index": "row_id"}, inplace=True)
 
     # Reordering the columns to match the desired structure
-    final_df = final_df[['row_id', 'series_id', 'step', 'event', 'score']]
+    final_df = final_df[["row_id", "series_id", "step", "event", "score"]]
 
     return final_df
+
 
 # Re-segmenting the data with the new function that modifies the score
 # segments_with_modified_score = aggregate_data_by_series_event(sub_df2, 15)

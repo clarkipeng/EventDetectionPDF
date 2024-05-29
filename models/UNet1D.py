@@ -57,7 +57,9 @@ class UNet1D(nn.Module):
         self,
         input_channels: int = 2,
         num_classes: int = 2,
-        use_time_cat: bool = True,
+        cat_feats : int = 2,
+        cat_unique : int = 24,
+        categorical_enc_dim : int = 4,
         channels: list = [64, 128, 256],
         ks: int = 3,
         st: int = 1,
@@ -68,13 +70,11 @@ class UNet1D(nn.Module):
     ):
         super(UNet1D, self).__init__()
 
-        if use_time_cat:
-            # add categorical embeddings
-            self.hour_encoder = torch.nn.Embedding(24, 4)
-            self.day_encoder = torch.nn.Embedding(7, 4)
-            input_channels += 8
+        if cat_feats != 0:
+            self.cat_encoders = nn.ModuleList([torch.nn.Embedding(cat_unique, categorical_enc_dim) for i in range(cat_feats)])
+            input_channels += categorical_enc_dim * cat_feats
 
-        self.use_time_cat = use_time_cat
+        self.cat_feats = cat_feats
         self.num_classes = num_classes
         self.use_attention = use_attention
         self.input_channels = input_channels
@@ -112,14 +112,10 @@ class UNet1D(nn.Module):
         )
 
     def forward(self, x):
-        if self.use_time_cat:
+        if self.cat_feats != 0:
             # use categorical embeddings
             x = torch.concat(
-                [
-                    x[..., :-2],
-                    self.hour_encoder(x[..., -2].int()),
-                    self.day_encoder(x[..., -1].int()),
-                ],
+                [x[..., :-self.cat_feats]] + [self.cat_encoders[i](x[..., -(i+1)].int()) for i in range(self.cat_feats)],
                 dim=-1,
             )
 

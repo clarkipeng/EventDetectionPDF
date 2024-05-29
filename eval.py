@@ -25,22 +25,10 @@ from scipy.ndimage import gaussian_filter1d
 import matplotlib.pyplot as plt
 from numba import njit, jit
 
-from src.load_dataset import SleepDataset, normalize_error
-from src.EDAP import score
-from src.utils import get_loss
-
-
-tolerances = {
-    "onset": [12, 36, 60, 90, 120, 150, 180, 240, 300, 360],
-    "wakeup": [12, 36, 60, 90, 120, 150, 180, 240, 300, 360],
-}
-
-column_names = {
-    "series_id_column_name": "series_id",
-    "time_column_name": "step",
-    "event_column_name": "event",
-    "score_column_name": "score",
-}
+from src.metrics import score, score_all
+from src.sleep import get_sleep_dataclass
+from src.bowshock import get_bowshock_dataclass
+from src.utils import *
 
 
 @njit
@@ -58,14 +46,14 @@ def transform_segmentation(predictions: np.ndarray, interval: int):
 
 
 def get_candidates(
+    dataclass: DataClass,
     predictions: np.ndarray,
     objective: str,
-    max_distance: int,
-    day_length: int,
     threshold: float = None,  # between 0 and 1
     smooth: int = None,
 ):
-    days = len(predictions) // day_length + 1
+    days = len(predictions) // dataclass.day_length + 1
+    max_distance = dataclass.max_distance
 
     if threshold == None:
         # default values
@@ -74,7 +62,7 @@ def get_candidates(
         for i in range(predictions.shape[1]):
             predictions[:, i] = gaussian_filter1d(predictions[:, i], smooth)
 
-    if objective[:3] == "seg":
+    if objective[:3] == "seg" and dataclass.event_type == "interval":
         if len(objective) == 3 or objective[3] == "1":
             candidates, c_scores = [], []
 
@@ -139,14 +127,63 @@ def get_candidates(
     return candidates, scores
 
 
+def generate_df(
+    id,
+    prediction,
+    dataclass,
+    dataset,
+    objective,
+    threshold=None,
+    smooth=None,
+):
+
+    downsample = dataset.downsample
+    prediction = np.repeat(
+        prediction, downsample, 0
+    )  # get rid of downsampling by expanding
+
+    if dataclass.event_type == "interval":
+
+        (onsets, offsets), (onsets_score, offsets_score) = get_candidates(
+            dataclass,
+            prediction,
+            objective,
+            threshold,
+            smooth,
+        )
+        onset = dataset.data[id][["step"]].iloc[onsets].astype(np.int32)
+        onset["event"] = "onset"
+        onset["series_id"] = id
+        onset["score"] = onsets_score
+        offset = dataset.data[id][["step"]].iloc[offsets].astype(np.int32)
+        offset["event"] = "offset"
+        offset["series_id"] = id
+        offset["score"] = offsets_score
+        return pd.concat([onset, offset], axis=0)
+    else:
+        loc, loc_score = get_candidates(
+            dataclass,
+            prediction,
+            objective,
+            threshold,
+            smooth,
+        )
+        dfpred = dataset.data[id][["step"]].iloc[loc[0]].astype(np.int32)
+        dfpred["event"] = "event"
+        dfpred["series_id"] = id
+        dfpred["score"] = loc_score[0]
+        return dfpred
+
+
 def evaluate(
+    dataclass: DataClass,
     objective: str,
     model_name: str,
     model: torch.nn.Module,
     dataset: Dataset,
     device: str,
     workers: int = 1,
-    save_pred_dir: str = None,
+    save_pred_dir: Path = None,
 ):
     model.eval()
     valid_loss = 0.0
@@ -159,15 +196,30 @@ def evaluate(
         shuffle=False,
     )
     loss_fn = get_loss(objective)
-    downsample = dataset.downsample
-    max_distance = (30 * 12) // downsample
-    day_length = (24 * 60 * 12) // downsample
 
     truth = dataset.events
+    downsample = dataset.downsample
+
+    max_distance = dataclass.max_distance // downsample
+    day_length = dataclass.day_length // downsample
+    if dataclass.event_type == "interval":
+        tolerances = {
+            "onset": dataclass.tolerances,
+            "offset": dataclass.tolerances,
+        }
+    elif dataclass.event_type == "point":
+        tolerances = {
+            "event": dataclass.tolerances,
+        }
+    column_names = dataclass.column_names
+    combine_series_id = dataclass.combine_series_id
 
     submission = pd.DataFrame()
     for step, (X, y, mask, id) in enumerate(tqdm(loader, desc="Eval", unit="batch")):
         id = id[0]
+        if np.sum(truth.series_id == id) == 0 and (not combine_series_id):
+            continue
+
         if dataset.sequence_length is None:
             X, y = X.to(device), y.to(device)
             prediction = model(X).detach().cpu()
@@ -196,68 +248,49 @@ def evaluate(
         prediction = prediction.numpy()
 
         if save_pred_dir:
-            np.save(f"{save_pred_dir}/{id}.npy", prediction)
+            np.save(save_pred_dir / f"{id}.npy", prediction)
         gc.collect()
 
-        (onsets, wakeups), (onsets_score, wakeups_score) = get_candidates(
-            prediction, objective, max_distance, day_length
-        )
+        pred_df = generate_df(id, prediction, dataclass, dataset, objective)
+        submission = pd.concat([submission, pred_df], axis=0)
 
-        data_len = len(dataset.data[id])
-        onset = (
-            dataset.data[id][["step"]]
-            .iloc[np.clip(onsets * downsample + downsample // 2, 0, data_len - 1)]
-            .astype(np.int32)
-        )
-        onset["event"] = "onset"
-        onset["series_id"] = id
-        onset["score"] = onsets_score
-        wakeup = (
-            dataset.data[id][["step"]]
-            .iloc[np.clip(wakeups * downsample + downsample // 2, 0, data_len - 1)]
-            .astype(np.int32)
-        )
-        wakeup["event"] = "wakeup"
-        wakeup["series_id"] = id
-        wakeup["score"] = wakeups_score
-        submission = pd.concat([submission, onset, wakeup], axis=0)
-
-        # if step==1:
-        #     cands = np.zeros((len(prediction),2))
-        #     cands[onsets,0] = onsets_score
-        #     cands[wakeups,1] = wakeups_score
-
-        #     plt.plot(cands[:day_length])
-        #     plt.show()
-        #     plt.plot(prediction[:day_length])
-        #     plt.show()
-        #     plt.plot(target.numpy()[:day_length])
-        #     plt.show()
-
-        del onsets, wakeups, onset, wakeup
         gc.collect()
     submission = submission.sort_values(["series_id", "step"]).reset_index(drop=True)
     submission["row_id"] = submission.index.astype(int)
     submission.set_index("row_id")
     submission["score"] = submission["score"].fillna(submission["score"].mean())
     submission = submission[["row_id", "series_id", "step", "event", "score"]]
+    if save_pred_dir:
+        submission.to_csv("example_sub.csv")
+        truth.to_csv("example_tru.csv")
+    if combine_series_id:
+        submission["series_id"] = 0
+        truth["series_id"] = 0
 
     valid_loss /= len(loader)
     gc.collect()
 
     if len(submission) == 0:
-        mAP_score = 0
+        mAP = 0
     else:
-        mAP_score = score(truth, submission, tolerances, **column_names)
+        mAP = score(truth, submission, tolerances, **column_names)
     gc.collect()
-    return valid_loss, mAP_score
+    return valid_loss, mAP
+
+
+def format_score_output(score_dict):
+    string = ""
+    for name, score in score_dict.items():
+        string = string + f"{name} = {score:.3f}, "
+    return string
 
 
 def get_optimal_cutoff(
+    dataclass: DataClass,
     model_name: str,
     objective: str,
     dataset: Dataset,
-    save_pred_dir: str,
+    save_pred_dir: Path,
     workers: int = 1,
 ):
 
@@ -266,50 +299,37 @@ def get_optimal_cutoff(
     else:
         objectives = [objective]
 
-    def get_score(objective, cutoff, smooth_param, tolerances):
+    downsample = dataset.downsample
+    truth = dataset.events
 
-        truth = dataset.events
+    max_distance = dataclass.max_distance // downsample
+    day_length = dataclass.day_length // downsample
+    column_names = dataclass.column_names
+    combine_series_id = dataclass.combine_series_id
+
+    if dataclass.event_type == "interval":
+        tolerances = {
+            "onset": dataclass.tolerances,
+            "offset": dataclass.tolerances,
+        }
+    else:
+        tolerances = {"event": dataclass.tolerances}
+
+    def get_score(objective, cutoff, smooth_param, tolerances):
         submission = pd.DataFrame()
-        downsample = dataset.downsample
-        max_distance = (30 * 12) // downsample
-        day_length = (24 * 60 * 12) // downsample
 
         for id in dataset.ids:
-            pred = np.load(f"{save_pred_dir}/{id}.npy")
+            if np.sum(truth.series_id == id) == 0 and (not combine_series_id):
+                continue
+            pred = np.load(save_pred_dir / f"{id}.npy")
 
-            (onsets, wakeups), (onsets_score, wakeups_score) = get_candidates(
-                pred,
-                objective,
-                max_distance,
-                day_length,
-                threshold=cutoff,
-                smooth=smooth_param,
+            pred_df = generate_df(
+                id, pred, dataclass, dataset, objective, cutoff, smooth_param
             )
-
-            data_len = len(dataset.data[id])
-            onset = (
-                dataset.data[id][["step"]]
-                .iloc[np.clip(onsets * downsample + downsample // 2, 0, data_len - 1)]
-                .astype(np.int32)
-            )
-            onset["event"] = "onset"
-            onset["series_id"] = id
-            onset["score"] = onsets_score
-            wakeup = (
-                dataset.data[id][["step"]]
-                .iloc[np.clip(wakeups * downsample + downsample // 2, 0, data_len - 1)]
-                .astype(np.int32)
-            )
-            wakeup["event"] = "wakeup"
-            wakeup["series_id"] = id
-            wakeup["score"] = wakeups_score
-            submission = pd.concat([submission, onset, wakeup], axis=0)
-
-            del onsets, wakeups, onset, wakeup
-            gc.collect()
+            submission = pd.concat([submission, pred_df], axis=0)
 
         if len(submission) == 0:
-            return 0
+            return None
         submission = submission.sort_values(["series_id", "step"]).reset_index(
             drop=True
         )
@@ -317,51 +337,67 @@ def get_optimal_cutoff(
         submission.set_index("row_id")
         submission["score"] = submission["score"].fillna(submission["score"].mean())
         submission = submission[["row_id", "series_id", "step", "event", "score"]]
+        if combine_series_id:
+            submission["series_id"] = 0
+            truth["series_id"] = 0
 
-        mAP_score = score(truth, submission, tolerances, **column_names)
-        #         mAP_score = fast_score(truth, submission)
-        return mAP_score
+        scores = score_all(truth, submission, tolerances, **column_names)
+        return scores
 
     for obj in objectives:
         print(f"{model_name} {obj} results: ")
 
-        default_score = get_score(obj, 0.5, None, tolerances)
-        print(f" default score = {default_score:.3f}")
+        default_scores = get_score(obj, None, None, tolerances)
+        score_metrics = default_scores.keys()
+        print(f" default scores: {format_score_output(default_scores)}")
 
         if objective[:3] == "seg":
             max_pred = 1
-            cutoff_space = np.linspace(0, max_pred, 15)
-            smooth_space = [None] + [i for i in range(1, 21, 10)]
         else:
-            max_pred = 1 / normalize_error(objective)
-            cutoff_space = np.linspace(0, max_pred, 15)
-            smooth_space = [None] + [i for i in range(1, 21, 10)]
+            max_pred = 1 / normalize_error(dataclass, objective)
+        cutoff_space = np.linspace(0, max_pred, 15)
+        smooth_space = [None, 1, 4, 10, 20, 40, 100]
 
-        print(" optimize hyperparams:")
-        best_score, best_param = 0, (None, None)
-        for cutoff, smooth_param in tqdm(
-            itertools.product(cutoff_space, smooth_space),
-            desc="Optimizing",
-            total=len(cutoff_space) * len(smooth_space),
-        ):
+        for metric in score_metrics:
+            print(f" optimizing hyperparams for {metric}:")
+            best_params = {}
+            for cutoff, smooth_param in tqdm(
+                itertools.product(cutoff_space, smooth_space),
+                desc=" Optimizing",
+                total=len(cutoff_space) * len(smooth_space),
+            ):
 
-            mAP_score = get_score(obj, cutoff, smooth_param, tolerances)
-            best_score = max(mAP_score, best_score)
+                scores = get_score(obj, cutoff, smooth_param, tolerances)
+                if not scores:  # no score available
+                    continue
 
-            if best_score == mAP_score:
-                best_param = (cutoff, smooth_param)
+                for name, score in scores.items():
 
-        print(f"  best params: cutoff = {best_param[0]}, smoothing = {best_param[1]}")
-        print(f"  best score = {best_score:.3f}")
-        tol_scores = []
-        for tol in tolerances["wakeup"]:
-            tolerances_ = {"onset": [tol], "wakeup": [tol]}
-            mAP_score = get_score(obj, best_param[0], best_param[1], tolerances_)
-            tol_scores.append(tol_scores)
-            print(f"   tolerance {tol} = {mAP_score:.3f}")
+                    best_score, best_param = best_params.get(name, (0, None))
+                    best_score = max(best_score, score)
+                    if best_score == score:
+                        best_param = (cutoff, smooth_param)
+
+                    best_params[name] = (best_score, best_param)
+            best_scores = {n: s for n, (s, p) in best_params.items()}
+
+            print(
+                f"  ({metric}) best params: cutoff = {best_params[metric][1][0]}, smoothing = {best_params[metric][1][1]}"
+            )
+            print(f"  ({metric}) best scores: {format_score_output(best_scores)}")
+            tol_scores = []
+            for tol in dataclass.tolerances:
+                if dataclass.event_type == "interval":
+                    tolerances_ = {"onset": [tol], "offset": [tol]}
+                if dataclass.event_type == "point":
+                    tolerances_ = {"event": [tol]}
+                scores = get_score(obj, best_param[0], best_param[1], tolerances_)
+                tol_scores.append(scores)
+                print(f"   ({metric}) tolerance {tol}: {format_score_output(scores)}")
 
 
 def get_best_scores(
+    dataclass: DataClass,
     data_dir: str,
     model_name: str,
     objective: str,
@@ -372,17 +408,21 @@ def get_best_scores(
     epochs: int = 5,
     bs: int = 16,
     normalize: bool = False,
-    use_time_cat: bool = True,
+    use_cat: bool = True,
     device: str = ("cuda" if torch.cuda.is_available() else "cpu"),
     workers: int = 1,
 ):
-    model_path = f"./experiments/{model_name}"
+    dataset_name = dataclass.name
+    dataset_construct = dataclass.dataset_construct
 
-    obj = "seg" if "seg" == objective[:3] else objective
-    save_pred_dir = f"./experiments/{model_name}/{obj}/predictions"
+    save_model_path = Path(f"./experiments/{dataset_name}/{model_name}/{objective}/")
+    save_pred_dir = save_model_path / "predictions"
+
     loss_fn = get_loss(objective)
     kfold = KFold(n_splits=folds, shuffle=True, random_state=0)
-    full_dataset = SleepDataset(
+
+    full_dataset = dataset_construct(
+        dataclass,
         data_dir,
         -1,
         training=False,
@@ -392,7 +432,7 @@ def get_best_scores(
         target_type=objective,
     )
     get_optimal_cutoff(
-        model_name, objective, full_dataset, save_pred_dir, workers=workers
+        dataclass, model_name, objective, full_dataset, save_pred_dir, workers=workers
     )
 
 
@@ -405,17 +445,18 @@ def get_args_parser():
         type=str,
     )
     # type
+    parser.add_argument("--dataset", type=str, required=True)
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--objective", type=str, required=True)
     # data
     parser.add_argument("--downsample", default=10, type=int)
     parser.add_argument("--agg_feats", default=True, type=bool)
-    parser.add_argument("--use_time_cat", default=True, type=bool)
+    parser.add_argument("--use_cat", default=True, type=bool)
     parser.add_argument(
         "--sequence_length",
-        default=7 * (24 * 60 * 12),
+        default=None,
         type=int,
-        help="length of training timeseries where each step = 5s",
+        help="length of training timeseries in timesteps",
     )
     # training
     parser.add_argument("--bs", default=10, type=int)
@@ -438,18 +479,30 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    if args.dataset == "sleep":
+        dataclass = get_sleep_dataclass()
+    elif args.dataset == "bowshock":
+        dataclass = get_bowshock_dataclass()
+    else:
+        raise ValueError(f"{args.dataset} dataset not supported")
+
+    sequence_length = args.sequence_length
+    if not sequence_length:
+        sequence_length = dataclass.default_sequence_length
+
     get_best_scores(
+        dataclass=dataclass,
         data_dir=args.datadir,
         model_name=args.model,
         objective=args.objective,
-        sequence_length=args.sequence_length,
+        sequence_length=sequence_length,
         downsample=args.downsample,
         agg_feats=args.agg_feats,
         folds=args.folds,
         epochs=args.epochs,
         bs=args.bs,
         normalize=args.normalize,
-        use_time_cat=args.use_time_cat,
+        use_cat=args.use_cat,
         device=args.device,
         workers=args.workers,
     )

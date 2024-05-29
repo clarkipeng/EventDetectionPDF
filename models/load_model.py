@@ -1,35 +1,49 @@
-from SleepEventDetection.models.BiRNN import MultiBiRNN
-from SleepEventDetection.models.PrecTime import PrecTime
-from SleepEventDetection.models.UNet1D import UNet1D
+from models.BiRNN import MultiBiRNN
+from models.PrecTime import PrecTime
+from models.UNet1D import UNet1D
 
+from src.utils import DataClass
 
 def get_model(
+    dataclass : DataClass,
     model_name: str,
     objective: str,
     sequence_length: int,
     agg_feats: bool = True,
-    use_time_cat: bool = False,
+    use_cat: bool = False,
 ):
-    outsize = 2
-    if objective[:3] == "seg":
+    inputsize, outsize = 0, 0
+    cat_feats, cat_unique = 0, 0
+    
+    # model output dimensions
+    if objective[:3] == "seg" or dataclass.event_type == 'point':
         outsize = 1
-
-    inputsize = 2
+    else:
+        outsize = 2
+    
+    # dataset parameters
+    inputsize = dataclass.num_feats
     if agg_feats:
-        inputsize = 8
+        inputsize *= 4
+    if use_cat:
+        cat_feats = dataclass.cat_feats
+        cat_unique = dataclass.cat_uniq
+        
 
     if model_name == "rnn":
         return MultiBiRNN(
             input_channels=inputsize,
+            cat_feats = cat_feats,
+            cat_unique = cat_unique,
             n_layers=2,
-            use_time_cat=use_time_cat,
             num_classes=outsize,
         )
     elif model_name == "unet":
         return UNet1D(
             input_channels=inputsize,
             sequence_length=sequence_length,
-            use_time_cat=use_time_cat,
+            cat_feats = cat_feats,
+            cat_unique = cat_unique,
             num_classes=outsize,
             ks=7,
         )
@@ -37,7 +51,8 @@ def get_model(
         return UNet1D(
             input_channels=inputsize,
             sequence_length=sequence_length,
-            use_time_cat=use_time_cat,
+            cat_feats = cat_feats,
+            cat_unique = cat_unique,
             num_classes=outsize,
             ks=7,
             use_attention=True,
@@ -46,7 +61,8 @@ def get_model(
         return PrecTime(
             input_channels=inputsize,
             sequence_length=sequence_length,
-            use_time_cat=use_time_cat,
+            cat_feats = cat_feats,
+            cat_unique = cat_unique,
             num_classes=outsize,
         )
     raise ValueError("model not listed")

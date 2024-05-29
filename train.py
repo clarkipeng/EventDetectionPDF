@@ -21,10 +21,14 @@ from torch.utils.data import DataLoader, Dataset
 
 from sklearn.model_selection import KFold
 
-from src.load_dataset import SleepDataset
-from src.utils import get_loss
+from src.sleep import get_sleep_dataclass
+from src.bowshock import get_bowshock_dataclass
+from src.utils import get_loss, DataClass
+
 from models.load_model import get_model
+
 from eval import evaluate, get_optimal_cutoff
+
 from timm.scheduler import CosineLRScheduler
 
 
@@ -97,6 +101,7 @@ def train_epoch(loader, loss_fn, model, epoch, scheduler, optimizer, normalize, 
 
 
 def train(
+    dataclass: DataClass,
     data_dir: str,
     model_name: str,
     objective: str,
@@ -107,34 +112,23 @@ def train(
     epochs: int = 5,
     bs: int = 16,
     normalize: bool = False,
-    use_time_cat: bool = True,
+    use_cat: bool = True,
     device: str = ("cuda" if torch.cuda.is_available() else "cpu"),
     workers: int = 1,
 ):
-    try:
-        os.mkdir(f"./experiments")
-    except:
-        pass
-    try:
-        os.mkdir(f"./experiments/{model_name}")
-    except:
-        pass
-    try:
-        os.mkdir(f"./experiments/{model_name}/{objective}")
-    except:
-        pass
-    try:
-        os.mkdir(f"./experiments/{model_name}/{objective}/predictions")
-    except:
-        pass
+    dataset_name = dataclass.name
+    dataset_construct = dataclass.dataset_construct
 
-    save_model_path = f"./experiments/{model_name}/{objective}"
-    save_pred_dir = f"./experiments/{model_name}/{objective}/predictions"
+    save_model_path = Path(f"./experiments/{dataset_name}/{model_name}/{objective}")
+    save_pred_dir = save_model_path / "predictions"
+    save_pred_dir.mkdir(parents=True, exist_ok=True)
+
     loss_fn = get_loss(objective)
     kfold = KFold(n_splits=folds, shuffle=True, random_state=0)
 
     for fold in range(folds):
-        train_dataset = SleepDataset(
+        train_dataset = dataset_construct(
+            dataclass,
             data_dir,
             fold,
             kfold=kfold,
@@ -144,10 +138,11 @@ def train(
             sequence_length=sequence_length,
             target_type=objective,
             normalize=normalize,
-            use_time_cat=use_time_cat,
+            use_cat=use_cat,
         )
         gc.collect()
-        val_dataset = SleepDataset(
+        val_dataset = dataset_construct(
+            dataclass,
             data_dir,
             fold,
             kfold=kfold,
@@ -157,15 +152,16 @@ def train(
             sequence_length=sequence_length,
             target_type=objective,
             normalize=normalize,
-            use_time_cat=use_time_cat,
+            use_cat=use_cat,
         )
         gc.collect()
         model = get_model(
+            dataclass,
             model_name,
             objective,
             sequence_length // downsample,
             agg_feats=agg_feats,
-            use_time_cat=use_time_cat,
+            use_cat=use_cat,
         ).to(device)
 
         train_loader = DataLoader(
@@ -207,6 +203,7 @@ def train(
                 device,
             )
             valid_loss, valid_mAP = evaluate(
+                dataclass,
                 objective,
                 model_name,
                 model,
@@ -246,7 +243,8 @@ def train(
         )
         gc.collect()
 
-    full_dataset = SleepDataset(
+    full_dataset = dataclass.dataset_construct(
+        dataclass,
         data_dir,
         -1,
         training=False,
@@ -256,7 +254,7 @@ def train(
         target_type=objective,
     )
     get_optimal_cutoff(
-        model_name, objective, full_dataset, save_pred_dir, workers=workers
+        dataclass, model_name, objective, full_dataset, save_pred_dir, workers=workers
     )
 
 
@@ -269,17 +267,18 @@ def get_args_parser():
         type=str,
     )
     # type
+    parser.add_argument("--dataset", type=str, required=True)
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--objective", type=str, required=True)
     # data
     parser.add_argument("--downsample", default=10, type=int)
     parser.add_argument("--agg_feats", default=True, type=bool)
-    parser.add_argument("--use_time_cat", default=True, type=bool)
+    parser.add_argument("--use_cat", default=True, type=bool)
     parser.add_argument(
         "--sequence_length",
-        default=7 * (24 * 60 * 12),
+        default=None,
         type=int,
-        help="length of training timeseries where each step = 5s",
+        help="length of training timeseries in timesteps",
     )
     # training
     parser.add_argument("--bs", default=10, type=int)
@@ -302,18 +301,30 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    if args.dataset == "sleep":
+        dataclass = get_sleep_dataclass()
+    elif args.dataset == "bowshock":
+        dataclass = get_bowshock_dataclass()
+    else:
+        raise ValueError(f"{args.dataset} dataset not supported")
+
+    sequence_length = args.sequence_length
+    if not sequence_length:
+        sequence_length = dataclass.default_sequence_length
+
     train(
+        dataclass=dataclass,
         data_dir=args.datadir,
         model_name=args.model,
         objective=args.objective,
-        sequence_length=args.sequence_length,
+        sequence_length=sequence_length,
         downsample=args.downsample,
         agg_feats=args.agg_feats,
         folds=args.folds,
         epochs=args.epochs,
         bs=args.bs,
         normalize=args.normalize,
-        use_time_cat=args.use_time_cat,
+        use_cat=args.use_cat,
         device=args.device,
         workers=args.workers,
     )

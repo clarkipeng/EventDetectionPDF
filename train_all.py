@@ -3,8 +3,9 @@ import sys, os
 sys.path.append("../")
 
 from train import train
-from src.utils import get_loss
-from src.load_dataset import SleepDataset
+from src.sleep import get_sleep_dataclass
+from src.bowshock import get_bowshock_dataclass
+from src.utils import get_loss, DataClass
 
 import torch
 import argparse
@@ -23,13 +24,15 @@ def get_args_parser():
     # type
     parser.add_argument("--downsample", default=10, type=int)
     parser.add_argument("--agg_feats", default=True, type=bool)
-    parser.add_argument("--use_time_cat", default=True, type=bool)
+    parser.add_argument("--use_cat", default=True, type=bool)
     parser.add_argument(
         "--sequence_length",
-        default=7 * (24 * 60 * 12),
+        default= None,
         type=int,
-        help="length of training timeseries where each step = 5s",
+        help="length of training timeseries in timesteps",
     )
+    # type
+    parser.add_argument("--dataset", type=str, required=True)
     # training
     parser.add_argument("--bs", default=10, type=int)
     parser.add_argument("--epochs", default=10, type=int)
@@ -51,21 +54,34 @@ if __name__ == "__main__":
         parents=[get_args_parser()],
     )
     args = parser.parse_args()
+    
+    if args.dataset == 'sleep':
+        dataclass = get_sleep_dataclass()
+    elif args.dataset == 'bowshock':
+        dataclass = get_bowshock_dataclass()
+    else:
+        raise ValueError(f'{args.dataset} dataset not supported')
+    
+    sequence_length = args.sequence_length
+    if not sequence_length:
+        sequence_length = dataclass.default_sequence_length
+    
     for model in ["rnn", "unet", "unet_t", "prectime"]:
         for objective in ["seg1", "seg2", "hard", "gau", "custom"]:
 
             train(
+                dataclass = dataclass,
                 data_dir=args.datadir,
                 model_name=model,
                 objective=objective,
-                sequence_length=args.sequence_length,
+                sequence_length=sequence_length,
                 downsample=args.downsample,
                 agg_feats=args.agg_feats,
                 folds=args.folds,
                 epochs=args.epochs,
                 bs=args.bs,
                 normalize=args.normalize,
-                use_time_cat=args.use_time_cat,
+                use_cat=args.use_cat,
                 device=args.device,
                 workers=args.workers,
             )

@@ -51,41 +51,47 @@ pip install -r regressioneventdetection/requirements.txt
 
 ## Data Preparation:
 
-Download the [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data) from Kaggle.com. Place the downloaded dataset in a new directory in called ```data```. We require the directory structure to include the following: 
+Download the [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data) from Kaggle.com. Place the downloaded dataset in a new directory called `data`. We require the directory structure to include the following:
 ```
 path/to/repo/data
-  train_series.parquet    # sleep timeseries
-  train_events.csv        # sleep events
+  train_series.parquet
+  train_events.csv
 ```
 
-#### Requirements
-- Completion of the steps outlined in the [Installation Guide](#installation-guide).
-- Minimum of `8 GiB` of available disk-space on your computer.
+This repository also provides support for other datasets, such as the [bowshock detection dataset](https://archive.org/download/martian_bow_shock_dataset/martian_bow_shock_dataset.pkl) and the [event labels](https://archive.org/download/martian_bow_shock_events/martian_bow_shock_events.csv) provided by <cite>[Azib et al, 2023][1]</cite>. Place the downloaded datasets in the `data` directory as well. The required directory structure includes:
+```
+path/to/repo/data
+  martian_bow_shock_dataset.pkl
+  martian_bow_shock_events.csv
+```
 
+For the use of external datasets, a *DataClass* enum and a *torch.utils.data.Dataset* constructor must be defined. *DataClass* lays out the parameters and types of the dataset, such as the number of features, whether events are point-based or time-interval-based, and the thresholds to use in evaluation. The *Dataset* constructor must construct the inputs to the model, such as the input timeseries and target series. 
+
+More information can be found at [utils.py](src/utils.py), [sleep.py](src/sleep.py), and [bowshock.py](src/bowshock.py).
 
 ## Training and Evaluation
 We have 3 different scripts to aid in training and evaluation. These scripts are train_all.py, train.py, and eval.py.
 After you have done all the necessary steps listed above, you are ready to train and evaluate the models. In order to train a model on a certain objective, you can simply run the following script with the names of the models and objectives: 
 
 ```
-python train.py --datadir [path_to_dataset] --model [model_name] --objective [objective_name]
+python train.py --dataset [dataset_name] --model [model_name] --objective [objective_name] --datadir [path_to_dataset]
 ```
 Model choices can be *rnn*, *unet*, *unet_t*, or *prectime*. Objectives can be *hard*, *gau*, *custom*, *seg1*, *seg2*, or *seg* (which evaluates both segmentation methods),.
 
 In order to evaluate the trained models, run: 
 ```
-python eval.py --datadir [path_to_dataset]
+python eval.py --dataset [dataset_name] --datadir [path_to_dataset]
 ```
 
 In order to train all models on all objectives, run: 
 ```
-python train_all.py --datadir [path_to_dataset]
+python train_all.py --dataset [dataset_name] --datadir [path_to_dataset]
 ```
 
 #### Example
 Here is a example of running the training script on a machine with an A100 GPU and 32 GB of RAM:
 ```
-python train.py --model rnn --objective seg --epochs 10 --folds 4
+python train.py --dataset sleep --model rnn --objective seg --epochs 10 --folds 4
 ```
 Which has the following output:
 ```
@@ -130,21 +136,34 @@ fold 3, epoch 8/10: train loss: 6.796, valid loss: 5.895, valid mAP: 0.603
 fold 3, epoch 9/10: train loss: 6.8624, valid loss: 5.890, valid mAP: 0.599
 fold 3, epoch 10/10: train loss: 6.608, valid loss: 5.890, valid mAP: 0.594
 rnn hard results: 
- default score = 0.566
- optimize hyperparams:
-  best params: cutoff = 0.0, smoothing = 11
-  best score = 0.616
-   tolerance 12 = 0.0387
-   tolerance 36 = 0.295
-   tolerance 60 = 0.522
-   tolerance 90 = 0.657
-   tolerance 120 = 0.712
-   tolerance 150 = 0.744
-   tolerance 180 = 0.766
-   tolerance 240 = 0.792
-   tolerance 300 = 0.811
-   tolerance 360 = 0.825
+ default scores: mAP = 0.565, maxf1 = 0.663, 
+ optimizing hyperparams for mAP:
+  best params: cutoff = 0.0, smoothing = 40
+  best scores: mAP = 0.620, maxf1 = 0.681, 
+   tolerance 12 : mAP = 0.037, maxf1 = 0.186, 
+   tolerance 36 : mAP = 0.303, maxf1 = 0.518, 
+   tolerance 60 : mAP = 0.529, maxf1 = 0.664, 
+   tolerance 90 : mAP = 0.662, maxf1 = 0.731, 
+   tolerance 120 : mAP = 0.711, maxf1 = 0.755, 
+   tolerance 150 : mAP = 0.740, maxf1 = 0.771, 
+   tolerance 180 : mAP = 0.759, maxf1 = 0.780, 
+   tolerance 240 : mAP = 0.784, maxf1 = 0.792, 
+   tolerance 300 : mAP = 0.805, maxf1 = 0.802, 
+   tolerance 360 : mAP = 0.817, maxf1 = 0.808,
+ optimizing hyperparams for maxf1:
+  best params: cutoff = 0.0, smoothing = 40
+  best scores: mAP = 0.620, maxf1 = 0.681, 
+   tolerance 12 : mAP = 0.037, maxf1 = 0.186, 
+   tolerance 36 : mAP = 0.303, maxf1 = 0.518, 
+   tolerance 60 : mAP = 0.529, maxf1 = 0.664, 
+   tolerance 90 : mAP = 0.662, maxf1 = 0.731, 
+   tolerance 120 : mAP = 0.711, maxf1 = 0.755, 
+   tolerance 150 : mAP = 0.740, maxf1 = 0.771, 
+   tolerance 180 : mAP = 0.759, maxf1 = 0.780, 
+   tolerance 240 : mAP = 0.784, maxf1 = 0.792, 
+   tolerance 300 : mAP = 0.805, maxf1 = 0.802, 
+   tolerance 360 : mAP = 0.817, maxf1 = 0.808, 
 ```
 
 ## References
-
+[1]: https://github.com/menouarazib/eventdetector

@@ -27,7 +27,7 @@ def get_args_parser():
     parser.add_argument("--use_cat", default=True, type=bool)
     parser.add_argument(
         "--sequence_length",
-        default= None,
+        default=None,
         type=int,
         help="length of training timeseries in timesteps",
     )
@@ -54,23 +54,23 @@ if __name__ == "__main__":
         parents=[get_args_parser()],
     )
     args = parser.parse_args()
-    
-    if args.dataset == 'sleep':
+
+    if args.dataset == "sleep":
         dataclass = get_sleep_dataclass()
-    elif args.dataset == 'bowshock':
+    elif args.dataset == "bowshock":
         dataclass = get_bowshock_dataclass()
     else:
-        raise ValueError(f'{args.dataset} dataset not supported')
-    
+        raise ValueError(f"{args.dataset} dataset not supported")
+
     sequence_length = args.sequence_length
     if not sequence_length:
         sequence_length = dataclass.default_sequence_length
-    
+
     for model in ["rnn", "unet", "unet_t", "prectime"]:
         for objective in ["seg1", "seg2", "hard", "gau", "custom"]:
 
             train(
-                dataclass = dataclass,
+                dataclass=dataclass,
                 data_dir=args.datadir,
                 model_name=model,
                 objective=objective,

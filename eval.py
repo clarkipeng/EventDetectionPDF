@@ -382,9 +382,9 @@ def get_optimal_cutoff(
             best_scores = {n: s for n, (s, p) in best_params.items()}
 
             print(
-                f"  ({metric}) best params: cutoff = {best_params[metric][1][0]}, smoothing = {best_params[metric][1][1]}"
+                f"  best params: cutoff = {best_params[metric][1][0]}, smoothing = {best_params[metric][1][1]}"
             )
-            print(f"  ({metric}) best scores: {format_score_output(best_scores)}")
+            print(f"  best scores: {format_score_output(best_scores)}")
             tol_scores = []
             for tol in dataclass.tolerances:
                 if dataclass.event_type == "interval":
@@ -393,7 +393,7 @@ def get_optimal_cutoff(
                     tolerances_ = {"event": [tol]}
                 scores = get_score(obj, best_param[0], best_param[1], tolerances_)
                 tol_scores.append(scores)
-                print(f"   ({metric}) tolerance {tol}: {format_score_output(scores)}")
+                print(f"   tolerance {tol}: {format_score_output(scores)}")
 
 
 def get_best_scores(

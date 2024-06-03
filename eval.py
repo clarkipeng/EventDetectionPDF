@@ -329,7 +329,7 @@ def get_optimal_cutoff(
             submission = pd.concat([submission, pred_df], axis=0)
 
         if len(submission) == 0:
-            return None
+            return {'mAP':0, 'maxf1':0}
         submission = submission.sort_values(["series_id", "step"]).reset_index(
             drop=True
         )

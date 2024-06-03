@@ -18,7 +18,7 @@ This document describes the official software package developed for and used to 
 This software allows the training of binary sleep CPD models across Child Mind Institute's [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data). It features a command-line interface for training and evaluating models without needing to modify the underlying codebase.
 
 ## System Requirements
-**Minimal Hardware Requirements**
+**Hardware Requirements**
 
 For training our models from scratch,  we recommend using a Linux based computer with at least the following hardware specifications:
 
@@ -33,7 +33,7 @@ It is possible to train the model on smaller machines, and without GPUs, but doi
 
 **Software Requirements:**
 
-If you are going to run these scripts yourself from scratch, we highly recommend doing so on a GPU. In order to run the scripts with a GPU, the `pytorch` (`v2.2.2`) library is required. For this, the following additional software is required on your system:
+If you are going to run these scripts yourself from scratch, we highly recommend doing so on a GPU. In order to run the scripts with a GPU, the `pytorch` (`v2.2.2`) library is used. For this, the following additional software is required on your system:
 
 * [NVIDIA GPU drivers](https://www.nvidia.com/drivers)
 * [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit-archive)
@@ -65,7 +65,7 @@ path/to/repo/data
   martian_bow_shock_events.csv
 ```
 
-For the use of external datasets, a *DataClass* enum and a *torch.utils.data.Dataset* constructor must be defined. *DataClass* lays out the parameters and types of the dataset, such as the number of features, whether events are point-based or time-interval-based, and the thresholds to use in evaluation. The *Dataset* constructor must construct the inputs to the model, such as the input timeseries and target series. 
+For the use of external datasets, a ```DataClass``` enum and a ```torch.utils.data.Dataset``` constructor must be defined. ```DataClass``` lays out the parameters and types of the dataset, such as the number of features, whether events are point-based or time-interval-based, and the thresholds to use in evaluation. The ```Dataset``` constructor must construct the inputs to the model, such as the input timeseries and target series. 
 
 More information can be found at [utils.py](src/utils.py), [sleep.py](src/sleep.py), and [bowshock.py](src/bowshock.py).
 

@@ -174,7 +174,7 @@ class SleepDataset(Dataset):
         target_type: str = "gau",
         training: bool = True,
         downsample: int = 5,
-        agg_feats: bool = True,
+        agg_feats: str = "stat",
         sequence_length: int = None,
         normalize: bool = True,
         use_cat: bool = True,
@@ -205,6 +205,9 @@ class SleepDataset(Dataset):
         self.events = self.events.loc[self.events.series_id.isin(self.ids)]
         self.data = {id: self.data[id] for id in self.ids}
         self.targets = {id: self.targets[id] for id in self.ids}
+
+    def get_step(self, series_id, idx):
+        return self.data[series_id][["step"]].iloc[idx].astype(np.int32)
 
     def __len__(self):
         return len(self.ids)
@@ -279,4 +282,6 @@ def get_sleep_dataclass():
         day_length=(24 * 60 * 12),
         default_sequence_length=7 * (24 * 60 * 12),
         dataset_construct=SleepDataset,
+        evaluation_metrics=["mAP", "mf1"],
+        hyperparams_tune=["cutoff", "smooth"],
     )

@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader, Dataset
 import gc
 import os
 import random
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -63,7 +64,7 @@ def downsample_feats(x, downsample_factor, cat_feat=2, agg_feats=True):
     x = x.T
     x = np.reshape(x, (feats, length // downsample_factor, downsample_factor))
 
-    if agg_feats:
+    if agg_feats == "stat":
         # aggregating features
         if cat_feat > 0:
             x = np.concatenate(
@@ -86,7 +87,21 @@ def downsample_feats(x, downsample_factor, cat_feat=2, agg_feats=True):
                 ],
                 axis=0,
             ).T
-    else:
+    elif agg_feats == "all":
+        if cat_feat > 0:
+            x = np.concatenate(
+                [x[:-cat_feat, ..., i] for i in range(downsample_factor)]
+                + [
+                    x[-cat_feat:, ..., downsample_factor // 2],
+                ],
+                axis=0,
+            ).T
+        else:
+            x = np.concatenate(
+                [x[:, ..., i] for i in range(downsample_factor)],
+                axis=0,
+            ).T
+    elif agg_feats == "none":
         if cat_feat > 0:
             x = np.concatenate(
                 [
@@ -274,6 +289,11 @@ class DataClass:
         day_length,  # roughly how many steps for every event
         default_sequence_length,  # the default sequence length for the model input
         dataset_construct,  # the torch.utils.data.Dataset constructor for the dataset
+        evaluation_metrics: List[str] = ["mAP", "mf1"],  # the metrics to evaluate
+        hyperparams_tune: List[str] = [
+            "cutoff",
+            "smooth",
+        ],  # the hyperparameters to tune
     ):
         self.name = name
         self.combine_series_id = combine_series_id
@@ -288,3 +308,6 @@ class DataClass:
         self.day_length = day_length
         self.default_sequence_length = default_sequence_length
         self.dataset_construct = dataset_construct
+
+        self.evaluation_metrics = evaluation_metrics
+        self.hyperparams_tune = hyperparams_tune

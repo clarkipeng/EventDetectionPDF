@@ -23,6 +23,9 @@ from sklearn.model_selection import KFold
 
 from src.sleep import get_sleep_dataclass
 from src.bowshock import get_bowshock_dataclass
+from src.fraud import get_fraud_dataclass
+from src.seizure import get_seizure_dataclass
+
 from src.utils import get_loss, DataClass
 
 from models.load_model import get_model
@@ -80,7 +83,7 @@ def train_epoch(loader, loss_fn, model, epoch, scheduler, optimizer, normalize, 
         scheduler.step(step + len(loader) * (epoch - 1))
         pred = model(X)
 
-        loss = loss_fn(pred, y).mean()
+        loss = loss_fn(pred.double(), y.double()).double().mean().float()
 
         #         #convert mask
         #         mask = torch.zeros(y.shape)
@@ -160,6 +163,7 @@ def train(
             model_name,
             objective,
             sequence_length // downsample,
+            downsample,
             agg_feats=agg_feats,
             use_cat=use_cat,
         ).to(device)
@@ -267,12 +271,29 @@ def get_args_parser():
         type=str,
     )
     # type
-    parser.add_argument("--dataset", type=str, required=True)
-    parser.add_argument("--model", type=str, required=True)
-    parser.add_argument("--objective", type=str, required=True)
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        required=True,
+        choices=["bowshock", "sleep", "fraud", "seizure"],
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        required=True,
+    )  # choices=['rnn', 'unet', 'unet_t', 'prectime']
+    parser.add_argument(
+        "--objective", type=str, required=True, choices=["seg", "hard", "gau", "custom"]
+    )
     # data
     parser.add_argument("--downsample", default=10, type=int)
-    parser.add_argument("--agg_feats", default=True, type=bool)
+    parser.add_argument(
+        "--agg_feats",
+        default="stat",
+        type=str,
+        choices=["stat", "none", "all"],
+        help="stat - aggregates mean, max, min, and std across downsampled series. none - pure downsampling. all - no signal is lost, all features are retained",
+    )
     parser.add_argument("--use_cat", default=True, type=bool)
     parser.add_argument(
         "--sequence_length",
@@ -305,6 +326,10 @@ if __name__ == "__main__":
         dataclass = get_sleep_dataclass()
     elif args.dataset == "bowshock":
         dataclass = get_bowshock_dataclass()
+    elif args.dataset == "fraud":
+        dataclass = get_fraud_dataclass()
+    elif args.dataset == "seizure":
+        dataclass = get_seizure_dataclass()
     else:
         raise ValueError(f"{args.dataset} dataset not supported")
 

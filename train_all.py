@@ -3,8 +3,12 @@ import sys, os
 sys.path.append("../")
 
 from train import train
+
 from src.sleep import get_sleep_dataclass
 from src.bowshock import get_bowshock_dataclass
+from src.fraud import get_fraud_dataclass
+from src.seizure import get_seizure_dataclass
+
 from src.utils import get_loss, DataClass
 
 import torch
@@ -22,8 +26,21 @@ def get_args_parser():
         type=str,
     )
     # type
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        required=True,
+        choices=["bowshock", "sleep", "fraud", "seizure"],
+    )
+    # data
     parser.add_argument("--downsample", default=10, type=int)
-    parser.add_argument("--agg_feats", default=True, type=bool)
+    parser.add_argument(
+        "--agg_feats",
+        default="stat",
+        type=str,
+        choices=["stat", "none", "all"],
+        help="stat - aggregates mean, max, min, and std across downsampled series. none - pure downsampling. all - no signal is lost, all features are retained",
+    )
     parser.add_argument("--use_cat", default=True, type=bool)
     parser.add_argument(
         "--sequence_length",
@@ -31,8 +48,6 @@ def get_args_parser():
         type=int,
         help="length of training timeseries in timesteps",
     )
-    # type
-    parser.add_argument("--dataset", type=str, required=True)
     # training
     parser.add_argument("--bs", default=10, type=int)
     parser.add_argument("--epochs", default=10, type=int)
@@ -59,6 +74,10 @@ if __name__ == "__main__":
         dataclass = get_sleep_dataclass()
     elif args.dataset == "bowshock":
         dataclass = get_bowshock_dataclass()
+    elif args.dataset == "fraud":
+        dataclass = get_fraud_dataclass()
+    elif args.dataset == "seizure":
+        dataclass = get_seizure_dataclass()
     else:
         raise ValueError(f"{args.dataset} dataset not supported")
 

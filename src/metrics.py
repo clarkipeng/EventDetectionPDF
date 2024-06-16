@@ -505,10 +505,57 @@ def event_detection_all(
     # Average over tolerances, then over event classes
     mean_ap = ap_table.groupby(event_column_name).mean().sum() / len(event_classes)
 
-    return {"mAP": mean_ap, "maxf1": mean_f1}
+    return {
+        "mAP": mean_ap,
+        "mf1": mean_f1,
+    }
 
 
 def f1_score(matches: np.ndarray, scores: np.ndarray, p: int) -> float:
     precision, recall, _ = precision_recall_curve(matches, scores, p)
     # Compute step integral
-    return np.max(2 * precision * recall / (precision + recall + 1e-8))
+    f1 = 2 * precision * recall / (precision + recall + 1e-8)
+    idx = np.argmax(f1)
+    return f1[idx]  # , precision[idx], recall[idx]
+
+
+# def eventdetector_f1score(s_peaks, s_peaks_score, e_t, delta_with_time_unit =75):
+#     delta_t: list = []
+
+#     for thr in np.linspace(min(s_peaks_score),max(s_peaks_score),10):
+#         peaks = s_peaks[s_peaks_score>thr]
+
+#         e_matched = np.zeros(e_t.shape)
+#         p_matched = np.zeros(s_peaks.shape)
+
+#         for i, m_p in enumerate(s_peaks):
+#             signed_delta = delta_with_time_unit
+
+#             closest = None
+#             for j, t_e in enumerate(e_t):
+#                 m_t = t_e
+#                 diff = m_p - m_t
+
+#                 if abs(diff) <= delta_with_time_unit:
+#                     if closest is None or abs(diff)< abs(m_p - e_t[closest]):
+#                         closest = j
+
+#             if closest:
+#                 e_matched[closest] = 1
+#                 p_matched[i] = 1
+#         fn : int = len(e_matched) - np.sum(e_matched)
+#         fp : int = len(s_peaks) - np.sum(p_matched)
+
+#         tp : int = np.sum(e_matched)
+
+
+#         # return tp, fp, fn, delta_t
+#         if tp + fp == 0 or tp + fn == 0:
+#             return 0.0, 0.0, 0.0
+#         precision = tp / (tp + fp)
+#         recall = tp / (tp + fn)
+#         if precision + recall == 0:
+#             return 0.0, 0.0, 0.0
+#         return (2.0 * precision * recall) / (precision + recall), precision, recall
+# f1, precision, recall = eventdetector_f1score(submission[time_column_name],submission[score_column_name],solution[time_column_name])
+# return {"mAP": mean_ap, "mf1": mean_f1, 'simple_f1': f1, 'simple_precision': precision, 'simple_recall': recall}

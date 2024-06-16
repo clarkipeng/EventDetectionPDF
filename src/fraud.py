@@ -25,13 +25,13 @@ from math import pi, sqrt, exp
 from src.utils import *
 
 
-class BowShockDataset(Dataset):
+class FraudDataset(Dataset):
     def __init__(
         self,
         dataclass: DataClass,
         data_dir: Path,
         fold: int,
-        kfold: object = KFold(n_splits=5, shuffle=True, random_state=0),
+        kfold: object = KFold(n_splits=4, shuffle=True, random_state=0),
         target_type: str = "gau",
         training: bool = True,
         downsample: int = 5,
@@ -51,34 +51,24 @@ class BowShockDataset(Dataset):
 
         self.cat_feats = 0
 
-        ds = pd.read_pickle(data_dir / "martian_bow_shock_dataset.pkl")
-        events = pd.read_csv(data_dir / "martian_bow_shock_events.csv")
+        ds = pd.read_csv(data_dir / "credit_card_fraud_dataset.csv")
+        events = pd.read_csv(data_dir / "credit_card_fraud_events.csv")
 
-        ds["step"] = ds.groupby(pd.Grouper(freq="D")).cumcount()
-        ds["series_id"] = (ds.index.dayofyear - 1).astype(str)
+        ds["datetime"] = pd.to_datetime(ds["Unnamed: 0"])
+        ds = ds.set_index("datetime")
+        ds["step"] = ds.groupby(pd.Grouper(freq="h")).cumcount()
+        ds["series_id"] = (
+            ds.groupby(pd.Grouper(freq="h")).grouper.group_info[0].astype(str)
+        )
 
         events["events"] = pd.to_datetime(events["events"])
+        events = events.merge(
+            ds[["step", "series_id"]], left_on="events", right_on="datetime"
+        )
         events["event"] = "event"
-        events["step"] = (
-            (
-                (
-                    events["events"].dt.hour * 3600
-                    + events["events"].dt.minute * 60
-                    + events["events"].dt.second
-                    - 2
-                )
-                / 4
-            )
-            .round()
-            .astype(int)
-        )
-        events["series_id"] = (events["events"].dt.dayofyear - 1).astype(str)
 
-        ds[["ws_totels_1_new", "ws_totels_8", "ws_totels_6", "ws_rho"]] = (
-            ds[["ws_totels_1_new", "ws_totels_8", "ws_totels_6", "ws_rho"]]
-            .fillna(0)
-            .astype(np.float32)
-        )
+        self.feats = [f"V{i}" for i in range(1, 29)] + ["Amount"]
+        ds[self.feats] = ds[self.feats].fillna(0).astype(np.float32)
         ds = ds.reset_index(drop=True)
 
         self.ids = ds["series_id"].unique()
@@ -109,9 +99,7 @@ class BowShockDataset(Dataset):
     def __getitem__(self, index):
         series_id = self.ids[index]
 
-        feats = ["ws_totels_1_new", "ws_totels_8", "ws_totels_6", "ws_rho"]
-
-        X = self.data[series_id][feats].values
+        X = self.data[series_id][self.feats].values
 
         y = get_targets(
             self.dataclass,
@@ -155,15 +143,15 @@ class BowShockDataset(Dataset):
             return Xs, ys, masks, series_id
 
 
-def get_bowshock_dataclass():
+def get_fraud_dataclass():
     return DataClass(
-        name="bowshock",
+        name="fraud",
         combine_series_id=True,
         event_type="point",
-        num_feats=4,
+        num_feats=29,
         cat_feats=0,
         cat_uniq=0,
-        tolerances=[75],
+        tolerances=[2],
         column_names={
             "series_id_column_name": "series_id",
             "time_column_name": "step",
@@ -171,10 +159,10 @@ def get_bowshock_dataclass():
             "score_column_name": "score",
         },
         max_distance=1,
-        gaussian_sigma=15,
-        day_length=4510,  # length of total time series / total event length
-        default_sequence_length=(24 * 60 * 15),
-        dataset_construct=BowShockDataset,
+        gaussian_sigma=1,
+        day_length=579,  # length of total time series / total event length
+        default_sequence_length=(1 * 60 * 60),
+        dataset_construct=FraudDataset,
         evaluation_metrics=["mAP", "mf1"],
-        hyperparams_tune=["cutoff", "smooth", "distance"],
+        hyperparams_tune=["cutoff", "smooth"],
     )

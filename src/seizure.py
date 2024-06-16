@@ -25,7 +25,7 @@ from math import pi, sqrt, exp
 from src.utils import *
 
 
-class BowShockDataset(Dataset):
+class SeizureDataset(Dataset):
     def __init__(
         self,
         dataclass: DataClass,
@@ -51,42 +51,51 @@ class BowShockDataset(Dataset):
 
         self.cat_feats = 0
 
-        ds = pd.read_pickle(data_dir / "martian_bow_shock_dataset.pkl")
-        events = pd.read_csv(data_dir / "martian_bow_shock_events.csv")
+        self.feats = [
+            "FP1-F7",
+            "F7-T7",
+            "T7-P7",
+            "P7-O1",
+            "FP1-F3",
+            "F3-C3",
+            "C3-P3",
+            "P3-O1",
+            "FP2-F4",
+            "F4-C4",
+            "C4-P4",
+            "P4-O2",
+            "FP2-F8",
+            "F8-T8",
+            "T8-P8",
+            "P8-O2",
+            "FZ-CZ",
+            "CZ-PZ",
+            "P7-T7",
+            "T7-FT9",
+            "FT9-FT10",
+            "FT10-T8",
+        ]
 
-        ds["step"] = ds.groupby(pd.Grouper(freq="D")).cumcount()
-        ds["series_id"] = (ds.index.dayofyear - 1).astype(str)
+        events = pd.read_csv(data_dir / "seizure_events.csv")
+        self.ds_dir = data_dir / "seizure_256Hz_dataset"
 
-        events["events"] = pd.to_datetime(events["events"])
-        events["event"] = "event"
-        events["step"] = (
-            (
-                (
-                    events["events"].dt.hour * 3600
-                    + events["events"].dt.minute * 60
-                    + events["events"].dt.second
-                    - 2
-                )
-                / 4
-            )
-            .round()
-            .astype(int)
-        )
-        events["series_id"] = (events["events"].dt.dayofyear - 1).astype(str)
+        events["onset"] *= 256
+        events["offset"] *= 256
 
-        ds[["ws_totels_1_new", "ws_totels_8", "ws_totels_6", "ws_rho"]] = (
-            ds[["ws_totels_1_new", "ws_totels_8", "ws_totels_6", "ws_rho"]]
-            .fillna(0)
-            .astype(np.float32)
-        )
-        ds = ds.reset_index(drop=True)
-
-        self.ids = ds["series_id"].unique()
-        self.events = events
-        self.data = {id: group for id, group in ds.groupby("series_id")}
+        self.ids = events["series_id"].unique()
         self.targets = {
-            id: event["step"].tolist() for id, event in events.groupby("series_id")
+            id: (event["onset"].values, event["offset"].values)
+            for id, event in events.groupby("series_id")
         }
+
+        onset = events[["series_id", "onset"]]
+        onset = onset.rename({"onset": "step"}, axis=1)
+        onset["event"] = "onset"
+        offset = events[["series_id", "offset"]]
+        offset = offset.rename({"offset": "step"}, axis=1)
+        offset["event"] = "offset"
+        self.events = pd.concat([onset, offset], axis=0).sort_values("series_id")
+
         for id in self.ids:
             if id not in self.targets:
                 self.targets[id] = []
@@ -97,11 +106,13 @@ class BowShockDataset(Dataset):
             del idxs
 
         self.events = self.events.loc[self.events.series_id.isin(self.ids)]
-        self.data = {id: self.data[id] for id in self.ids}
         self.targets = {id: self.targets[id] for id in self.ids}
 
     def get_step(self, series_id, idx):
-        return self.data[series_id][["step"]].iloc[idx].astype(np.int32)
+        filepath = series_id.split(".")[0] + ".ftr"
+        df = pd.read_feather(self.ds_dir / filepath, columns=["series_id"]).iloc[idx]
+        df["step"] = df.index.astype(np.int32)
+        return df
 
     def __len__(self):
         return len(self.ids)
@@ -109,9 +120,15 @@ class BowShockDataset(Dataset):
     def __getitem__(self, index):
         series_id = self.ids[index]
 
-        feats = ["ws_totels_1_new", "ws_totels_8", "ws_totels_6", "ws_rho"]
-
-        X = self.data[series_id][feats].values
+        filepath = series_id.split(".")[0] + ".ftr"
+        X = (
+            pd.read_feather(self.ds_dir / filepath)[self.feats]
+            .fillna(0)
+            .astype(np.float64)
+            .values
+            / 45
+        )  # attempt to normalize
+        # X = self.data[series_id][feats].values
 
         y = get_targets(
             self.dataclass,
@@ -155,26 +172,26 @@ class BowShockDataset(Dataset):
             return Xs, ys, masks, series_id
 
 
-def get_bowshock_dataclass():
+def get_seizure_dataclass():
     return DataClass(
-        name="bowshock",
-        combine_series_id=True,
-        event_type="point",
-        num_feats=4,
+        name="seizure",
+        combine_series_id=False,
+        event_type="interval",
+        num_feats=22,
         cat_feats=0,
         cat_uniq=0,
-        tolerances=[75],
+        tolerances=[256, 512, 1280, 2560, 5120, 15360],
         column_names={
             "series_id_column_name": "series_id",
             "time_column_name": "step",
             "event_column_name": "event",
             "score_column_name": "score",
         },
-        max_distance=1,
-        gaussian_sigma=15,
-        day_length=4510,  # length of total time series / total event length
-        default_sequence_length=(24 * 60 * 15),
-        dataset_construct=BowShockDataset,
+        max_distance=256,
+        gaussian_sigma=512,
+        day_length=883728,  # length of total time series / total event length
+        default_sequence_length=(1 * 60 * 60 * 256),  # 10 minutes
+        dataset_construct=SeizureDataset,
         evaluation_metrics=["mAP", "mf1"],
         hyperparams_tune=["cutoff", "smooth", "distance"],
     )

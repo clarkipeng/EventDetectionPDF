@@ -57,9 +57,9 @@ class UNet1D(nn.Module):
         self,
         input_channels: int = 2,
         num_classes: int = 2,
-        cat_feats : int = 2,
-        cat_unique : int = 24,
-        categorical_enc_dim : int = 4,
+        cat_feats: int = 2,
+        cat_unique: int = 24,
+        categorical_enc_dim: int = 4,
         channels: list = [64, 128, 256],
         ks: int = 3,
         st: int = 1,
@@ -71,7 +71,12 @@ class UNet1D(nn.Module):
         super(UNet1D, self).__init__()
 
         if cat_feats != 0:
-            self.cat_encoders = nn.ModuleList([torch.nn.Embedding(cat_unique, categorical_enc_dim) for i in range(cat_feats)])
+            self.cat_encoders = nn.ModuleList(
+                [
+                    torch.nn.Embedding(cat_unique, categorical_enc_dim)
+                    for i in range(cat_feats)
+                ]
+            )
             input_channels += categorical_enc_dim * cat_feats
 
         self.cat_feats = cat_feats
@@ -115,7 +120,11 @@ class UNet1D(nn.Module):
         if self.cat_feats != 0:
             # use categorical embeddings
             x = torch.concat(
-                [x[..., :-self.cat_feats]] + [self.cat_encoders[i](x[..., -(i+1)].int()) for i in range(self.cat_feats)],
+                [x[..., : -self.cat_feats]]
+                + [
+                    self.cat_encoders[i](x[..., -(i + 1)].int())
+                    for i in range(self.cat_feats)
+                ],
                 dim=-1,
             )
 
@@ -138,7 +147,10 @@ class UNet1D(nn.Module):
 
         # # Upward pass
         for idx, module in enumerate(self.decoder):
-            x = F.interpolate(x, scale_factor=2, mode="nearest")
+            x = F.interpolate(
+                x, size=encoder_features[-1 - idx].shape[-1], mode="nearest"
+            )
+            # x = F.interpolate(x, scale_factor  = 2, mode="nearest")
             x = torch.concat([x, encoder_features[-1 - idx]], 1)
             x = module(x)
 

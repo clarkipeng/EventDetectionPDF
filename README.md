@@ -15,7 +15,7 @@ This repository may be used to train all the the models used for experiments in 
 ## Overview
 This document describes the official software package developed for and used to create the general regression-based approach for sleep CPD. It features different models, like [PrecTime](https://arxiv.org/ftp/arxiv/papers/2302/2302.10182.pdf), 1D UNets, and Bidirectional RNNS.
 
-This software allows the training of binary sleep CPD models across Child Mind Institute's [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data). It features a command-line interface for training and evaluating models without needing to modify the underlying codebase.
+This software allows the training of binary sleep CPD models using Child Mind Institute's [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data) and seizure event detection models using Physionet's [CHB-MIT Scalp EEG Database](https://archive.physionet.org/physiobank/database/chbmit/) from <cite>[Shoeb, Ali, 2009][2]</cite>. It features a command-line interface for training and evaluating models without needing to modify the underlying codebase.
 
 ## System Requirements
 **Hardware Requirements**
@@ -51,39 +51,47 @@ pip install -r regressioneventdetection/requirements.txt
 
 ## Data Preparation:
 
-Download the [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data) from Kaggle.com. Place the downloaded dataset in a new directory called `data`. We require the directory structure to include the following:
+Download the [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data) or [seizure detection dataset](https://www.kaggle.com/datasets/werus23/chb-mit-scalp-eeg-database-seizure-only) from Kaggle.com. Place the downloaded dataset in a new directory called `data`. We require the directory structure to include the following:
 ```
 path/to/repo/data
   train_series.parquet
   train_events.csv
 ```
+or
+```
+path/to/repo/data
+  seizure_256Hz_dataset
+  seizure_events.csv
+```
 
-This repository also provides support for other datasets, such as the [bowshock detection dataset](https://archive.org/download/martian_bow_shock_dataset/martian_bow_shock_dataset.pkl) and the [event labels](https://archive.org/download/martian_bow_shock_events/martian_bow_shock_events.csv) provided by <cite>[Azib et al, 2023][1]</cite>. Place the downloaded datasets in the `data` directory as well. The required directory structure includes:
+This repository also provides support for other datasets, such as the [bowshock detection dataset](https://archive.org/download/martian_bow_shock_dataset/martian_bow_shock_dataset.pkl) and [fraud detection dataset](https://archive.org/download/credit_card_fraud_dataset/credit_card_fraud_dataset.csv) as well as their [bowshock event labels](https://archive.org/download/martian_bow_shock_events/martian_bow_shock_events.csv) and [fraud event labels](https://archive.org/download/credit_card_fraud_events/credit_card_fraud_events.csv) provided by <cite>[Azib et al, 2023][1]</cite>. Place the downloaded datasets in the `data` directory. The required directory structure is:
 ```
 path/to/repo/data
   martian_bow_shock_dataset.pkl
   martian_bow_shock_events.csv
+  credit_card_fraud_dataset.csv
+  credit_card_fraud_events.csv
 ```
 
 For the use of external datasets, a ```DataClass``` enum and a ```torch.utils.data.Dataset``` constructor must be defined. ```DataClass``` lays out the parameters and types of the dataset, such as the number of features, whether events are point-based or time-interval-based, and the thresholds to use in evaluation. The ```Dataset``` constructor must construct the inputs to the model, such as the input timeseries and target series. 
 
-More information can be found at [utils.py](src/utils.py), [sleep.py](src/sleep.py), and [bowshock.py](src/bowshock.py).
+More information can be found with the dataloader scripts found in [src](src).
 
 ## Training and Evaluation
-We have 3 different scripts to aid in training and evaluation. These scripts are train_all.py, train.py, and eval.py.
+We have 3 different scripts to aid in training and evaluation. These scripts are [train_all.py](train_all.py), [train.py](train.py), and [eval.py](eval.py).
 After you have done all the necessary steps listed above, you are ready to train and evaluate the models. In order to train a model on a certain objective, you can simply run the following script with the names of the models and objectives: 
 
 ```
 python train.py --dataset [dataset_name] --model [model_name] --objective [objective_name] --datadir [path_to_dataset]
 ```
-Model choices can be *rnn*, *unet*, *unet_t*, or *prectime*. Objectives can be *hard*, *gau*, *custom*, *seg1*, *seg2*, or *seg* (which evaluates both segmentation methods),.
+Model choices vary: *rnn* (or *lstm* and *gru*), *unet* (or *unet_t*), and *prectime*. More information about model choices can be found at [load_model.py](models/load_model.py). Objectives can be *hard*, *gau*, *custom*, *seg1*, *seg2*, or *seg* (a combination of both segmentation methods).
 
 In order to evaluate the trained models, run: 
 ```
 python eval.py --dataset [dataset_name] --datadir [path_to_dataset]
 ```
 
-In order to train all models on all objectives, run: 
+In order to train the 5 main models (*seg*, *gru*, *unet*, *unet_t* and *prectime*) on all objectives, run: 
 ```
 python train_all.py --dataset [dataset_name] --datadir [path_to_dataset]
 ```
@@ -91,7 +99,7 @@ python train_all.py --dataset [dataset_name] --datadir [path_to_dataset]
 #### Example
 Here is a example of running the training script on a machine with an A100 GPU and 32 GB of RAM:
 ```
-python train.py --dataset sleep --model rnn --objective seg --epochs 10 --folds 4
+python train.py --dataset sleep --model gru --objective seg --epochs 10 --folds 4
 ```
 Which has the following output:
 ```
@@ -135,7 +143,7 @@ fold 3, epoch 7/10: train loss: 6.812, valid loss: 5.905, valid mAP: 0.589
 fold 3, epoch 8/10: train loss: 6.796, valid loss: 5.895, valid mAP: 0.603
 fold 3, epoch 9/10: train loss: 6.8624, valid loss: 5.890, valid mAP: 0.599
 fold 3, epoch 10/10: train loss: 6.608, valid loss: 5.890, valid mAP: 0.594
-rnn hard results: 
+gru hard results: 
  default scores: mAP = 0.565, maxf1 = 0.663, 
  optimizing hyperparams for mAP:
   best params: cutoff = 0.0, smoothing = 40
@@ -167,3 +175,5 @@ rnn hard results:
 
 ## References
 [1]: https://github.com/menouarazib/eventdetector
+[2]: https://archive.physionet.org/physiobank/database/chbmit/
+

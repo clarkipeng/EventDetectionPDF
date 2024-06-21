@@ -380,7 +380,7 @@ def get_optimal_cutoff(
         if "prominence" in hyperparams_tune:
             hyperparam_dict["prominence"] = np.linspace(0, max_pred * 0.5, 8)
         if "distance" in hyperparams_tune:
-            hyperparam_dict["distance"] = np.geomspace(1, 100 * max_distance, 4).astype(
+            hyperparam_dict["distance"] = np.geomspace(1, 1000 * max_distance, 8).astype(
                 int
             )
 
@@ -400,9 +400,9 @@ def get_optimal_cutoff(
             for name, score in scores.items():
 
                 best_score, best_param = best_params.get(name, (0, {}))
-                best_score = max(best_score, score)
-                if best_score == score:
+                if best_score < score:
                     best_param = param
+                    best_score = score
 
                 best_params[name] = (best_score, best_param)
         # best_scores = {n: s for n, (s, p) in best_params.items()}

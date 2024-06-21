@@ -32,7 +32,8 @@ class BiRNN(nn.Module):
         self.ln2 = nn.LayerNorm(hidden_size)
 
     def forward(self, x, h=None):
-        res, new_h = self.rnn(x, h)
+        out = self.rnn(x, h)
+        res = out[0]
 
         res = self.fc1(res)
         res = self.ln1(res)

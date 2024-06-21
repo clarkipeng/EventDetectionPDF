@@ -13,7 +13,9 @@ from tqdm.auto import tqdm
 from pathlib import Path
 
 from pyarrow.parquet import ParquetFile
+
 from sklearn.model_selection import KFold
+from sklearn.preprocessing import StandardScaler
 
 import torch
 from torch.utils.data import Dataset
@@ -94,7 +96,9 @@ class SeizureDataset(Dataset):
         offset = events[["series_id", "offset"]]
         offset = offset.rename({"offset": "step"}, axis=1)
         offset["event"] = "offset"
-        self.events = pd.concat([onset, offset], axis=0).sort_values("series_id")
+        self.events = pd.concat([onset, offset], axis=0).sort_values(
+            ["series_id", "step"]
+        )
 
         for id in self.ids:
             if id not in self.targets:
@@ -126,9 +130,14 @@ class SeizureDataset(Dataset):
             .fillna(0)
             .astype(np.float64)
             .values
-            / 45
+            / 100
         )  # attempt to normalize
-        # X = self.data[series_id][feats].values
+        # X = StandardScaler().fit_transform(
+        #     pd.read_feather(self.ds_dir / filepath)[self.feats]
+        #     .fillna(0)
+        #     .astype(np.float64)
+        #     .values
+        # )  # attempt to normalize
 
         y = get_targets(
             self.dataclass,
@@ -187,11 +196,14 @@ def get_seizure_dataclass():
             "event_column_name": "event",
             "score_column_name": "score",
         },
-        max_distance=256,
+        max_distance=25600,
         gaussian_sigma=512,
         day_length=883728,  # length of total time series / total event length
-        default_sequence_length=(1 * 60 * 60 * 256),  # 10 minutes
+        default_sequence_length=(1 * 60 * 60 * 256),  # 1 hour
         dataset_construct=SeizureDataset,
         evaluation_metrics=["mAP", "mf1"],
-        hyperparams_tune=["cutoff", "smooth", "distance"],
+        hyperparams_tune=[
+            "cutoff",
+            "smooth",
+        ],
     )

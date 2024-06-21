@@ -85,8 +85,8 @@ if __name__ == "__main__":
     if not sequence_length:
         sequence_length = dataclass.default_sequence_length
 
-    for model in ["rnn", "unet", "unet_t", "prectime"]:
-        for objective in ["seg1", "seg2", "hard", "gau", "custom"]:
+    for model in ["gru", "unet", "unet_t", "prectime"]:
+        for objective in ["seg", "hard", "gau", "custom"]:
 
             train(
                 dataclass=dataclass,

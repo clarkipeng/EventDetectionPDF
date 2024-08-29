@@ -1,6 +1,6 @@
 # Event Detection via Probability Density Function Regression
 
-This repository may be used to train all the the models used for experiments in the paper
+This repository may be used to train all the the models used for experiments in the [paper](https://arxiv.org/abs/2408.12792)
 
 ## Contents
 

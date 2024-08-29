@@ -1,4 +1,4 @@
-# General Regression-based Change Point Detection
+# Event Detection via Probability Density Function Regression
 
 This repository may be used to train all the the models used for experiments in the paper
 

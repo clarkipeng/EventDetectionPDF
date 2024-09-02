@@ -63,27 +63,25 @@ def get_model(
     elif model_name[:4] == "unet":
         use_attention = False
         layers = 3
+        ks = 7
 
         if "t" in model_name.split("_"):
             use_attention = True
         for arg in model_name.split("_"):
             if arg[:-1].isdigit() and arg[-1] == "l":
                 layers = int(arg[:-1])
-        assert layers >= 3
+            if arg[:-2].isdigit() and arg[-2:] == "ks":
+                ks = int(arg[:-2])
 
+        channels = [64,128,256,] + [int(256 * 1.5**i) for i in range(1, layers - 3 + 1)]
         return UNet1D(
-            channels=[
-                64,
-                128,
-                256,
-            ]
-            + [int(256 * 1.5**i) for i in range(1, layers - 3 + 1)],
+            channels = channels[:layers],
             input_channels=inputsize,
             sequence_length=sequence_length,
             cat_feats=cat_feats,
             cat_unique=cat_unique,
             num_classes=outsize,
-            ks=7,
+            ks=ks,
             use_attention=use_attention,
         )
     raise ValueError("model not listed")

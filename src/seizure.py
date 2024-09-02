@@ -72,7 +72,7 @@ class SeizureDataset(Dataset):
             "P8-O2",
             "FZ-CZ",
             "CZ-PZ",
-            "P7-T7",
+            # "P7-T7",
             "T7-FT9",
             "FT9-FT10",
             "FT10-T8",
@@ -139,15 +139,22 @@ class SeizureDataset(Dataset):
         #     .values
         # )  # attempt to normalize
 
+        #add random to target
+        targets = self.targets[series_id]
+        
+        if self.training:
+            targets = ((targets[0] + np.rint(np.random.uniform(-64,64, size=targets[0].shape))).astype(int),
+                       (targets[1] + np.rint(np.random.uniform(-64,64, size=targets[1].shape))).astype(int),
+                       )
+                
         y = get_targets(
             self.dataclass,
             X.shape[0],
-            self.targets[series_id],
+            targets,
             self.target_type,
             normalize=self.normalize,
         )
-
-        #         X, y = downsample_sequence(X,self.downsample), downsample_sequence(y,self.downsample)
+        
         mask = np.array([0, self.sequence_length])
 
         if self.training:
@@ -186,7 +193,7 @@ def get_seizure_dataclass():
         name="seizure",
         combine_series_id=False,
         event_type="interval",
-        num_feats=22,
+        num_feats=21,
         cat_feats=0,
         cat_uniq=0,
         tolerances=[256, 512, 1280, 2560, 5120, 15360],
@@ -196,12 +203,12 @@ def get_seizure_dataclass():
             "event_column_name": "event",
             "score_column_name": "score",
         },
-        max_distance=25600,
-        gaussian_sigma=512,
+        max_distance=145*256,
+        gaussian_sigma=256,
         day_length=883728,  # length of total time series / total event length
         default_sequence_length=(1 * 60 * 60 * 256),  # 1 hour
         dataset_construct=SeizureDataset,
-        evaluation_metrics=["mAP", "mf1"],
+        evaluation_metrics=["mAP"],
         hyperparams_tune=[
             "cutoff",
             "smooth",

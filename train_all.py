@@ -9,7 +9,7 @@ from src.bowshock import get_bowshock_dataclass
 from src.fraud import get_fraud_dataclass
 from src.seizure import get_seizure_dataclass
 
-from src.utils import get_loss, DataClass
+from src.utils import get_loss, set_random_seed, DataClass
 
 import torch
 import argparse
@@ -58,6 +58,7 @@ def get_args_parser():
         "--device", default=("cuda" if torch.cuda.is_available() else "cpu"), type=str
     )
     parser.add_argument("--workers", default=4, type=int)
+    parser.add_argument("--seed", default=0, type=int)
 
     return parser
 
@@ -69,6 +70,7 @@ if __name__ == "__main__":
         parents=[get_args_parser()],
     )
     args = parser.parse_args()
+    set_random_seed(args.seed)
 
     if args.dataset == "sleep":
         dataclass = get_sleep_dataclass()

@@ -1,0 +1,14 @@
+cff-version: 1.0.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Peng"
+  given-names: "Clark"
+  orcid: "https://orcid.org/0009-0005-0468-1821"
+- family-names: "Dinçer"
+  given-names: "Tolga"
+  orcid: "https://orcid.org/0000-0001-8843-3385"
+title: "Event Detection via Probability Density Function Regression"
+version: 1.0.0
+doi: 10.48550/arXiv.2408.12792
+date-released: 2024-08-23
+url: "https://doi.org/10.48550/arXiv.2408.12792"

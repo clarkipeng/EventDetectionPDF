@@ -7,6 +7,9 @@ import random
 import argparse
 import warnings
 import itertools
+import multiprocessing
+import functools
+import joblib
 
 import numpy as np
 import pandas as pd
@@ -25,7 +28,7 @@ from scipy.ndimage import gaussian_filter1d
 import matplotlib.pyplot as plt
 from numba import njit, jit
 
-from src.metrics import score, score_all
+from src.metrics import calculate_score
 
 from src.sleep import get_sleep_dataclass
 from src.bowshock import get_bowshock_dataclass
@@ -58,7 +61,7 @@ def get_candidates(
     days = len(predictions) // dataclass.day_length + 1
     max_distance = dataclass.max_distance
 
-    threshold = param.get("threshold", None)
+    threshold = param.get("cutoff", None)
     smooth = param.get("smooth", None)
     prominence = param.get("prominence", None)
     max_distance = param.get("distance", max_distance)
@@ -285,7 +288,7 @@ def evaluate(
     if len(submission) == 0:
         mAP = 0
     else:
-        mAP = score(truth, submission, tolerances, **column_names)
+        mAP = calculate_score(truth, submission, tolerances, **column_names, metrics = ['mAP'])['mAP']
     gc.collect()
     return valid_loss, mAP
 
@@ -344,7 +347,7 @@ def get_optimal_cutoff(
             submission = pd.concat([submission, pred_df], axis=0)
 
         if len(submission) == 0:
-            return {}
+            return {k: 0 for k in evaluation_metrics}
         submission = submission.sort_values(["series_id", "step"]).reset_index(
             drop=True
         )
@@ -356,16 +359,28 @@ def get_optimal_cutoff(
             submission["series_id"] = 0
             truth["series_id"] = 0
 
-        scores = score_all(truth, submission, tolerances, **column_names)
-        scores = {k: scores[k] for k in evaluation_metrics}
+        scores = calculate_score(truth, submission, tolerances, metrics = evaluation_metrics, **column_names)
         return scores
+    
+    def get_scores_param(param):
+        param = {k: param[i] for i, k in enumerate(hyperparam_dict.keys())}
+
+        scores = get_score(obj, param, tolerances)
+        return param,scores
+    
+    def get_scores_tolerance(param, tol):
+        if dataclass.event_type == "interval":
+            tolerances_ = {"onset": [tol], "offset": [tol]}
+        if dataclass.event_type == "point":
+            tolerances_ = {"event": [tol]}
+        scores = get_score(obj, param, tolerances_)
+        return tol, scores
 
     for obj in objectives:
         print(f"{model_name} {obj} results: ")
 
         default_scores = get_score(obj, {}, tolerances)
-        score_metrics = default_scores.keys()
-        print(f" default scores: {format_score_output(default_scores)}")
+        print(f" default scores: {format_score_output({k:default_scores[k] for k in evaluation_metrics})}")
 
         if objective[:3] == "seg":
             max_pred = 1
@@ -374,9 +389,9 @@ def get_optimal_cutoff(
 
         hyperparam_dict = {}
         if "cutoff" in hyperparams_tune:
-            hyperparam_dict["cutoff"] = np.linspace(0, max_pred, 10)
+            hyperparam_dict["cutoff"] = np.linspace(0, max_pred, 11)
         if "smooth" in hyperparams_tune:
-            hyperparam_dict["smooth"] = [None] + [1, 3, 10, 30, 100]
+            hyperparam_dict["smooth"] = [None, 1, 10, 100, 1000]
         if "prominence" in hyperparams_tune:
             hyperparam_dict["prominence"] = np.linspace(0, max_pred * 0.5, 8)
         if "distance" in hyperparams_tune:
@@ -384,20 +399,21 @@ def get_optimal_cutoff(
                 int
             )
 
+        
+        param_search = list(itertools.product(*[hyperparam_dict[k] for k in hyperparam_dict.keys()]))
+        if workers > 1:
+            param_scores = joblib.Parallel(n_jobs=workers, require='sharedmem')(joblib.delayed(get_scores_param)(param) for param in tqdm(param_search,desc=" Optimizing"))
+        else:
+            param_scores = [score(obj, param, tolerances) for param in tqdm(param_search,desc=" Optimizing")]
+            
         best_params = {}
-
-        for param in tqdm(
-            itertools.product(*[hyperparam_dict[k] for k in hyperparam_dict.keys()]),
-            desc=" Optimizing",
-            total=np.prod([len(hyperparam_dict[k]) for k in hyperparam_dict.keys()]),
-        ):
-            param = {k: param[i] for i, k in enumerate(hyperparam_dict.keys())}
-
-            scores = get_score(obj, param, tolerances)
+        for param, scores in param_scores:
             if not scores:  # no score available
                 continue
 
             for name, score in scores.items():
+                if name not in evaluation_metrics:
+                    continue
 
                 best_score, best_param = best_params.get(name, (0, {}))
                 if best_score < score:
@@ -405,21 +421,24 @@ def get_optimal_cutoff(
                     best_score = score
 
                 best_params[name] = (best_score, best_param)
+        
         # best_scores = {n: s for n, (s, p) in best_params.items()}
-        for metric in score_metrics:
+        for metric in evaluation_metrics:
             print(f" optimizing hyperparams for {metric}:")
             print(f"  best params: {format_score_output(best_params[metric][1])}")
             best_scores = get_score(obj, best_params[metric][1], tolerances)
-            print(f"  best scores: {format_score_output(best_scores)}")
-            tol_scores = []
-            for tol in dataclass.tolerances:
-                if dataclass.event_type == "interval":
-                    tolerances_ = {"onset": [tol], "offset": [tol]}
-                if dataclass.event_type == "point":
-                    tolerances_ = {"event": [tol]}
-                scores = get_score(obj, best_params[metric][1], tolerances_)
-                tol_scores.append(scores)
-                print(f"   tolerance {tol}: {format_score_output(scores)}")
+            print(f"  best scores: {format_score_output({k:best_scores[k] for k in evaluation_metrics})}")
+            
+            if f"{metric}_tolerances" in best_scores.keys():
+                tol_scores = best_scores[f"{metric}_tolerances"]
+            else:
+                if workers > 1:
+                    tol_scores = joblib.Parallel(n_jobs=workers, require='sharedmem')(joblib.delayed(get_scores_tolerance)(best_params[metric][1], tol) for tol in dataclass.tolerances)
+                else:
+                    tol_scores = [score(best_params[metric][1], tol) for tol in dataclass.tolerances]
+            
+            for tol, scores in zip(dataclass.tolerances,tol_scores):
+                print(f"   tolerance {tol}: {metric} = {scores}")
 
 
 def get_best_scores(
@@ -483,7 +502,7 @@ def get_args_parser():
         required=True,
     )  # choices=['rnn', 'unet', 'unet_t', 'prectime']
     parser.add_argument(
-        "--objective", type=str, required=True, choices=["seg", "hard", "gau", "custom"]
+        "--objective", type=str, required=True, choices=["seg", "seg1", "seg2", "hard", "gau", "custom"]
     )
     # data
     parser.add_argument("--downsample", default=10, type=int)
@@ -511,6 +530,7 @@ def get_args_parser():
         "--device", default=("cuda" if torch.cuda.is_available() else "cpu"), type=str
     )
     parser.add_argument("--workers", default=4, type=int)
+    parser.add_argument("--seed", default=0, type=int)
 
     return parser
 
@@ -521,6 +541,7 @@ if __name__ == "__main__":
         "training and evaluation script", parents=[get_args_parser()]
     )
     args = parser.parse_args()
+    set_random_seed(args.seed)
 
     if args.dataset == "sleep":
         dataclass = get_sleep_dataclass()

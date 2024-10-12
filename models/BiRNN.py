@@ -53,9 +53,9 @@ class MultiBiRNN(nn.Module):
     def __init__(
         self,
         input_channels: int = 2,
-        cat_feats : int = 2,
-        cat_unique : int = 24,
-        categorical_enc_dim : int = 4,
+        cat_feats: int = 2,
+        cat_unique: int = 24,
+        categorical_enc_dim: int = 4,
         num_classes: int = 2,
         hidden_size: int = 32,
         rnn_unit=nn.GRU,  # or nn.LSTM
@@ -65,7 +65,12 @@ class MultiBiRNN(nn.Module):
         super(MultiBiRNN, self).__init__()
 
         if cat_feats != 0:
-            self.cat_encoders = nn.ModuleList([torch.nn.Embedding(cat_unique, categorical_enc_dim) for i in range(cat_feats)])
+            self.cat_encoders = nn.ModuleList(
+                [
+                    torch.nn.Embedding(cat_unique, categorical_enc_dim)
+                    for i in range(cat_feats)
+                ]
+            )
             input_channels += categorical_enc_dim * cat_feats
 
         self.cat_feats = cat_feats
@@ -88,7 +93,11 @@ class MultiBiRNN(nn.Module):
         if self.cat_feats != 0:
             # use categorical embeddings
             x = torch.concat(
-                [x[..., :-self.cat_feats]] + [self.cat_encoders[i](x[..., -(i+1)].int()) for i in range(self.cat_feats)],
+                [x[..., : -self.cat_feats]]
+                + [
+                    self.cat_encoders[i](x[..., -(i + 1)].int())
+                    for i in range(self.cat_feats)
+                ],
                 dim=-1,
             )
         x = self.fc_in(x)

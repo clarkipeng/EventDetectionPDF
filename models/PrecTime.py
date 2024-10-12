@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 def conv1d_block(
     in_channels,
     out_channels,
@@ -33,9 +34,9 @@ class PrecTime(nn.Module):
     def __init__(
         self,
         input_channels: int = 2,
-        cat_feats : int = 2,
-        cat_unique : int = 24,
-        categorical_enc_dim : int = 4,
+        cat_feats: int = 2,
+        cat_unique: int = 24,
+        categorical_enc_dim: int = 4,
         hidden_channels: int = 128,
         kernel_size: int = 5,
         padding: int = 2,
@@ -48,9 +49,14 @@ class PrecTime(nn.Module):
         fe2_layers: int = 4,
     ):
         super(PrecTime, self).__init__()
-        
+
         if cat_feats != 0:
-            self.cat_encoders = nn.ModuleList([torch.nn.Embedding(cat_unique, categorical_enc_dim) for i in range(cat_feats)])
+            self.cat_encoders = nn.ModuleList(
+                [
+                    torch.nn.Embedding(cat_unique, categorical_enc_dim)
+                    for i in range(cat_feats)
+                ]
+            )
             input_channels += categorical_enc_dim * cat_feats
 
         self.input_channels = input_channels
@@ -204,7 +210,11 @@ class PrecTime(nn.Module):
         if self.cat_feats != 0:
             # use categorical embeddings
             x = torch.concat(
-                [x[..., :-self.cat_feats]] + [self.cat_encoders[i](x[..., -(i+1)].int()) for i in range(self.cat_feats)],
+                [x[..., : -self.cat_feats]]
+                + [
+                    self.cat_encoders[i](x[..., -(i + 1)].int())
+                    for i in range(self.cat_feats)
+                ],
                 dim=-1,
             )
 

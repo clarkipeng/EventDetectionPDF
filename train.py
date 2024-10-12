@@ -122,9 +122,11 @@ def train(
     dataset_name = dataclass.name
     dataset_construct = dataclass.dataset_construct
 
-    save_model_path = Path(f"./experiments/{dataset_name}/{model_name}/{objective}")
-    save_pred_dir = save_model_path / "predictions"
+    save_path = Path(f"./experiments/{dataset_name}/{model_name}/{objective}")
+    save_pred_dir = save_path / "predictions"
+    save_model_dir = save_path / "models"
     save_pred_dir.mkdir(parents=True, exist_ok=True)
+    save_model_dir.mkdir(parents=True, exist_ok=True)
 
     loss_fn = get_loss(objective)
     kfold = KFold(n_splits=folds, shuffle=True, random_state=0)
@@ -226,13 +228,16 @@ def train(
             history["valid_loss"].append(valid_loss)
             history["lr"].append(optimizer.param_groups[0]["lr"])
 
-        # save and plot the evolution of the metrics over time
-        plot_history(history, model_path=save_model_path)
+            model_path = save_model_dir / f"model_f{fold}_e{epoch}.pth"
+            torch.save(model.state_dict(), model_path)
 
-        model_path = os.path.join(save_model_path, f"model_{fold}.pth")
+        # save and plot the evolution of the metrics over time
+        plot_history(history, model_path=save_path)
+
+        model_path = save_model_dir / f"model_{fold}.pth"
         torch.save(model.state_dict(), model_path)
 
-        history_path = os.path.join(save_model_path, f"history_{fold}.json")
+        history_path = os.path.join(save_path, f"history_{fold}.json")
         with open(history_path, "w", encoding="utf-8") as f:
             json.dump(history, f, ensure_ascii=False, indent=4)
 
@@ -283,7 +288,10 @@ def get_args_parser():
         required=True,
     )  # choices=['rnn', 'unet', 'unet_t', 'prectime']
     parser.add_argument(
-        "--objective", type=str, required=True, choices=["seg", "seg1", "seg2", "hard", "gau", "custom"]
+        "--objective",
+        type=str,
+        required=True,
+        choices=["seg", "seg1", "seg2", "hard", "gau", "custom"],
     )
     # data
     parser.add_argument("--downsample", default=10, type=int)

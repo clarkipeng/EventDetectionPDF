@@ -272,9 +272,10 @@ def get_loss(objective):
         return nn.BCEWithLogitsLoss(reduction="none")
     return nn.MSELoss(reduction="none")
 
+
 def set_random_seed(seed=0):
     random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)

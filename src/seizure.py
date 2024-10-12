@@ -139,14 +139,21 @@ class SeizureDataset(Dataset):
         #     .values
         # )  # attempt to normalize
 
-        #add random to target
+        # add random to target
         targets = self.targets[series_id]
-        
+
         if self.training:
-            targets = ((targets[0] + np.rint(np.random.uniform(-64,64, size=targets[0].shape))).astype(int),
-                       (targets[1] + np.rint(np.random.uniform(-64,64, size=targets[1].shape))).astype(int),
-                       )
-                
+            targets = (
+                (
+                    targets[0]
+                    + np.rint(np.random.uniform(-64, 64, size=targets[0].shape))
+                ).astype(int),
+                (
+                    targets[1]
+                    + np.rint(np.random.uniform(-64, 64, size=targets[1].shape))
+                ).astype(int),
+            )
+
         y = get_targets(
             self.dataclass,
             X.shape[0],
@@ -154,7 +161,7 @@ class SeizureDataset(Dataset):
             self.target_type,
             normalize=self.normalize,
         )
-        
+
         mask = np.array([0, self.sequence_length])
 
         if self.training:
@@ -203,7 +210,7 @@ def get_seizure_dataclass():
             "event_column_name": "event",
             "score_column_name": "score",
         },
-        max_distance=145*256,
+        max_distance=145 * 256,
         gaussian_sigma=256,
         day_length=883728,  # length of total time series / total event length
         default_sequence_length=(1 * 60 * 60 * 256),  # 1 hour

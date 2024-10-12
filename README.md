@@ -1,5 +1,9 @@
 # Event Detection via Probability Density Function Regression
 
+![](PDFR.gif)
+<!-- <img src="PDFR.gif" width="100" height="100" /> -->
+<!-- ![Alt Text](https://giphy.com/gifs/4xBzU3jqWZfdWwSeoO) -->
+
 This repository may be used to train all the the models used for experiments in the [paper](https://arxiv.org/abs/2408.12792)
 
 ## Contents

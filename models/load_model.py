@@ -5,6 +5,7 @@ from models.UNet1D import UNet1D
 from src.utils import DataClass
 from torch import Tensor, nn
 
+
 def get_model(
     dataclass: DataClass,
     model_name: str,
@@ -33,23 +34,25 @@ def get_model(
         cat_feats = dataclass.cat_feats
         cat_unique = dataclass.cat_uniq
 
-    if model_name.split('_')[0] in ["rnn", "gru","lstm"]:
+    if model_name.split("_")[0] in ["rnn", "gru", "lstm"]:
         layers = 2
         hidden_size = 32
-        
+
         for arg in model_name.split("_"):
             if arg[:-1].isdigit() and arg[-1] == "l":
                 layers = int(arg[:-1])
             if arg[:-1].isdigit() and arg[-1] == "h":
                 hidden_size = int(arg[:-1])
-        
+
         return MultiBiRNN(
             input_channels=inputsize,
             cat_feats=cat_feats,
             cat_unique=cat_unique,
             n_layers=layers,
-            rnn_unit={"rnn":nn.RNN, "gru":nn.GRU, "lstm":nn.LSTM}[model_name.split('_')[0]],
-            hidden_size = hidden_size,
+            rnn_unit={"rnn": nn.RNN, "gru": nn.GRU, "lstm": nn.LSTM}[
+                model_name.split("_")[0]
+            ],
+            hidden_size=hidden_size,
             num_classes=outsize,
         )
     elif model_name == "prectime":
@@ -73,9 +76,13 @@ def get_model(
             if arg[:-2].isdigit() and arg[-2:] == "ks":
                 ks = int(arg[:-2])
 
-        channels = [64,128,256,] + [int(256 * 1.5**i) for i in range(1, layers - 3 + 1)]
+        channels = [
+            64,
+            128,
+            256,
+        ] + [int(256 * 1.5**i) for i in range(1, layers - 3 + 1)]
         return UNet1D(
-            channels = channels[:layers],
+            channels=channels[:layers],
             input_channels=inputsize,
             sequence_length=sequence_length,
             cat_feats=cat_feats,

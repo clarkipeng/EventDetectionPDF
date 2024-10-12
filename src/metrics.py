@@ -27,6 +27,7 @@ tolerances = {
     "wakeup": [12, 36, 60, 90, 120, 150, 180, 240, 300, 360],
 }
 
+
 def find_nearest_time_idx(times, target_time, excluded_indices, tolerance):
     """Find the index of the nearest time to the target_time
     that is not in excluded_indices."""
@@ -181,6 +182,7 @@ def aggregate_data_by_series_event(df, step_range):
 An f1 metric for event detection in time series and video.
 """
 
+
 def calculate_score(
     solution: pd.DataFrame,
     submission: pd.DataFrame,
@@ -189,7 +191,7 @@ def calculate_score(
     time_column_name: str,
     event_column_name: str,
     score_column_name: str,
-    metrics: List[str] = ['mAP'], 
+    metrics: List[str] = ["mAP"],
     use_scoring_intervals: bool = False,
 ) -> float:
     # Validate metric parameters
@@ -324,8 +326,8 @@ def event_detection_all(
     # Compute score per event x tolerance group
     event_classes = ground_truths[event_column_name].unique()
     scores = {}
-    
-    if 'mf1' in metrics:
+
+    if "mf1" in metrics:
         f1_table = (
             detections_matched.query("event in @event_classes")  # type: ignore
             .groupby([event_column_name, "tolerance"])
@@ -339,11 +341,11 @@ def event_detection_all(
         )
         # Average over tolerances, then over event classes
         mean_f1 = f1_table.groupby(event_column_name).mean().sum() / len(event_classes)
-        scores["mf1"] =  mean_ap
-        
-        scores["mf1_tolerances"] = ap_table.groupby('tolerance').mean().values
+        scores["mf1"] = mean_f1
 
-    if 'mAP' in metrics:
+        scores["mf1_tolerances"] = f1_table.groupby("tolerance").mean().values
+
+    if "mAP" in metrics:
         ap_table = (
             detections_matched.query("event in @event_classes")  # type: ignore
             .groupby([event_column_name, "tolerance"])
@@ -357,9 +359,9 @@ def event_detection_all(
         )
         # Average over tolerances, then over event classes
         mean_ap = ap_table.groupby(event_column_name).mean().sum() / len(event_classes)
-        scores["mAP"] =  mean_ap
+        scores["mAP"] = mean_ap
 
-        scores["mAP_tolerances"] = ap_table.groupby('tolerance').mean().values
+        scores["mAP_tolerances"] = ap_table.groupby("tolerance").mean().values
     return scores
 
 

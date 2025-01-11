@@ -49,8 +49,9 @@ Please refer to [https://pytorch.org/get-started/locally/](https://pytorch.org/g
 On a computer with `pip` installed, run the following commands to download the required packages.
 
 ```
-git clone https://github.com/clark/.git
-pip install -r regressioneventdetection/requirements.txt
+git clone https://github.com/clarkipeng/EventDetectionPDF
+cd EventDetectionPDF
+pip install -r requirements.txt
 ```
 
 ## Data Preparation:

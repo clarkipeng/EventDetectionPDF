@@ -10,6 +10,8 @@ import itertools
 import multiprocessing
 import functools
 import joblib
+import json
+import time
 
 import numpy as np
 import pandas as pd
@@ -74,7 +76,8 @@ def get_candidates(
             predictions[:, i] = gaussian_filter1d(predictions[:, i], smooth)
 
     if is_segmentation_objective(objective) and dataclass.event_type == "interval":
-        if len(objective) == 3 or objective[3] == "1":
+        postprocess_method = segmentation_postprocess_method(objective)
+        if postprocess_method == 1:
             candidates, c_scores = [], []
 
             events = (predictions[1:] > threshold).astype(int) - (
@@ -115,7 +118,7 @@ def get_candidates(
             candidates.append(locations)
             c_scores.append(scores)
             return candidates, c_scores
-        elif objective[3] == "2":
+        elif postprocess_method == 2:
             scores = transform_segmentation(predictions[:, 0], max_distance)
 
             predictions = np.zeros((predictions.shape[0], 2))
@@ -198,6 +201,7 @@ def evaluate(
     device: str,
     workers: int = 1,
     save_pred_dir: Path = None,
+    density_prior: str = "sparse",
 ):
     model.eval()
     valid_loss = 0.0
@@ -211,7 +215,12 @@ def evaluate(
     )
     truth = dataset.events
     downsample = dataset.downsample
-    loss_fn = get_loss(objective, dataclass=dataclass, downsample=downsample)
+    loss_fn = get_loss(
+        objective,
+        dataclass=dataclass,
+        downsample=downsample,
+        density_prior=density_prior,
+    )
 
     max_distance = dataclass.max_distance // downsample
     day_length = dataclass.day_length // downsample
@@ -258,7 +267,12 @@ def evaluate(
         if is_segmentation_objective(objective):
             prediction = prediction.sigmoid()
         elif is_density_objective(objective):
-            prediction = density_logits_to_rates(prediction, dataclass, downsample)
+            prediction = density_logits_to_rates(
+                prediction,
+                dataclass,
+                downsample,
+                density_prior=density_prior,
+            )
 
         prediction = prediction.numpy()
 
@@ -276,12 +290,10 @@ def evaluate(
     submission["score"] = submission["score"].fillna(submission["score"].mean())
     submission = submission[["row_id", "series_id", "step", "event", "score"]]
 
-    if save_pred_dir:
-        submission.to_csv("example_sub.csv")
-        truth.to_csv("example_tru.csv")
+    truth_eval = truth.copy()
     if combine_series_id:
         submission["series_id"] = 0
-        truth["series_id"] = 0
+        truth_eval["series_id"] = 0
 
     valid_loss /= len(loader)
     gc.collect()
@@ -290,7 +302,7 @@ def evaluate(
         mAP = 0
     else:
         mAP = calculate_score(
-            truth, submission, tolerances, **column_names, metrics=["mAP"]
+            truth_eval, submission, tolerances, **column_names, metrics=["mAP"]
         )["mAP"]
     gc.collect()
     return valid_loss, mAP
@@ -306,6 +318,24 @@ def format_score_output(score_dict):
     return string
 
 
+def serializable_score(value):
+    if isinstance(value, np.ndarray):
+        return [serializable_score(v) for v in value.tolist()]
+    if isinstance(value, (np.floating, float)):
+        return float(value)
+    if isinstance(value, (np.integer, int)):
+        return int(value)
+    if isinstance(value, dict):
+        return {k: serializable_score(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [serializable_score(v) for v in value]
+    return value
+
+
+def score_dict_for_json(scores):
+    return {key: serializable_score(value) for key, value in scores.items()}
+
+
 def get_optimal_cutoff(
     dataclass: DataClass,
     model_name: str,
@@ -313,12 +343,11 @@ def get_optimal_cutoff(
     dataset: Dataset,
     save_pred_dir: Path,
     workers: int = 1,
+    metadata: Dict = None,
 ):
+    start_time = time.perf_counter()
 
-    if objective == "seg":
-        objectives = ["seg1", "seg2"]
-    else:
-        objectives = [objective]
+    objectives = segmentation_postprocess_objectives(objective)
 
     downsample = dataset.downsample
     truth = dataset.events
@@ -356,14 +385,22 @@ def get_optimal_cutoff(
         )
         submission["row_id"] = submission.index.astype(int)
         submission.set_index("row_id")
-        submission["score"] = submission["score"].fillna(submission["score"].mean())
+        score_mean = submission["score"].mean()
+        if np.isnan(score_mean):
+            score_mean = 0
+        submission["score"] = submission["score"].fillna(score_mean)
         submission = submission[["row_id", "series_id", "step", "event", "score"]]
+        truth_eval = truth.copy()
         if combine_series_id:
             submission["series_id"] = 0
-            truth["series_id"] = 0
+            truth_eval["series_id"] = 0
 
         scores = calculate_score(
-            truth, submission, tolerances, metrics=evaluation_metrics, **column_names
+            truth_eval,
+            submission,
+            tolerances,
+            metrics=evaluation_metrics,
+            **column_names,
         )
         return scores
 
@@ -393,6 +430,20 @@ def get_optimal_cutoff(
         scores = get_score(obj, param, tolerances_)
         return tol, scores
 
+    metadata = metadata or {}
+    result_payload = {
+        "metadata": {
+            **metadata,
+            "dataset": metadata.get("dataset", dataclass.name),
+            "model": metadata.get("model", model_name),
+            "objective": objective,
+            "postprocess_objectives": objectives,
+            "prediction_dir": str(save_pred_dir),
+        },
+        "results": [],
+    }
+    rows = []
+
     for obj in objectives:
         print(f"{model_name} {obj} results: ")
 
@@ -400,6 +451,25 @@ def get_optimal_cutoff(
         print(
             f" default scores: {format_score_output({k:default_scores[k] for k in evaluation_metrics})}"
         )
+        result_obj = {
+            "postprocess_objective": obj,
+            "default_scores": score_dict_for_json(default_scores),
+            "optimized": {},
+        }
+        for metric in evaluation_metrics:
+            rows.append(
+                {
+                    **result_payload["metadata"],
+                    "row_type": "summary",
+                    "stage": "default",
+                    "postprocess_objective": obj,
+                    "optimized_metric": "",
+                    "metric": metric,
+                    "tolerance": "",
+                    "score": serializable_score(default_scores.get(metric, 0)),
+                    "params": "{}",
+                }
+            )
 
         if is_segmentation_objective(obj):
             max_pred = 1
@@ -430,7 +500,7 @@ def get_optimal_cutoff(
             )
         else:
             param_scores = [
-                score(obj, param, tolerances)
+                get_scores_param(param)
                 for param in tqdm(param_search, desc=" Optimizing")
             ]
 
@@ -452,12 +522,36 @@ def get_optimal_cutoff(
 
         # best_scores = {n: s for n, (s, p) in best_params.items()}
         for metric in evaluation_metrics:
+            if metric not in best_params:
+                best_params[metric] = (default_scores.get(metric, 0), {})
             print(f" optimizing hyperparams for {metric}:")
             print(f"  best params: {format_score_output(best_params[metric][1])}")
             best_scores = get_score(obj, best_params[metric][1], tolerances)
             print(
                 f"  best scores: {format_score_output({k:best_scores[k] for k in evaluation_metrics})}"
             )
+            result_obj["optimized"][metric] = {
+                "best_score": serializable_score(best_params[metric][0]),
+                "best_params": score_dict_for_json(best_params[metric][1]),
+                "scores": score_dict_for_json(best_scores),
+            }
+            for score_name in evaluation_metrics:
+                rows.append(
+                    {
+                        **result_payload["metadata"],
+                        "row_type": "summary",
+                        "stage": "tuned",
+                        "postprocess_objective": obj,
+                        "optimized_metric": metric,
+                        "metric": score_name,
+                        "tolerance": "",
+                        "score": serializable_score(best_scores.get(score_name, 0)),
+                        "params": json.dumps(
+                            score_dict_for_json(best_params[metric][1]),
+                            sort_keys=True,
+                        ),
+                    }
+                )
 
             if f"{metric}_tolerances" in best_scores.keys():
                 tol_scores = best_scores[f"{metric}_tolerances"]
@@ -471,12 +565,50 @@ def get_optimal_cutoff(
                     )
                 else:
                     tol_scores = [
-                        score(best_params[metric][1], tol)
+                        get_scores_tolerance(best_params[metric][1], tol)
                         for tol in dataclass.tolerances
                     ]
 
+            tolerance_records = []
             for tol, scores in zip(dataclass.tolerances, tol_scores):
                 print(f"   tolerance {tol}: {metric} = {scores}")
+                if isinstance(scores, tuple):
+                    tol_value, score_value = scores
+                    score_value = score_value.get(metric, 0)
+                else:
+                    tol_value, score_value = tol, scores
+                tolerance_records.append(
+                    {
+                        "tolerance": serializable_score(tol_value),
+                        "score": serializable_score(score_value),
+                    }
+                )
+                rows.append(
+                    {
+                        **result_payload["metadata"],
+                        "row_type": "tolerance",
+                        "stage": "tuned",
+                        "postprocess_objective": obj,
+                        "optimized_metric": metric,
+                        "metric": metric,
+                        "tolerance": serializable_score(tol_value),
+                        "score": serializable_score(score_value),
+                        "params": json.dumps(
+                            score_dict_for_json(best_params[metric][1]),
+                            sort_keys=True,
+                        ),
+                    }
+                )
+            result_obj["optimized"][metric]["tolerance_scores"] = tolerance_records
+        result_payload["results"].append(result_obj)
+
+    result_payload["metadata"]["score_runtime_sec"] = time.perf_counter() - start_time
+    results_dir = save_pred_dir.parent / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    with open(results_dir / "scores.json", "w", encoding="utf-8") as f:
+        json.dump(result_payload, f, indent=2)
+    pd.DataFrame(rows).to_csv(results_dir / "scores.csv", index=False)
+    return result_payload
 
 
 def get_best_scores(
@@ -494,11 +626,12 @@ def get_best_scores(
     use_cat: bool = True,
     device: str = ("cuda" if torch.cuda.is_available() else "cpu"),
     workers: int = 1,
+    seed: int = 0,
 ):
     dataset_name = dataclass.name
     dataset_construct = dataclass.dataset_construct
 
-    save_model_path = Path(f"./experiments/{dataset_name}/{model_name}/{objective}/")
+    save_model_path = experiment_path(dataset_name, model_name, objective, seed)
     save_pred_dir = save_model_path / "predictions"
 
     loss_fn = get_loss(objective, dataclass=dataclass, downsample=downsample)
@@ -515,7 +648,27 @@ def get_best_scores(
         target_type=objective,
     )
     get_optimal_cutoff(
-        dataclass, model_name, objective, full_dataset, save_pred_dir, workers=workers
+        dataclass,
+        model_name,
+        objective,
+        full_dataset,
+        save_pred_dir,
+        workers=workers,
+        metadata={
+            "dataset": dataset_name,
+            "model": model_name,
+            "objective": objective,
+            "seed": seed,
+            "sequence_length": sequence_length,
+            "downsample": downsample,
+            "agg_feats": agg_feats,
+            "folds": folds,
+            "epochs": epochs,
+            "batch_size": bs,
+            "normalize": normalize,
+            "use_cat": use_cat,
+            "device": device,
+        },
     )
 
 
@@ -554,7 +707,7 @@ def get_args_parser():
         choices=["stat", "none", "all"],
         help="stat - aggregates mean, max, min, and std across downsampled series. none - pure downsampling. all - no signal is lost, all features are retained",
     )
-    parser.add_argument("--use_cat", default=True, type=bool)
+    parser.add_argument("--use_cat", default=True, type=str2bool)
     parser.add_argument(
         "--sequence_length",
         default=None,
@@ -565,7 +718,9 @@ def get_args_parser():
     parser.add_argument("--bs", default=10, type=int)
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--folds", default=4, type=int)
-    parser.add_argument("--normalize", default=True, type=bool)
+    parser.add_argument("--normalize", default=True, type=str2bool)
+    parser.add_argument("--gaussian_sigma", default=None, type=float)
+    parser.add_argument("--tolerance_scale", default=1.0, type=float)
     # helper
     parser.add_argument(
         "--device", default=("cuda" if torch.cuda.is_available() else "cpu"), type=str
@@ -598,6 +753,11 @@ if __name__ == "__main__":
     sequence_length = args.sequence_length
     if not sequence_length:
         sequence_length = dataclass.default_sequence_length
+    dataclass = apply_objective_overrides(
+        dataclass,
+        gaussian_sigma=args.gaussian_sigma,
+        tolerance_scale=args.tolerance_scale,
+    )
 
     get_best_scores(
         dataclass=dataclass,
@@ -614,4 +774,5 @@ if __name__ == "__main__":
         use_cat=args.use_cat,
         device=args.device,
         workers=args.workers,
+        seed=args.seed,
     )

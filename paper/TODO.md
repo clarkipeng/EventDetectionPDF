@@ -15,6 +15,8 @@
 - Add likelihood-vs-MSE, kernel-type, and prior-rate ablations.
 - Use a fixed seed list for reruns; start with `--seed 0` to match the legacy split, then add two more seeds if runtime is acceptable.
 - Keep raw experiment outputs under `experiments/`; do not commit model checkpoints, cached predictions, or generated plots.
+- Prefer `paper/run_experiments.py` for reruns so command lines and matrix membership stay consistent.
+- Use the structured files in `experiments/*/*/*/seed_*/results/` for tables and plots.
 
 ## Suggested rerun commands
 
@@ -30,6 +32,8 @@ If runtime is too high, run a focused model/objective matrix first:
 python train.py --dataset sleep --model gru --objective density_custom --datadir data --epochs 20 --folds 4 --normalize True
 python train.py --dataset sleep --model gru --objective custom --datadir data --epochs 20 --folds 4 --normalize True
 python train.py --dataset sleep --model gru --objective seg --datadir data --epochs 20 --folds 4 --normalize True
+python train.py --dataset sleep --model gru --objective seg_weighted --datadir data --epochs 20 --folds 4 --normalize True
+python train.py --dataset sleep --model gru --objective seg_focal --datadir data --epochs 20 --folds 4 --normalize True
 ```
 
 Then repeat the strongest density objective and strongest baseline on seizure:
@@ -47,6 +51,7 @@ These are starting commands, not final hyperparameter claims. Record the exact c
 - Regenerate final plots from the Kaggle `sleep-plots.ipynb` workflow after the new runs finish.
 - Prefer plots that explain the new likelihood framing: boundary targets, learned rates, peak extraction, and EDAP-by-tolerance curves.
 - Before committing regenerated plots, strip notebook outputs or export static figures into `paper/figures/` with descriptive filenames.
+- Prefer `python paper/make_plots.py --dataset sleep --results-root experiments` for final paper figures.
 - Replace any legacy plot that implies MSE/PDF regression is the main method.
 - Required plot set:
   - target kernels for `density_hard`, `density_gau`, and `density_custom`;

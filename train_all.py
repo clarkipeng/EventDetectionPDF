@@ -12,8 +12,11 @@ from src.seizure import get_seizure_dataclass
 from src.utils import (
     DENSITY_OBJECTIVES,
     MSE_OBJECTIVES,
+    SEGMENTATION_TRAIN_OBJECTIVES,
+    apply_objective_overrides,
     get_loss,
     set_random_seed,
+    str2bool,
     DataClass,
 )
 
@@ -47,7 +50,7 @@ def get_args_parser():
         choices=["stat", "none", "all"],
         help="stat - aggregates mean, max, min, and std across downsampled series. none - pure downsampling. all - no signal is lost, all features are retained",
     )
-    parser.add_argument("--use_cat", default=True, type=bool)
+    parser.add_argument("--use_cat", default=True, type=str2bool)
     parser.add_argument(
         "--sequence_length",
         default=None,
@@ -58,7 +61,20 @@ def get_args_parser():
     parser.add_argument("--bs", default=10, type=int)
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--folds", default=4, type=int)
-    parser.add_argument("--normalize", default=True, type=bool)
+    parser.add_argument("--normalize", default=True, type=str2bool)
+    parser.add_argument(
+        "--density_prior",
+        default="sparse",
+        choices=["sparse", "none"],
+    )
+    parser.add_argument(
+        "--best_metric",
+        default="mAP",
+        choices=["mAP", "loss"],
+    )
+    parser.add_argument("--save_all_epochs", default=False, type=str2bool)
+    parser.add_argument("--gaussian_sigma", default=None, type=float)
+    parser.add_argument("--tolerance_scale", default=1.0, type=float)
     # helper
     parser.add_argument(
         "--device", default=("cuda" if torch.cuda.is_available() else "cpu"), type=str
@@ -92,9 +108,14 @@ if __name__ == "__main__":
     sequence_length = args.sequence_length
     if not sequence_length:
         sequence_length = dataclass.default_sequence_length
+    dataclass = apply_objective_overrides(
+        dataclass,
+        gaussian_sigma=args.gaussian_sigma,
+        tolerance_scale=args.tolerance_scale,
+    )
 
     for model in ["gru", "unet", "unet_t", "prectime"]:
-        for objective in ["seg"] + MSE_OBJECTIVES + DENSITY_OBJECTIVES:
+        for objective in SEGMENTATION_TRAIN_OBJECTIVES + MSE_OBJECTIVES + DENSITY_OBJECTIVES:
 
             train(
                 dataclass=dataclass,
@@ -111,4 +132,8 @@ if __name__ == "__main__":
                 use_cat=args.use_cat,
                 device=args.device,
                 workers=args.workers,
+                seed=args.seed,
+                density_prior=args.density_prior,
+                best_metric=args.best_metric,
+                save_all_epochs=args.save_all_epochs,
             )

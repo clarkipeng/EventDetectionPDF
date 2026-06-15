@@ -89,7 +89,7 @@ After you have done all the necessary steps listed above, you are ready to train
 ```
 python train.py --dataset [dataset_name] --model [model_name] --objective [objective_name] --datadir [path_to_dataset]
 ```
-Model choices vary: *rnn* (or *lstm* and *gru*), *unet* (or *unet_t*), and *prectime*. More information about model choices can be found at [load_model.py](models/load_model.py). Objectives can be legacy MSE targets (*hard*, *gau*, *custom*), likelihood-based boundary density targets (*density_hard*, *density_gau*, *density_custom*), or segmentation targets (*seg1*, *seg2*, or *seg*, a combination of both segmentation post-processing methods).
+Model choices vary: *rnn* (or *lstm* and *gru*), *unet* (or *unet_t*), and *prectime*. More information about model choices can be found at [load_model.py](models/load_model.py). Objectives can be legacy MSE targets (*hard*, *gau*, *custom*), likelihood-based boundary density targets (*density_hard*, *density_gau*, *density_custom*), or segmentation targets (*seg*, *seg_weighted*, *seg_focal*). Segmentation models are evaluated with both threshold-crossing and peak-based post-processing variants.
 
 In order to evaluate the trained models, run: 
 ```
@@ -99,6 +99,22 @@ python eval.py --dataset [dataset_name] --datadir [path_to_dataset]
 In order to train the main model/objective matrix, run:
 ```
 python train_all.py --dataset [dataset_name] --datadir [path_to_dataset]
+```
+For paper reruns, the recommended wrapper is:
+```
+python paper/run_experiments.py --datasets sleep --datadir data
+python paper/run_experiments.py --datasets sleep --datadir data --execute
+```
+The first command prints the planned matrix; the second executes it.
+
+Each run writes checkpoints, out-of-fold predictions, and machine-readable result files under:
+```
+experiments/[dataset]/[model]/[objective]/seed_[seed]/
+```
+
+After experiments finish, paper plots can be regenerated with:
+```
+python paper/make_plots.py --dataset sleep --results-root experiments
 ```
 
 #### Example

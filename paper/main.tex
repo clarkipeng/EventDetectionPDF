@@ -8,7 +8,9 @@
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage[numbers,sort&compress]{natbib}
+\usepackage{xurl}
 \usepackage[colorlinks=true,citecolor=blue,linkcolor=black,urlcolor=blue]{hyperref}
+\Urlmuskip=0mu plus 1mu
 
 \title{Boundary Density Likelihood for Time-Series Event Detection}
 \author{Clark Peng \and Tolga Dincer}
@@ -16,41 +18,222 @@
 
 \newtheorem{proposition}{Proposition}
 
+\newcommand{\xseq}{x_{1:T}}
+\newcommand{\rate}{\lambda}
+\newcommand{\kernel}{\kappa}
+
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Many time-series event-detection systems are trained as per-timestep segmentation models and then post-processed to recover event boundaries.
-This draft reframes interval event detection as boundary-density estimation: annotated onsets and offsets define sparse boundary measures, and neural sequence models learn nonnegative boundary rates by maximum likelihood.
-The final submission will compare this likelihood objective against legacy mean-squared-error heatmap targets and segmentation baselines under tolerance-based event average precision.
+Time-series event detectors are often trained as segmentation models and then post-processed to recover event onsets and offsets.
+This objective is indirect when the evaluation metric rewards boundary localization rather than per-timestep state occupancy.
+We recast interval event detection as supervised boundary-density estimation.
+Annotated intervals define sparse onset and offset counting measures; these measures are smoothed by task-specific kernels and used to train neural sequence models with a discrete Poisson negative log-likelihood over boundary rates.
+The resulting objective naturally supports zero-event windows, multiple events per sequence, tolerance-aware annotation smoothing, and peak-based inference.
+This draft specifies the likelihood formulation and the experiment plan for rerunning the sleep and seizure benchmarks against legacy mean-squared-error heatmap regression and segmentation baselines.
 \end{abstract}
 
 \section{Introduction}
 
-This manuscript is being rewritten for an ML workshop audience.
-The central claim is no longer that heatmap-style mean-squared-error regression is universally better than segmentation.
-Instead, we study whether a likelihood over event-boundary locations is a better training objective for metrics that score localized onsets and offsets.
+Event detection in long time series is commonly reduced to segmentation: each timestep is classified as event or non-event, and event boundaries are recovered from threshold crossings.
+This is a useful abstraction when the desired output is a state sequence, but it is a mismatch for tasks whose primary output is a ranked list of event times.
+Sleep onset and wake-up detection, seizure boundary detection, and other interval-localization tasks are often evaluated with tolerance-based average precision, where a prediction is rewarded if it lands close enough to an annotated boundary \citep{salles2023,ram2023}.
+
+The previous version of this paper framed the method as probability-density-function regression trained by mean squared error.
+That framing captured a useful empirical idea, but it blurred two distinct questions: how should annotated boundaries be converted into dense supervision, and what likelihood should the model optimize?
+This rewrite separates those questions.
+We treat annotation smoothing as a modeling choice over boundary uncertainty, then train a model-predicted boundary rate by maximum likelihood.
+
+The proposed method, Boundary Density Likelihood, converts each interval label $(a_j,b_j)$ into onset and offset counting measures.
+Each boundary count is optionally smoothed with a unit-mass kernel, such as a point mass, a Gaussian-like kernel, or a tolerance-aligned kernel.
+A sequence model predicts nonnegative boundary rates at each timestep and channel, and training minimizes the Poisson negative log-likelihood.
+At inference time, local maxima of the predicted rates become candidate event boundaries, with rate values serving as ranking scores for average precision.
+
+The intended contribution is deliberately narrow:
+\begin{enumerate}
+    \item a likelihood-based target formulation for interval event detection when boundary times, rather than state occupancy, are the primary output;
+    \item a practical bridge from heatmap-style boundary targets to maximum-likelihood training;
+    \item a focused experimental comparison against legacy MSE heatmap targets and segmentation baselines on sleep and seizure event-detection tasks.
+\end{enumerate}
 
 \section{Related Work}
 
-The rewrite will connect four threads: time-series event detection, temporal boundary localization, heatmap/keypoint regression, and temporal point-process likelihoods.
+\paragraph{Time-series segmentation and event detection.}
+Neural sequence models for sleep and physiological time series often learn per-timestep labels using recurrent, convolutional, or hybrid architectures \citep{supratak2017,perslev2019,phan2019,gaugel2023}.
+Segmentation is a strong default because it preserves dense supervision, but a boundary list must still be extracted by thresholding and post-processing.
+Recent time-series event-detection work has also explored direct event objectives and tolerance-aware evaluation \citep{azib2023,salles2023}.
+
+\paragraph{Heatmap and boundary regression.}
+Heatmap regression is standard in keypoint localization, where labels are softened around annotated points to account for quantization and annotation ambiguity \citep{luo2021,yu2022}.
+Earlier event-detection work also used Gaussian aggregation for acoustic events \citep{phan2015}.
+Temporal action localization uses related boundary-refinement ideas, but typically starts from proposal windows or action segments rather than long physiological time series \citep{gao2017turn}.
+Our method keeps the heatmap intuition but replaces the MSE objective with a likelihood over boundary counts.
+
+\paragraph{Temporal point processes.}
+Temporal point processes model event times through conditional intensities and likelihoods \citep{du2016rmtpp,shchur2021neural}.
+Boundary Density Likelihood is related in spirit but lighter in scope.
+We do not model a fully generative event history, marks, or survival process.
+Instead, we use a supervised conditional intensity over a fixed observed sequence, which is enough for ranked boundary localization and fits existing sequence-to-sequence architectures.
 
 \section{Problem Setup}
 
-Let $x_{1:T}$ denote a multivariate time series and let each interval event be represented by an onset and offset pair $(a_j,b_j)$.
-The method constructs separate boundary targets for onset and offset channels.
+Let $\xseq$ be a multivariate time series of length $T$.
+For an interval event dataset, each labeled event is an onset-offset pair $(a_j,b_j)$.
+Define two boundary channels, $c\in\{\mathrm{on},\mathrm{off}\}$, with boundary sets
+\begin{align}
+    B_{\mathrm{on}} = \{a_j\}_{j=1}^{n},
+    \qquad
+    B_{\mathrm{off}} = \{b_j\}_{j=1}^{n}.
+\end{align}
+For point-event datasets, the same formulation applies with a single event channel.
+
+The target output is not a binary state sequence.
+It is a ranked set of boundary candidates
+\begin{align}
+    \widehat{B}_c = \{(\hat{\tau}_{k,c}, s_{k,c})\}_{k=1}^{m_c},
+\end{align}
+where $\hat{\tau}_{k,c}$ is a predicted boundary time and $s_{k,c}$ is a score used for average-precision ranking.
+In tolerance-based event AP, a prediction is correct if it can be matched to an unmatched ground-truth boundary of the same channel within tolerance $\delta$.
+Scores are averaged over tolerances and channels.
 
 \section{Boundary Density Likelihood}
 
-The main method will define smoothed boundary count targets and train nonnegative model rates with a discrete Poisson negative log-likelihood.
+\subsection{Smoothed Boundary Counts}
 
-\section{Experiments}
+Let $\kernel:\mathbb{Z}\to\mathbb{R}_{\ge 0}$ be a nonnegative unit-mass kernel:
+\begin{align}
+    \sum_{r\in\mathbb{Z}} \kernel(r)=1.
+\end{align}
+The smoothed target count for channel $c$ is
+\begin{align}
+    y_c(t) = \sum_{\tau\in B_c} \kernel(t-\tau), \qquad t=1,\ldots,T.
+    \label{eq:smoothed-target}
+\end{align}
+We use three kernels:
+\begin{align}
+    \kernel_{\mathrm{hard}}(r) &= \mathbf{1}\{r=0\}, \\
+    \kernel_{\mathrm{gau}}(r) &\propto \exp\left(-\frac{r^2}{2\sigma^2}\right)\mathbf{1}\{|r|\le 3\sigma\}, \\
+    \kernel_{\mathrm{tol}}(r) &\propto \frac{1}{K}\sum_{k=1}^{K}\mathbf{1}\{|r|\le \delta_k\}.
+\end{align}
+The tolerance kernel uses the same tolerance set $\{\delta_k\}_{k=1}^{K}$ used by the evaluation metric.
+All kernels are normalized to unit mass before constructing $y_c$.
 
-The final experiments will rerun the core sleep and seizure benchmarks from scratch, treating the existing figures as disposable placeholders.
+\begin{proposition}
+If every boundary is at least the kernel radius away from the sequence boundary, then $\sum_{t=1}^{T} y_c(t)=|B_c|$.
+\end{proposition}
 
-\section{Discussion}
+\begin{proof}
+By exchanging the order of summation in Equation~\ref{eq:smoothed-target},
+\begin{align}
+    \sum_{t=1}^{T} y_c(t)
+    = \sum_{\tau\in B_c}\sum_{t=1}^{T}\kernel(t-\tau)
+    = \sum_{\tau\in B_c}1
+    = |B_c|.
+\end{align}
+\end{proof}
 
-This rewrite will emphasize when boundary likelihoods are appropriate, when segmentation remains the right abstraction, and what empirical evidence is still missing.
+This property is important for likelihood training: the target remains a smoothed count measure rather than an arbitrary high-amplitude regression surface.
+
+\subsection{Poisson Boundary Likelihood}
+
+Let a sequence model with parameters $\theta$ output logits $z_{\theta,c}(t)$.
+We convert logits to nonnegative rates using
+\begin{align}
+    \rate_{\theta,c}(t \mid \xseq)
+    = \operatorname{softplus}\left(z_{\theta,c}(t) + \beta\right) + \epsilon,
+\end{align}
+where $\beta$ initializes the rate near a sparse boundary prior, approximately one boundary per channel per dataset-specific horizon.
+
+For unsmoothed integer counts, the discrete Poisson likelihood is
+\begin{align}
+    p(y_c(t)\mid \xseq)
+    =
+    \frac{
+        \exp[-\rate_{\theta,c}(t)]\rate_{\theta,c}(t)^{y_c(t)}
+    }{y_c(t)!}.
+\end{align}
+With smoothed fractional targets, we use the same negative log-likelihood after dropping target-only constants:
+\begin{align}
+    \mathcal{L}_{\mathrm{BDL}}(\theta)
+    =
+    \sum_{c}\sum_{t=1}^{T}
+    \left[
+        \rate_{\theta,c}(t \mid \xseq)
+        -
+        y_c(t)\log \rate_{\theta,c}(t \mid \xseq)
+    \right].
+    \label{eq:bdl-loss}
+\end{align}
+This is the generalized Poisson deviance for a smoothed count measure.
+Unlike a softmax distribution over time, it does not require each sequence chunk to contain exactly one event.
+Zero-event windows contribute only the rate penalty term; multi-event windows add one unit of target mass per boundary.
+
+\subsection{Inference}
+
+At inference time, the model emits boundary rates for each channel.
+Optional Gaussian smoothing may be applied to the rates.
+Candidate boundaries are local maxima found by peak detection, and the predicted rate at each peak is used as the confidence score.
+This matches the output format required by tolerance-based event AP.
+
+\section{Experimental Protocol}
+
+The experiments will be rerun from scratch.
+Existing tables and figures from the earlier MSE-regression draft are treated as placeholders and should not be used for final claims.
+
+\paragraph{Datasets.}
+The primary benchmark is the Child Mind Institute sleep-detection dataset, where wrist accelerometer series are labeled with sleep onset and wake-up boundaries \citep{alexander2017}.
+The secondary benchmark is CHB-MIT seizure detection, where EEG recordings contain seizure intervals \citep{shoeb2010,goldberger2000}.
+
+\paragraph{Models.}
+We will evaluate the same sequence architectures used in the legacy draft: bidirectional GRU, one-dimensional U-Net, U-Net with attention, and PrecTime \citep{gaugel2023}.
+The architecture is not the central contribution; the objective should be a drop-in output/loss change.
+
+\paragraph{Objectives.}
+Table~\ref{tab:objective-matrix} shows the objective matrix for the rerun.
+
+\begin{table}[h]
+\centering
+\caption{Objective matrix for the rerun experiments.}
+\label{tab:objective-matrix}
+\begin{tabular}{p{0.26\linewidth}p{0.34\linewidth}p{0.30\linewidth}}
+\toprule
+Family & Objectives & Purpose \\
+\midrule
+Boundary density likelihood &
+\texttt{density\_hard}, \texttt{density\_gau}, \texttt{density\_custom} &
+Main method \\
+Legacy MSE heatmaps &
+\texttt{hard}, \texttt{gau}, \texttt{custom} &
+Isolate likelihood vs MSE \\
+Segmentation &
+\texttt{seg1}, \texttt{seg2} &
+Standard state-label baseline \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Ablations.}
+The required ablations are likelihood versus MSE, kernel choice, prior-rate initialization, and post-processing sensitivity.
+If compute allows, we will add weighted or focal segmentation baselines to avoid comparing against an unnecessarily weak segmentation objective.
+
+\paragraph{Reporting.}
+The main tables should report fold means and standard deviations for event AP.
+Pooled cross-validation scores and EDAP-by-tolerance plots can be included as secondary diagnostics.
+Plots will be regenerated from the Kaggle \texttt{sleep-plots.ipynb} workflow after reruns complete.
+
+\section{Limitations}
+
+Boundary Density Likelihood is appropriate when the desired output is a ranked list of boundary times.
+It is not a replacement for segmentation when downstream use requires a calibrated state sequence or per-timestep occupancy.
+The likelihood also depends on kernel choice, and the tolerance-aligned kernel may overfit to a particular metric.
+Finally, this formulation is supervised and conditional; it should not be presented as a full temporal point-process model.
+
+\section{Conclusion}
+
+This rewrite reframes event detection as maximum-likelihood estimation of boundary rates.
+The method keeps the practical advantages of dense boundary targets while making the objective probabilistically meaningful.
+The next step is empirical: rerun the sleep and seizure benchmarks with density objectives, legacy MSE objectives, and stronger segmentation baselines, then regenerate all plots from the new results.
 
 \bibliographystyle{plainnat}
 \bibliography{main}

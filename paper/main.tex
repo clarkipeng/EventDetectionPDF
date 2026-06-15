@@ -190,6 +190,9 @@ The secondary benchmark is CHB-MIT seizure detection, where EEG recordings conta
 \paragraph{Models.}
 We will evaluate the same sequence architectures used in the legacy draft: bidirectional GRU, one-dimensional U-Net, U-Net with attention, and PrecTime \citep{gaugel2023}.
 The architecture is not the central contribution; the objective should be a drop-in output/loss change.
+We will also add an online-model ablation with forward-only RNNs and causal decoder-style Transformers.
+These models only use current and past timesteps, so they test whether boundary-density likelihood remains useful under streaming constraints.
+The causal Transformer implementation uses FlashAttention when available, falling back to PyTorch scaled-dot-product attention on unsupported systems \citep{dao2022flashattention}.
 
 \paragraph{Objectives.}
 Table~\ref{tab:objective-matrix} shows the objective matrix for the rerun.
@@ -216,7 +219,7 @@ State-label baselines \\
 \end{table}
 
 \paragraph{Ablations.}
-The required ablations are likelihood versus MSE, kernel choice, prior-rate initialization, and post-processing sensitivity.
+The required ablations are likelihood versus MSE, kernel choice, prior-rate initialization, online versus bidirectional/noncausal context, and post-processing sensitivity.
 Weighted and focal segmentation variants are included to avoid comparing against an unnecessarily weak state-label baseline.
 
 \paragraph{Reporting.}

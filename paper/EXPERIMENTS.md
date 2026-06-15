@@ -10,6 +10,14 @@ Install the pinned Python dependencies:
 python -m pip install -r requirements.txt
 ```
 
+For causal Transformer runs on a CUDA GPU, install FlashAttention if the target image supports it:
+
+```bash
+python -m pip install flash-attn --no-build-isolation
+```
+
+The code falls back to PyTorch scaled-dot-product attention when `flash_attn` is unavailable.
+
 Expected data layout:
 
 ```text
@@ -152,6 +160,38 @@ python paper/run_experiments.py \
 
 Repeat the tolerance run with `--tolerance_scale 1.5` if the first ablation is informative.
 
+Online-only model ablation:
+
+```bash
+python paper/run_experiments.py \
+  --datasets sleep \
+  --models gru online \
+  --objectives density_custom custom seg \
+  --seeds 0 1 2 \
+  --epochs 20 \
+  --folds 4 \
+  --datadir data \
+  --skip-existing \
+  --execute
+```
+
+The `online` alias expands to `fgru`, `flstm`, and `causal_transformer`. These models use only current and past timesteps. `gru` remains in the command as the bidirectional reference point.
+If the causal Transformer runs out of memory, rerun the script with a smaller `--sequence_length` before reducing the objective/model matrix.
+
+Generate the same ablation as a GPU script:
+
+```bash
+python paper/run_experiments.py \
+  --datasets sleep \
+  --models gru online \
+  --objectives density_custom custom seg \
+  --seeds 0 1 2 \
+  --epochs 20 \
+  --folds 4 \
+  --datadir data \
+  --write-script paper/generated_runs/sleep_online_ablation.sh
+```
+
 ## Outputs
 
 Each run writes:
@@ -184,6 +224,7 @@ The required final plot set is:
 - event AP by tolerance for density, MSE, and segmentation objectives;
 - likelihood-vs-MSE ablation under the same smoothing kernel;
 - prior-rate ablation for `density_custom`.
+- online-model ablation comparing `gru` against `fgru`, `flstm`, and `causal_transformer`.
 
 ## Paper Compile
 

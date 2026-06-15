@@ -13,7 +13,9 @@ import subprocess
 from pathlib import Path
 
 
-DEFAULT_MODELS = ["gru", "unet", "unet_t", "prectime"]
+CORE_MODELS = ["gru", "unet", "unet_t", "prectime"]
+ONLINE_MODELS = ["fgru", "flstm", "causal_transformer"]
+DEFAULT_MODELS = CORE_MODELS
 DEFAULT_OBJECTIVES = [
     "density_hard",
     "density_gau",
@@ -25,6 +27,20 @@ DEFAULT_OBJECTIVES = [
     "seg_weighted",
     "seg_focal",
 ]
+
+
+def expand_model_aliases(models):
+    expanded = []
+    for model in models:
+        if model == "core":
+            expanded.extend(CORE_MODELS)
+        elif model == "online":
+            expanded.extend(ONLINE_MODELS)
+        elif model == "all":
+            expanded.extend(CORE_MODELS + ONLINE_MODELS)
+        else:
+            expanded.append(model)
+    return list(dict.fromkeys(expanded))
 
 
 def command_to_string(command):
@@ -82,6 +98,8 @@ def build_command(args, dataset, model, objective, seed):
         "--tolerance_scale",
         str(args.tolerance_scale),
     ]
+    if args.sequence_length is not None:
+        command.extend(["--sequence_length", str(args.sequence_length)])
     if args.gaussian_sigma is not None:
         command.extend(["--gaussian_sigma", str(args.gaussian_sigma)])
     if args.device is not None:
@@ -138,13 +156,19 @@ def parse_args():
         help="Python executable to use in printed, written, and executed commands.",
     )
     parser.add_argument("--datasets", nargs="+", default=["sleep"])
-    parser.add_argument("--models", nargs="+", default=DEFAULT_MODELS)
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        default=DEFAULT_MODELS,
+        help="Model names, or aliases: core, online, all.",
+    )
     parser.add_argument("--objectives", nargs="+", default=DEFAULT_OBJECTIVES)
     parser.add_argument("--seeds", nargs="+", type=int, default=[0])
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--folds", type=int, default=4)
     parser.add_argument("--bs", type=int, default=10)
     parser.add_argument("--downsample", type=int, default=10)
+    parser.add_argument("--sequence_length", type=int, default=None)
     parser.add_argument("--agg_feats", default="stat", choices=["stat", "none", "all"])
     parser.add_argument("--use_cat", default=True)
     parser.add_argument("--normalize", default=True)
@@ -185,6 +209,7 @@ def parse_args():
 
 def main():
     args = parse_args()
+    args.models = expand_model_aliases(args.models)
     repo_root = Path(__file__).resolve().parents[1]
     runs = list(iter_runs(args))
     failures = []

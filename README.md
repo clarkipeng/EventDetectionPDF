@@ -89,7 +89,7 @@ After you have done all the necessary steps listed above, you are ready to train
 ```
 python train.py --dataset [dataset_name] --model [model_name] --objective [objective_name] --datadir [path_to_dataset]
 ```
-Model choices vary: *rnn* (or *lstm* and *gru*), *unet* (or *unet_t*), and *prectime*. More information about model choices can be found at [load_model.py](models/load_model.py). Objectives can be legacy MSE targets (*hard*, *gau*, *custom*), likelihood-based boundary density targets (*density_hard*, *density_gau*, *density_custom*), or segmentation targets (*seg*, *seg_weighted*, *seg_focal*). Segmentation models are evaluated with both threshold-crossing and peak-based post-processing variants.
+Model choices vary: *rnn* (or *lstm* and *gru*), online forward-only RNNs (*frnn*, *flstm*, *fgru*), causal decoder-style Transformers (*causal_transformer*), *unet* (or *unet_t*), and *prectime*. More information about model choices can be found at [load_model.py](models/load_model.py). Objectives can be legacy MSE targets (*hard*, *gau*, *custom*), likelihood-based boundary density targets (*density_hard*, *density_gau*, *density_custom*), or segmentation targets (*seg*, *seg_weighted*, *seg_focal*). Segmentation models are evaluated with both threshold-crossing and peak-based post-processing variants.
 
 In order to evaluate the trained models, run: 
 ```

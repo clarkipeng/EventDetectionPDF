@@ -397,7 +397,7 @@ def get_args_parser():
         "--model",
         type=str,
         required=True,
-    )  # choices=['rnn', 'unet', 'unet_t', 'prectime']
+    )  # examples: gru, fgru, causal_transformer, unet, unet_t, prectime
     parser.add_argument(
         "--objective",
         type=str,

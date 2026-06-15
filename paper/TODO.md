@@ -14,6 +14,7 @@
 - Report fold means and standard deviations, plus pooled EDAP only as a secondary view.
 - Add likelihood-vs-MSE, kernel-type, and prior-rate ablations.
 - Add an online-model ablation: compare bidirectional `gru` against `fgru`, `flstm`, and FlashAttention-backed `causal_transformer`.
+- Include alternating onset/offset post-processing in the post-processing ablation, matching the competition-style sleep/wake cleanup.
 - Use a fixed seed list for reruns; start with `--seed 0` to match the legacy split, then add two more seeds if runtime is acceptable.
 - Keep raw experiment outputs under `experiments/`; do not commit model checkpoints, cached predictions, or generated plots.
 - Prefer `paper/run_experiments.py` for reruns so command lines and matrix membership stay consistent.
@@ -71,6 +72,7 @@ These are starting commands, not final hyperparameter claims. Record the exact c
 - Use "legacy MSE heatmap" for the old objective family.
 - Use "tolerance-aligned kernel" for `density_custom`; avoid saying it directly optimizes AP.
 - Describe online ablations as streaming-context stress tests, not as the main architecture contribution.
+- State clearly that the likelihood emits independent onset/offset rates; legal interval alternation is a decoder/post-processing constraint.
 
 ## Acceptance checklist
 

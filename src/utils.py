@@ -267,6 +267,9 @@ def get_targets(dataclass, length, locations, ttype="gau", normalize=True):
         dist_i2 = len(distribution) - ((i + dlength + 1) - i2)
         values = distribution[dist_i1:dist_i2]
         if density_target:
+            values_sum = values.sum()
+            if values_sum > 0:
+                values = values / values_sum
             target[i1:i2, c] += values
         else:
             target[i1:i2, c] = np.maximum(target[i1:i2, c], values)

@@ -30,6 +30,13 @@ class ObjectiveTests(unittest.TestCase):
             self.assertGreaterEqual(target.min(), 0)
             np.testing.assert_allclose(target.sum(axis=0), np.array([2.0, 2.0]))
 
+    def test_density_targets_renormalize_at_sequence_edges(self):
+        dataclass = DummyDataClass()
+        locations = (np.array([0]), np.array([59]))
+        for objective in DENSITY_OBJECTIVES:
+            target = get_targets(dataclass, 60, locations, objective, normalize=True)
+            np.testing.assert_allclose(target.sum(axis=0), np.array([1.0, 1.0]))
+
     def test_density_loss_is_finite_for_empty_and_multi_event_windows(self):
         dataclass = DummyDataClass()
         for locations in [

@@ -160,6 +160,8 @@ python paper/run_experiments.py \
 
 Repeat the tolerance run with `--tolerance_scale 1.5` if the first ablation is informative.
 
+Alternating interval post-processing is tuned automatically for interval datasets. The scorer compares unconstrained onset/offset peaks against a legal alternating onset-offset decoder and records the selected setting in `results/scores.csv` under the `alternating` parameter.
+
 Online-only model ablation:
 
 ```bash
@@ -225,6 +227,7 @@ The required final plot set is:
 - likelihood-vs-MSE ablation under the same smoothing kernel;
 - prior-rate ablation for `density_custom`.
 - online-model ablation comparing `gru` against `fgru`, `flstm`, and `causal_transformer`.
+- alternating-decoder ablation comparing unconstrained onset/offset peaks against legal onset-offset pairing.
 
 ## Paper Compile
 

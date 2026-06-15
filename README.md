@@ -112,6 +112,7 @@ Each run writes checkpoints, out-of-fold predictions, and machine-readable resul
 ```
 experiments/[dataset]/[model]/[objective]/seed_[seed]/
 ```
+For interval datasets, evaluation tunes both unconstrained boundary peaks and an alternating onset/offset postprocessor.
 
 After experiments finish, paper plots can be regenerated with:
 ```

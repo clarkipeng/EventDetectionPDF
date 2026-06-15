@@ -67,6 +67,7 @@ def get_candidates(
     smooth = param.get("smooth", None)
     prominence = param.get("prominence", None)
     max_distance = param.get("distance", max_distance)
+    alternating = bool(param.get("alternating", False))
 
     if threshold == None:
         # default values
@@ -117,6 +118,11 @@ def get_candidates(
             )
             candidates.append(locations)
             c_scores.append(scores)
+            if alternating:
+                candidates, c_scores = enforce_alternating_interval_candidates(
+                    candidates,
+                    c_scores,
+                )
             return candidates, c_scores
         elif postprocess_method == 2:
             scores = transform_segmentation(predictions[:, 0], max_distance)
@@ -144,7 +150,49 @@ def get_candidates(
 
         candidates.append(cand)
         scores.append(predictions[cand, i])
+    if alternating and dataclass.event_type == "interval":
+        candidates, scores = enforce_alternating_interval_candidates(
+            candidates,
+            scores,
+        )
     return candidates, scores
+
+
+def enforce_alternating_interval_candidates(candidates, scores):
+    events = []
+    for channel in range(2):
+        for loc, score in zip(candidates[channel], scores[channel]):
+            events.append((int(loc), channel, float(score)))
+    events = sorted(events, key=lambda event: (event[0], event[1]))
+
+    selected = []
+    current = None
+    for event in events:
+        loc, channel, score = event
+        if current is None:
+            if channel == 0:
+                current = event
+            continue
+        if channel == current[1]:
+            if score > current[2]:
+                current = event
+        else:
+            selected.append(current)
+            current = event
+
+    if current is not None and current[1] == 1:
+        selected.append(current)
+
+    filtered_candidates, filtered_scores = [], []
+    for channel in range(2):
+        channel_events = [event for event in selected if event[1] == channel]
+        filtered_candidates.append(
+            np.array([event[0] for event in channel_events], dtype=int)
+        )
+        filtered_scores.append(
+            np.array([event[2] for event in channel_events], dtype=float)
+        )
+    return filtered_candidates, filtered_scores
 
 
 def generate_df(
@@ -489,6 +537,8 @@ def get_optimal_cutoff(
             hyperparam_dict["distance"] = np.geomspace(
                 1, 1000 * max_distance, 8
             ).astype(int)
+        if dataclass.event_type == "interval":
+            hyperparam_dict["alternating"] = [False, True]
 
         param_search = list(
             itertools.product(*[hyperparam_dict[k] for k in hyperparam_dict.keys()])

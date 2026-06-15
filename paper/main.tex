@@ -107,6 +107,7 @@ Let $\kernel:\mathbb{Z}\to\mathbb{R}_{\ge 0}$ be a nonnegative unit-mass kernel:
 \begin{align}
     \sum_{r\in\mathbb{Z}} \kernel(r)=1.
 \end{align}
+On finite training chunks, kernels clipped by a chunk boundary are renormalized over the visible support, so each annotated boundary contributes one unit of target mass.
 The smoothed target count for channel $c$ is
 \begin{align}
     y_c(t) = \sum_{\tau\in B_c} \kernel(t-\tau), \qquad t=1,\ldots,T.
@@ -122,7 +123,7 @@ The tolerance kernel uses the same tolerance set $\{\delta_k\}_{k=1}^{K}$ used b
 All kernels are normalized to unit mass before constructing $y_c$.
 
 \begin{proposition}
-If every boundary is at least the kernel radius away from the sequence boundary, then $\sum_{t=1}^{T} y_c(t)=|B_c|$.
+With unit-mass kernels and finite-window renormalization, $\sum_{t=1}^{T} y_c(t)=|B_c|$.
 \end{proposition}
 
 \begin{proof}
@@ -136,6 +137,8 @@ By exchanging the order of summation in Equation~\ref{eq:smoothed-target},
 \end{proof}
 
 This property is important for likelihood training: the target remains a smoothed count measure rather than an arbitrary high-amplitude regression surface.
+For sleep onset and wake-up intervals, this construction gives separate onset and offset counting measures.
+The likelihood does not by itself enforce alternating onset/offset states; it estimates boundary rates, and pairing or state-consistency constraints belong in inference-time post-processing if a downstream task requires full sleep/awake intervals.
 
 \subsection{Poisson Boundary Likelihood}
 
@@ -178,6 +181,24 @@ Optional Gaussian smoothing may be applied to the rates.
 Candidate boundaries are local maxima found by peak detection, and the predicted rate at each peak is used as the confidence score.
 This matches the output format required by tolerance-based event AP.
 
+\subsection{Interval Validity and Alternating Decoding}
+
+For interval datasets such as sleep onset and wake-up detection, the likelihood treats onset and offset as separate boundary channels.
+This is appropriate for tolerance-based AP, which scores event types separately, but it does not by itself guarantee a legal alternating state sequence.
+We therefore include a post-processing ablation that filters candidates into onset--offset pairs:
+\begin{align}
+    \hat{\tau}^{\mathrm{on}}_1
+    <
+    \hat{\tau}^{\mathrm{off}}_1
+    <
+    \hat{\tau}^{\mathrm{on}}_2
+    <
+    \hat{\tau}^{\mathrm{off}}_2
+    < \cdots .
+\end{align}
+The implementation greedily scans candidates in time order, keeps the highest-scoring candidate when multiple boundaries of the same type occur before the next opposite boundary, and discards incomplete leading offsets or trailing onsets.
+This mirrors the competition-style cleanup used in the Child Mind Institute sleep-detection setting, where predictions were ultimately submitted as alternating sleep and wake-up events \citep{esper2023}.
+
 \section{Experimental Protocol}
 
 The experiments will be rerun from scratch.
@@ -219,7 +240,7 @@ State-label baselines \\
 \end{table}
 
 \paragraph{Ablations.}
-The required ablations are likelihood versus MSE, kernel choice, prior-rate initialization, online versus bidirectional/noncausal context, and post-processing sensitivity.
+The required ablations are likelihood versus MSE, kernel choice, prior-rate initialization, online versus bidirectional/noncausal context, alternating versus unconstrained interval decoding, and post-processing sensitivity.
 Weighted and focal segmentation variants are included to avoid comparing against an unnecessarily weak state-label baseline.
 
 \paragraph{Reporting.}
@@ -231,6 +252,7 @@ Plots will be regenerated from the Kaggle \texttt{sleep-plots.ipynb} workflow af
 
 Boundary Density Likelihood is appropriate when the desired output is a ranked list of boundary times.
 It is not a replacement for segmentation when downstream use requires a calibrated state sequence or per-timestep occupancy.
+Because onset and offset channels are modeled as separate conditional rates, the method does not guarantee legal alternation of sleep and wake states without additional post-processing.
 The likelihood also depends on kernel choice, and the tolerance-aligned kernel may overfit to a particular metric.
 Finally, this formulation is supervised and conditional; it should not be presented as a full temporal point-process model.
 

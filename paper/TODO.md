@@ -9,7 +9,8 @@
 
 ## Core experiments
 
-- Sleep dataset first: compare `density_hard`, `density_gau`, and `density_custom` against legacy `hard`, `gau`, `custom`, and segmentation `seg1`/`seg2`.
+- See `paper/NEXT_STEPS.md` for the current submission path and future analyses that should not block the first workshop version.
+- Sleep dataset first: compare `density_hard`, `density_gau`, and `density_custom` against legacy `hard`, `gau`, `custom`, and segmentation `seg`, `seg_weighted`, and `seg_focal`.
 - Seizure dataset second if compute allows, using the same objective matrix.
 - Report fold means and standard deviations, plus pooled EDAP only as a secondary view.
 - Add likelihood-vs-MSE, kernel-type, and prior-rate ablations.

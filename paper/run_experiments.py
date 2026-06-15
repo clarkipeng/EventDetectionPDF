@@ -7,8 +7,9 @@ when the data directory is ready and you want to launch the runs.
 from __future__ import annotations
 
 import argparse
+import os
+import shlex
 import subprocess
-import sys
 from pathlib import Path
 
 
@@ -26,9 +27,25 @@ DEFAULT_OBJECTIVES = [
 ]
 
 
+def command_to_string(command):
+    return shlex.join(command)
+
+
+def expected_scores_path(args, dataset, model, objective, seed):
+    return (
+        Path(args.experiments_root)
+        / dataset
+        / model
+        / objective
+        / f"seed_{seed}"
+        / "results"
+        / "scores.csv"
+    )
+
+
 def build_command(args, dataset, model, objective, seed):
     command = [
-        sys.executable,
+        args.python,
         "train.py",
         "--dataset",
         dataset,
@@ -72,9 +89,54 @@ def build_command(args, dataset, model, objective, seed):
     return command
 
 
+def iter_runs(args):
+    for dataset in args.datasets:
+        for seed in args.seeds:
+            for model in args.models:
+                for objective in args.objectives:
+                    if args.skip_existing and expected_scores_path(
+                        args, dataset, model, objective, seed
+                    ).exists():
+                        continue
+                    yield {
+                        "dataset": dataset,
+                        "seed": seed,
+                        "model": model,
+                        "objective": objective,
+                        "command": build_command(args, dataset, model, objective, seed),
+                    }
+
+
+def write_shell_script(path, runs, repo_root):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rel_repo = os.path.relpath(repo_root, path.parent.resolve())
+    lines = [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        f'REPO_ROOT="$(cd "$(dirname "${{BASH_SOURCE[0]}}")/{rel_repo}" && pwd)"',
+        'cd "$REPO_ROOT"',
+        "",
+    ]
+    for run in runs:
+        lines.append(
+            "# "
+            f"{run['dataset']} {run['model']} {run['objective']} seed={run['seed']}"
+        )
+        lines.append(command_to_string(run["command"]))
+        lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+    path.chmod(path.stat().st_mode | 0o111)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--datadir", default="data")
+    parser.add_argument(
+        "--python",
+        default="python",
+        help="Python executable to use in printed, written, and executed commands.",
+    )
     parser.add_argument("--datasets", nargs="+", default=["sleep"])
     parser.add_argument("--models", nargs="+", default=DEFAULT_MODELS)
     parser.add_argument("--objectives", nargs="+", default=DEFAULT_OBJECTIVES)
@@ -97,6 +159,21 @@ def parse_args():
     parser.add_argument("--save_all_epochs", default=False)
     parser.add_argument("--gaussian_sigma", type=float, default=None)
     parser.add_argument("--tolerance_scale", type=float, default=1.0)
+    parser.add_argument(
+        "--experiments-root",
+        default="experiments",
+        help="Root used only for --skip-existing checks; train.py writes to experiments/.",
+    )
+    parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Skip runs whose results/scores.csv already exists.",
+    )
+    parser.add_argument(
+        "--write-script",
+        default=None,
+        help="Write the planned commands to an executable shell script.",
+    )
     parser.add_argument("--execute", action="store_true")
     parser.add_argument(
         "--stop-on-error",
@@ -109,21 +186,23 @@ def parse_args():
 def main():
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[1]
+    runs = list(iter_runs(args))
     failures = []
 
-    for dataset in args.datasets:
-        for seed in args.seeds:
-            for model in args.models:
-                for objective in args.objectives:
-                    command = build_command(args, dataset, model, objective, seed)
-                    print(" ".join(command))
-                    if not args.execute:
-                        continue
-                    result = subprocess.run(command, cwd=repo_root, check=False)
-                    if result.returncode != 0:
-                        failures.append((command, result.returncode))
-                        if args.stop_on_error:
-                            raise SystemExit(result.returncode)
+    if args.write_script:
+        write_shell_script(args.write_script, runs, repo_root)
+        print(f"Wrote {len(runs)} commands to {args.write_script}")
+
+    for run in runs:
+        command = run["command"]
+        print(command_to_string(command))
+        if not args.execute:
+            continue
+        result = subprocess.run(command, cwd=repo_root, check=False)
+        if result.returncode != 0:
+            failures.append((command, result.returncode))
+            if args.stop_on_error:
+                raise SystemExit(result.returncode)
 
     if failures:
         print("\nFailed commands:")

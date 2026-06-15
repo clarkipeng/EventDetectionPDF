@@ -16,6 +16,7 @@
 - Use a fixed seed list for reruns; start with `--seed 0` to match the legacy split, then add two more seeds if runtime is acceptable.
 - Keep raw experiment outputs under `experiments/`; do not commit model checkpoints, cached predictions, or generated plots.
 - Prefer `paper/run_experiments.py` for reruns so command lines and matrix membership stay consistent.
+- Use `paper/EXPERIMENTS.md` as the GPU-later runbook; generate shell scripts with `--write-script` when moving to Kaggle or a GPU box.
 - Use the structured files in `experiments/*/*/*/seed_*/results/` for tables and plots.
 
 ## Suggested rerun commands
@@ -72,6 +73,7 @@ These are starting commands, not final hyperparameter claims. Record the exact c
 ## Acceptance checklist
 
 - `python3 -m py_compile src/utils.py train.py train_all.py eval.py models/load_model.py` passes.
+- `python paper/run_experiments.py --datasets sleep --models gru --objectives density_custom --seeds 0 --epochs 1 --folds 2 --datadir data` prints a valid dry-run command.
 - `latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex` passes from `paper/`.
 - No LaTeX build artifacts, model checkpoints, cached predictions, or experiment outputs are staged.
 - The paper has no tables or plots from old runs unless they are explicitly labeled placeholders.

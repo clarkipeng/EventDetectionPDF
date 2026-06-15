@@ -103,9 +103,10 @@ python train_all.py --dataset [dataset_name] --datadir [path_to_dataset]
 For paper reruns, the recommended wrapper is:
 ```
 python paper/run_experiments.py --datasets sleep --datadir data
+python paper/run_experiments.py --datasets sleep --datadir data --write-script paper/generated_runs/sleep_full.sh
 python paper/run_experiments.py --datasets sleep --datadir data --execute
 ```
-The first command prints the planned matrix; the second executes it.
+The first command prints the planned matrix, the second writes an executable script for later GPU use, and the third executes it. See [paper/EXPERIMENTS.md](paper/EXPERIMENTS.md) for the full no-GPU-now, GPU-later runbook.
 
 Each run writes checkpoints, out-of-fold predictions, and machine-readable result files under:
 ```
@@ -118,80 +119,9 @@ python paper/make_plots.py --dataset sleep --results-root experiments
 ```
 
 #### Example
-Here is a example of running the training script on a machine with an A100 GPU and 32 GB of RAM:
+Here is a minimal single-objective command. For paper claims, use the rerun matrix above rather than legacy example outputs.
 ```
-python train.py --dataset sleep --model gru --objective seg --epochs 10 --folds 4
-```
-Which has the following output:
-```
-fold 0, epoch 1/10: train loss: 6.567, valid loss: 6.930, valid mAP: 0.023
-fold 0, epoch 2/10: train loss: 6.780, valid loss: 6.907, valid mAP: 0.109
-fold 0, epoch 3/10: train loss: 6.679, valid loss: 6.875, valid mAP: 0.237
-fold 0, epoch 4/10: train loss: 6.765, valid loss: 6.803, valid mAP: 0.416
-fold 0, epoch 5/10: train loss: 6.409, valid loss: 6.758, valid mAP: 0.519
-fold 0, epoch 6/10: train loss: 6.453, valid loss: 6.722, valid mAP: 0.574
-fold 0, epoch 7/10: train loss: 6.510, valid loss: 6.703, valid mAP: 0.602
-fold 0, epoch 8/10: train loss: 6.657, valid loss: 6.692, valid mAP: 0.620
-fold 0, epoch 9/10: train loss: 6.529, valid loss: 6.688, valid mAP: 0.614
-fold 0, epoch 10/10: train loss: 6.454, valid loss: 6.687, valid mAP: 0.610
-fold 1, epoch 1/10: train loss: 6.878, valid loss: 7.165, valid mAP: 0.026
-fold 1, epoch 2/10: train loss: 6.660, valid loss: 7.139, valid mAP: 0.081
-fold 1, epoch 3/10: train loss: 6.648, valid loss: 7.100, valid mAP: 0.208
-fold 1, epoch 4/10: train loss: 6.560, valid loss: 7.026, valid mAP: 0.431
-fold 1, epoch 5/10: train loss: 6.436, valid loss: 6.962, valid mAP: 0.553
-fold 1, epoch 6/10: train loss: 6.188, valid loss: 6.921, valid mAP: 0.592
-fold 1, epoch 7/10: train loss: 6.218, valid loss: 6.896, valid mAP: 0.608
-fold 1, epoch 8/10: train loss: 6.160, valid loss: 6.884, valid mAP: 0.602
-fold 1, epoch 9/10: train loss: 6.352, valid loss: 6.881, valid mAP: 0.611
-fold 1, epoch 10/10: train loss: 6.206, valid loss: 6.880, valid mAP: 0.608
-fold 2, epoch 1/10: train loss: 6.805, valid loss: 6.674, valid mAP: 0.0163
-fold 2, epoch 2/10: train loss: 6.774, valid loss: 6.653, valid mAP: 0.103
-fold 2, epoch 3/10: train loss: 6.763, valid loss: 6.635, valid mAP: 0.213
-fold 2, epoch 4/10: train loss: 6.904, valid loss: 6.593, valid mAP: 0.429
-fold 2, epoch 5/10: train loss: 6.684, valid loss: 6.515, valid mAP: 0.538
-fold 2, epoch 6/10: train loss: 6.731, valid loss: 6.483, valid mAP: 0.589
-fold 2, epoch 7/10: train loss: 6.780, valid loss: 6.463, valid mAP: 0.600
-fold 2, epoch 8/10: train loss: 6.468, valid loss: 6.451, valid mAP: 0.612
-fold 2, epoch 9/10: train loss: 6.542, valid loss: 6.444, valid mAP: 0.625
-fold 2, epoch 10/10: train loss: 6.504, valid loss: 6.443, valid mAP: 0.628
-fold 3, epoch 1/10: train loss: 7.531, valid loss: 6.099, valid mAP: 0.012
-fold 3, epoch 2/10: train loss: 6.723, valid loss: 6.081, valid mAP: 0.038
-fold 3, epoch 3/10: train loss: 6.891, valid loss: 6.068, valid mAP: 0.119
-fold 3, epoch 4/10: train loss: 7.002, valid loss: 6.023, valid mAP: 0.305
-fold 3, epoch 5/10: train loss: 7.033, valid loss: 5.962, valid mAP: 0.474
-fold 3, epoch 6/10: train loss: 6.730, valid loss: 5.928, valid mAP: 0.552
-fold 3, epoch 7/10: train loss: 6.812, valid loss: 5.905, valid mAP: 0.589
-fold 3, epoch 8/10: train loss: 6.796, valid loss: 5.895, valid mAP: 0.603
-fold 3, epoch 9/10: train loss: 6.8624, valid loss: 5.890, valid mAP: 0.599
-fold 3, epoch 10/10: train loss: 6.608, valid loss: 5.890, valid mAP: 0.594
-gru hard results: 
- default scores: mAP = 0.565, maxf1 = 0.663, 
- optimizing hyperparams for mAP:
-  best params: cutoff = 0.0, smoothing = 40
-  best scores: mAP = 0.620, maxf1 = 0.681, 
-   tolerance 12 : mAP = 0.037, maxf1 = 0.186, 
-   tolerance 36 : mAP = 0.303, maxf1 = 0.518, 
-   tolerance 60 : mAP = 0.529, maxf1 = 0.664, 
-   tolerance 90 : mAP = 0.662, maxf1 = 0.731, 
-   tolerance 120 : mAP = 0.711, maxf1 = 0.755, 
-   tolerance 150 : mAP = 0.740, maxf1 = 0.771, 
-   tolerance 180 : mAP = 0.759, maxf1 = 0.780, 
-   tolerance 240 : mAP = 0.784, maxf1 = 0.792, 
-   tolerance 300 : mAP = 0.805, maxf1 = 0.802, 
-   tolerance 360 : mAP = 0.817, maxf1 = 0.808,
- optimizing hyperparams for maxf1:
-  best params: cutoff = 0.0, smoothing = 40
-  best scores: mAP = 0.620, maxf1 = 0.681, 
-   tolerance 12 : mAP = 0.037, maxf1 = 0.186, 
-   tolerance 36 : mAP = 0.303, maxf1 = 0.518, 
-   tolerance 60 : mAP = 0.529, maxf1 = 0.664, 
-   tolerance 90 : mAP = 0.662, maxf1 = 0.731, 
-   tolerance 120 : mAP = 0.711, maxf1 = 0.755, 
-   tolerance 150 : mAP = 0.740, maxf1 = 0.771, 
-   tolerance 180 : mAP = 0.759, maxf1 = 0.780, 
-   tolerance 240 : mAP = 0.784, maxf1 = 0.792, 
-   tolerance 300 : mAP = 0.805, maxf1 = 0.802, 
-   tolerance 360 : mAP = 0.817, maxf1 = 0.808, 
+python train.py --dataset sleep --model gru --objective density_custom --epochs 1 --folds 2 --datadir data
 ```
 
 ## References

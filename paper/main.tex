@@ -5,6 +5,7 @@
 \usepackage{lmodern}
 \usepackage{microtype}
 \usepackage{amsmath,amssymb,amsthm}
+\usepackage{array}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage[numbers,sort&compress]{natbib}
@@ -21,6 +22,7 @@
 \newcommand{\xseq}{x_{1:T}}
 \newcommand{\rate}{\lambda}
 \newcommand{\kernel}{\kappa}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 
 \begin{document}
 \maketitle
@@ -196,7 +198,7 @@ Table~\ref{tab:objective-matrix} shows the objective matrix for the rerun.
 \centering
 \caption{Objective matrix for the rerun experiments.}
 \label{tab:objective-matrix}
-\begin{tabular}{p{0.26\linewidth}p{0.34\linewidth}p{0.30\linewidth}}
+\begin{tabular}{@{}L{0.24\linewidth}L{0.46\linewidth}L{0.22\linewidth}@{}}
 \toprule
 Family & Objectives & Purpose \\
 \midrule
@@ -205,17 +207,17 @@ Boundary density likelihood &
 Main method \\
 Legacy MSE heatmaps &
 \texttt{hard}, \texttt{gau}, \texttt{custom} &
-Isolate likelihood vs MSE \\
+Likelihood comparison \\
 Segmentation &
-\texttt{seg1}, \texttt{seg2} &
-Standard state-label baseline \\
+\texttt{seg}, \texttt{seg\_weighted}, \texttt{seg\_focal} &
+State-label baselines \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{Ablations.}
 The required ablations are likelihood versus MSE, kernel choice, prior-rate initialization, and post-processing sensitivity.
-If compute allows, we will add weighted or focal segmentation baselines to avoid comparing against an unnecessarily weak segmentation objective.
+Weighted and focal segmentation variants are included to avoid comparing against an unnecessarily weak state-label baseline.
 
 \paragraph{Reporting.}
 The main tables should report fold means and standard deviations for event AP.

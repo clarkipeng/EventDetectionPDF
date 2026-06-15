@@ -1,0 +1,751 @@
+\RequirePackage[l2tabu, orthodox]{nag}
+\documentclass{article}
+
+% FONTS
+\usepackage[T1]{fontenc}
+
+% Import MathDesign (this brings along Bitstream Charter)
+% http://www.ctan.org/tex-archive/fonts/mathdesign/
+\usepackage[bitstream-charter]{mathdesign}
+\usepackage{amsmath}
+\usepackage[scaled=0.92]{PTSans}
+\usepackage{inconsolata}
+
+% GEOMETRY
+\usepackage[
+  paper  = letterpaper,
+  left   = 1.5in,
+  right  = 1.5in,
+  top    = 1.0in,
+  bottom = 1.0in,
+  ]{geometry}
+
+% COLOR
+\usepackage[usenames,dvipsnames]{xcolor}
+\definecolor{shadecolor}{gray}{0.9}
+
+% SPACING and TEXT
+\usepackage[final,expansion=alltext]{microtype}
+\usepackage[english]{babel}
+\usepackage[parfill]{parskip}
+
+% COUNTERS
+\renewcommand{\labelenumi}{\color{black!67}{\arabic{enumi}.}}
+\renewcommand{\labelenumii}{{\color{black!67}(\alph{enumii})}}
+\renewcommand{\labelitemi}{{\color{black!67}\textbullet}}
+
+% FIGURES
+\usepackage{graphicx}
+\usepackage[labelfont=bf]{caption}
+% \usepackage[format=hang]{subcaption}
+
+% BIBLIOGRAPHY
+\usepackage{natbib}
+
+% HYPERREF
+\usepackage[colorlinks,linktoc=all]{hyperref}
+\usepackage[all]{hypcap}
+\hypersetup{citecolor=Violet}
+\hypersetup{linkcolor=black}
+\hypersetup{urlcolor=MidnightBlue}
+
+\newcommand{\red}[1]{\textcolor{BrickRed}{\textbf{#1}}}
+\pagenumbering{gobble}
+
+% preamble
+
+% \documentclass[twocolumn]{article}
+\usepackage{amsmath}
+\usepackage{setspace}
+\usepackage{graphicx,booktabs,siunitx,multirow,threeparttable}
+\usepackage{nicefrac}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{subfig}
+\usepackage{authblk}
+\renewcommand\Authfont{\fontsize{12}{14.4}\selectfont}
+\renewcommand\Affilfont{\fontsize{9}{10.8}\itshape}
+\usepackage[parfill]{parskip}
+\usepackage[sort,nocompress]{cite}
+
+
+\geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=20mm,
+ top=20mm,
+ }
+\graphicspath{ {figures/} }
+\title{Event Detection via Probability Density Function Regression}
+\author[1]{Clark Peng}
+\author[2]{Tolga Dinçer}
+\affil[1]{University of California, Los Angeles, CA, USA}
+\affil[2]{Colgate University, Information Technology Services, Hamilton, NY, USA}
+\date{}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+\noindent In the domain of time series analysis, particularly in event detection tasks, current methodologies predominantly rely on segmentation-based approaches, which predict the class label for individual timesteps and uses the changepoints of these labels to detect events. However, these approaches may not effectively detect the precise onset and offset of events within the data and suffer from class imbalance problems. This study introduces a generalized regression-based approach to reframe the time-interval-defined event detection problem. Inspired by heatmap regression techniques from computer vision, our approach aims to predict probability densities at event locations rather than class labels across the entire time series. The primary aim of this approach is to improve the accuracy of event detection methods, particularly for long-duration events where identifying the onset and offset is more critical than classifying individual event states. We demonstrate that regression-based approaches outperform segmentation-based methods across various state-of-the-art baseline networks and datasets, offering a more effective solution for specific event detection tasks.
+
+\end{abstract}
+
+\section{Introduction}
+\label{section:intro}
+
+\subsection{Background}
+
+Neural networks have become prominent for analyzing multivariate time series, encompassing both event detection (ED), where events have a duration, and change-point detection (CPD), where changes are instantaneous. This study focuses on advancing event detection (ED) techniques, an important task with applications in various domains such as sleep analysis, seizure prediction, manufacturing, and geophysical event detection \citep{azib2023,phan2019,perslev2019}. 
+
+Traditional event detection often relies on segmentation, classifying each time step, and then identifying events by searching for phase transitions. However, this approach can be less effective than directly localizing event boundaries.
+
+This study introduces a novel approach inspired by heatmap regression in computer vision \citep{luo2021, yu2022}. We frame event detection as a regression problem, where deep learning models predict probability density functions (PDFs) at event onsets and offsets.
+
+This regression-based approach offers several advantages:
+
+\begin{itemize}
+  \item Robustness to class imbalance: Unlike segmentation, it is less sensitive to imbalanced datasets, a common challenge in time series analysis \citep{aminikhanghahi2017, azib2023}.
+  \item Handling of label ambiguity: By predicting PDFs, the model can account for uncertainty and noise in coarse event annotations, which is crucial when dealing with high-resolution time series data or human-labeled datasets \citep{luo2021,yu2022}.
+\end{itemize}
+
+This approach has shown promising results in practical applications, including the Child Mind Institute's sleep detection competition, where it was successfully adopted by many top-performing teams \citep{esper2023}.
+
+\subsection{Previous Work}
+
+% Recent research in event detection has introduced regression-based methodologies \citep{azib2023}. These methods use a function defined by the Intersection over Union (IoU) metric applied to overlapping partitions at event locations to set their regression targets. Although designed to optimize the detection of event onsets and offsets, these approaches often generate fixed target distributions focused on predicting event midpoints, assuming uniform event durations. This assumption complicates the accurate identification of event boundaries, as events typically vary in duration. Furthermore, the reliance on overlapping partitions results in redundant memory usage and restricts the model's ability to leverage global context, limiting it to local features around specific timesteps.
+
+% Probability density methods have been developed for sleep-detection problems by fitting Gaussian probability densities over event locations \citep{phan2015}. These methods involve an indirect process: first, decision trees predict the distance from each step to the event location, and then another tree predicts the event prediction's confidence. These decision trees are only trained on local partitions of data around each timestep. These predictions are aggregated by summing Gaussians across all timesteps, fitting a probability density to each event. This approach aids in event detection by identifying the centers of these densities via peak-detection. However, the requirement for extensive data processing and tabular modeling methods limits their applicability to modern time series frameworks and models.
+
+% In the following, we expand on these previous works by presenting our approach to applying a customizable probability density function (pdf) objective to two ED datasets, removing the need for overlapping partitions, and showing how this method can easily be applied to state-of-the-art seq2seq model architectures, which can incorporate global context, unlike previous work. In Section~\ref{section:evaluate}, we explain our approach, apply it to various state of the art deep learning models, and evaluate them on CMI’s sleep detection dataset. In addition, we compare them against models trained on segmentation objectives to assess which method performs the best. Section~\ref{section:results} summarizes our main findings, and~\ref{section:discussion} discusses limitations and applications before we conclude in Section~\ref{section:conclude}.
+
+Recent research in event detection has explored regression-based approaches \citep{azib2023}. These methods rely on fixed probability functions (IoU) fitted over overlapping partitions of time-steps around event locations to define regression targets. These approaches assume uniform event durations, and model context is limited by the partition sizes.
+
+Previous work in sleep detection has explored probability density methods, fitting Gaussian distributions to event locations \citep{phan2015}. These methods typically involve a multistage process. Decision trees predict the distance from each time step to the event location, other trees predict the confidence of each prediction. Then, predictions are aggregated as Gaussian distributions and peak-finding is used to identify event locations. This approach often requires extensive data processing and relies on tabular modeling methods, limiting its compatibility with modern time-series frameworks and deep learning models.
+
+In this work, we present a novel approach that addresses current limitations. We introduce a customizable probability density function (PDF) objective, eliminate the need for overlapping partitions, and demonstrate seamless integration with state-of-the-art seq2seq models, enabling the capture of global context. 
+
+In Section~\ref{section:evaluate}, we detail our approach, apply it to various deep learning models, and evaluate its performance. We also compare our method with segmentation-based models to assess its effectiveness. Section~\ref{section:results} summarizes our findings, followed by a discussion of limitations and future applications in Section~\ref{section:discussion}, and concluding remarks in Section~\ref{section:conclude}.
+
+\section{Regression Methodology}
+\label{section:method}
+
+% Our method involves convolving a pdf over an event series to produce a series with peaks at each event location. Since we are aiming to predict both the onset and offset of events, this necessitates two output target series. Our approach eliminates the need for partitioning by directly convolving a pdf rather than calculating an IoU over partitions.
+
+% After a deep learning model predicts these transformed targets, a series of simple post-processing steps are done, using simple peak finding and smoothing functions like $find\_peaks$ and $gaussian\_filter1d$ in SciPy \citep{virtanen2020} to find event locations and rank their relative prominences.
+
+% Time series segmentation with deep learning typically involves employing an encoder-decoder network that outputs a N-dimensional series with the same time dimension as the input series, with N corresponding to the class probabilities for each time step \citep{supratak2017, perslev2019}. By simply changing the output layers of these segmentation models to have 2 dimensions and use a linear activation instead of a softmax activation on the output layer, we are able to transform these models designed for segmentation into models for pdf regression.
+
+Our method convolves a PDF over the time series, generating peaks at event onsets and offsets, requiring two output series. This approach eliminates the need for partitioning.
+
+After model prediction, simple post-processing (e.g., $find\_peaks$, $gaussian\_filter1d$ \citep{virtanen2020}) identifies and ranks events.
+
+Segmentation models typically output class probabilities for each time step. By modifying the output layer to have two dimensions and using a linear activation, these models can be adapted for PDF regression.
+
+\begin{table*}
+\centering
+\caption{Performance of best regression and segmentation models on the CMI database, assessed by EDAP at various thresholds. Highest scores are bolded.
+}
+\label{tbl:cmi_thr}
+\begin{tabular}{|c|cc|cccccccccc|}
+\hline
+\multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}Model\\ Architecture\end{tabular}} & \multicolumn{2}{c|}{Objective} & \multicolumn{10}{c|}{Tolerance Thresholds} \\
+ & \multicolumn{1}{c|}{Type} & Method & \multicolumn{1}{c|}{12} & \multicolumn{1}{c|}{36} & \multicolumn{1}{c|}{60} & \multicolumn{1}{c|}{90} & \multicolumn{1}{c|}{120} & \multicolumn{1}{c|}{150} & \multicolumn{1}{c|}{180} & \multicolumn{1}{c|}{240} & \multicolumn{1}{c|}{300} & 360 \\ \hline
+RNN & \multicolumn{1}{c|}{Regression} & Hard & \multicolumn{1}{c|}{\textbf{0.04}} & \multicolumn{1}{c|}{\textbf{0.29}} & \multicolumn{1}{c|}{\textbf{0.52}} & \multicolumn{1}{c|}{\textbf{0.66}} & \multicolumn{1}{c|}{\textbf{0.72}} & \multicolumn{1}{c|}{\textbf{0.75}} & \multicolumn{1}{c|}{\textbf{0.77}} & \multicolumn{1}{c|}{\textbf{0.80}} & \multicolumn{1}{c|}{\textbf{0.81}} & \textbf{0.83} \\ \cline{12-12}
+RNN & \multicolumn{1}{c|}{Segmentation} & \hyperref[seg:m2]{Method 2} & \multicolumn{1}{c|}{0.02} & \multicolumn{1}{c|}{0.19} & \multicolumn{1}{c|}{0.34} & \multicolumn{1}{c|}{0.47} & \multicolumn{1}{c|}{0.56} & \multicolumn{1}{c|}{0.62} & \multicolumn{1}{c|}{0.66} & \multicolumn{1}{c|}{0.71} & \multicolumn{1}{c|}{0.74} & 0.76 \\ \hline
+\end{tabular}
+\centering
+\caption{Performance of best regression and segmentation models on the CHB-MIT Scalp EEG Database, assessed by EDAP at various thresholds. Highest scores are bolded.
+}
+\label{tbl:sei_thr}
+\begin{tabular}{|c|cc|cccccc|}
+\hline
+\multirow{2}{*}{\begin{tabular}[c]{@{}c@{}}Model\\ Architecture\end{tabular}} & \multicolumn{2}{c|}{Objective} & \multicolumn{6}{c|}{Tolerance Thresholds} \\
+ & \multicolumn{1}{c|}{Type} & Method & \multicolumn{1}{c|}{256} & \multicolumn{1}{c|}{512} & \multicolumn{1}{c|}{1280} & \multicolumn{1}{c|}{2560} & \multicolumn{1}{c|}{5120} & 15360 \\ \hline
+UNet & \multicolumn{1}{c|}{Regression} & Custom & \multicolumn{1}{c|}{\textbf{0.02}} & \multicolumn{1}{c|}{\textbf{0.05}} & \multicolumn{1}{c|}{0.13} & \multicolumn{1}{c|}{0.19} & \multicolumn{1}{c|}{0.31} & \textbf{0.58} \\
+UNet & \multicolumn{1}{c|}{Segmentation} & \hyperref[seg:m1]{Method 1} & \multicolumn{1}{c|}{0.01} & \multicolumn{1}{c|}{0.02} & \multicolumn{1}{c|}{\textbf{0.16}} & \multicolumn{1}{c|}{\textbf{0.28}} & \multicolumn{1}{c|}{\textbf{0.39}} & 0.47 \\ \hline
+\end{tabular}
+\end{table*}
+
+
+\begin{table*}
+\centering
+\caption{Performance of pdf regression and segmentation on baseline models (default and tuned) on the CMI dataset. Highest scores for each model are bolded. Italicized methods indicate our proposed pdf regression objectives.
+}
+\label{tbl:cmi_full}
+\begin{tabular}{ccc|ccccc|}
+\cline{4-8}
+ &  &  & \multicolumn{5}{c|}{Model Objectives} \\
+ &  &  & \multicolumn{2}{c|}{Segmentation} & \multicolumn{3}{c|}{Regression} \\ \cline{3-3}
+ & \multicolumn{1}{c|}{} & Model & \hyperref[seg:m1]{Method 1} & \multicolumn{1}{c|}{\hyperref[seg:m2]{Method 2}} & Hard & Gaussian & EDAP \\ \hline
+\multicolumn{1}{|c}{\multirow{8}{*}{\rotatebox{90}{Hyperparameters}}} & \multicolumn{1}{c|}{\multirow{4}{*}{\rotatebox{90}{Tuned}}} & GRU & 0.477 & \multicolumn{1}{c|}{0.508} & \textbf{0.621} & 0.610 & 0.572 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{c|}{} & UNet & 0.470 & \multicolumn{1}{c|}{0.481} & 0.548 & 0.566 & \textbf{0.574} \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{c|}{} & PrecTime \citep{gaugel2023} & 0.410 & \multicolumn{1}{c|}{0.318} & 0.480 & \textbf{0.483} & 0.475 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{c|}{} & UNet+Attention & 0.309 & \multicolumn{1}{c|}{0.324} & 0.521 & \textbf{0.552} & 0.542 \\ \cline{2-8} 
+\multicolumn{1}{|c}{} & \multicolumn{1}{c|}{\multirow{4}{*}{\rotatebox{90}{Default}}} & GRU & 0.302 & \multicolumn{1}{c|}{0.347} & 0.586 & \textbf{0.589} & 0.569 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{c|}{} & UNet & 0.436 & \multicolumn{1}{c|}{0.425} & 0.522 & \textbf{0.544} & 0.540 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{c|}{} & PrecTime \citep{gaugel2023} & 0.269 & \multicolumn{1}{c|}{0.258} & 0.374 & 0.467 & \textbf{0.473} \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{c|}{} & UNet+Attention & 0.263 & \multicolumn{1}{c|}{0.248} & 0.494 & \textbf{0.530} & 0.499 \\ \hline
+\end{tabular}
+\centering
+\caption{Performance of pdf regression and segmentation on baseline models (default and tuned) on the CHB-MIT Scalp EEG Database. Highest scores for each model are bolded. Italicized methods indicate our proposed pdf regression objectives.
+}
+\label{tbl:sei_full}
+\begin{tabular}{lcc|ccccc|}
+\cline{4-8}
+ &  &  & \multicolumn{5}{c|}{Model Objectives} \\
+ &  &  & \multicolumn{2}{c|}{Segmentation} & \multicolumn{3}{c|}{Regression} \\ \cline{3-3}
+ & \multicolumn{1}{c|}{} & Model & \hyperref[seg:m1]{Method 1} & \multicolumn{1}{c|}{\hyperref[seg:m2]{Method 2}} & Hard & Gaussian & Custom \\ \hline
+\multicolumn{1}{|l}{\multirow{8}{*}{\rotatebox{90}{Hyperparameters}}} & \multicolumn{1}{c|}{\multirow{4}{*}{\rotatebox{90}{Tuned}}} & GRU & 0.082 & \multicolumn{1}{c|}{0.060} & \textit{\textbf{0.159}} & \textit{0.075} & \textit{0.082} \\
+\multicolumn{1}{|l}{} & \multicolumn{1}{c|}{} & UNet & \textbf{0.221} & \multicolumn{1}{c|}{0.123} & \textit{0.099} & \textit{0.192} & \textit{0.214} \\
+\multicolumn{1}{|l}{} & \multicolumn{1}{c|}{} & PrecTime \citep{gaugel2023} & 0.077 & \multicolumn{1}{c|}{0.061} & \textit{0.134} & \textit{\textbf{0.138}} & \textit{0.093} \\
+\multicolumn{1}{|l}{} & \multicolumn{1}{c|}{} & UNet+Attention & \textbf{0.076} & \multicolumn{1}{c|}{0.000} & \textit{0.015} & \textit{0.005} & \textit{0.014} \\ \cline{2-8} 
+\multicolumn{1}{|l}{} & \multicolumn{1}{c|}{\multirow{4}{*}{\rotatebox{90}{Default}}} & GRU & 0.025 & \multicolumn{1}{c|}{0.006} & \textit{\textbf{0.137}} & \textit{0.069} & \textit{0.075} \\
+\multicolumn{1}{|l}{} & \multicolumn{1}{c|}{} & UNet & 0.109 & \multicolumn{1}{c|}{0.018} & \textit{0.095} & \textit{0.188} & \textit{\textbf{0.208}} \\
+\multicolumn{1}{|l}{} & \multicolumn{1}{c|}{} & PrecTime \citep{gaugel2023} & 0.037 & \multicolumn{1}{c|}{0.008} & \textit{0.116} & \textit{\textbf{0.124}} & \textit{0.092} \\
+\multicolumn{1}{|l}{} & \multicolumn{1}{c|}{} & UNet+Attention & 0.011 & \multicolumn{1}{c|}{0.000} & \textit{\textbf{0.012}} & \textit{0.005} & \textit{\textbf{0.012}} \\ \hline
+\end{tabular}
+\end{table*}
+
+
+\section{Dataset and Evaluation}
+\label{section:evaluate}
+\subsection{Dataset Description}
+To evaluate our method, we utilize two publicly available datasets:
+
+\textbf{CMI Sleep Detection:} Contains accelerometer data from wrist-worn devices of 250+ subjects (0.2 Hz). Events are defined as sleep onset and wake-up times \citep{alexander2017}.
+
+\textbf{CHB-MIT Scalp EEG:} Includes EEG signals from 22 subjects (256 Hz) with seizures as events \citep{shoeb2010}.
+
+These datasets exhibit diverse characteristics (sampling rates, signal lengths, dimensionality), providing a robust test bed for our framework. Detailed descriptions are provided in Appendix \ref{appendix:data_description}
+
+\subsection{Evaluation}
+\label{sub_section:evaluation_metric}
+
+We employ the Event Detection AP (EDAP) metric from the original CMI Sleep Detection competition. EDAP is a soft metric that accounts for temporal tolerance, rewarding accurate event detection within a specified time window. Unlike hard metrics requiring exact matches, EDAP is analogous to IoU-based metrics in object detection, but with time tolerances instead of IoU thresholds \citep{salles2023, ram2023}. This aligns well with our proposed PDF-based approach.
+
+The evaluation procedure involves the following steps:
+\begin{itemize}
+\item \textbf{Assignment:} Predicted events are matched with corresponding ground-truth events.
+\item \textbf{Scoring:} Each group of predictions is scored against its corresponding ground-truth events using thresholded average precision (AP).
+\item \textbf{Reduction:} The thresholded AP scores are averaged to produce a single overall score.
+\end{itemize}
+Thresholds used for each dataset can be found in Appendix \ref{appendix:data_description}
+
+\subsection{Objective Distributions}
+
+Each model will be trained on the segmentation objective and 3 regression objectives created by different pdfs:
+
+\subsubsection{Segmentation}
+We use the traditional way to train seq2seq models for ED problems using cross entropy loss with the binary segmentation task.
+% \begin{figure*}
+%     \includegraphics[width=\textwidth]{figures/segmentationtargetexample.png}
+%     \centering
+% \end{figure*}
+
+\subsubsection{Regression}
+
+Three different probability density functions (PDFs) were employed. These objectives enable customization of model performance, emphasizing either overall event detection accuracy or precise localization by adjusting the PDF spread. This flexibility caters to the diverse requirements of different event detection tasks, as reflected in the varying EDAP thresholds. 
+\begin{itemize}
+  \item \textbf{Hard regression:} A binary classification problem with a regression objective. Targets are 1 at event onsets and offsets, and 0 elsewhere. 
+  \item \textbf{Gaussian regression:} Inspired by keypoint detection methods \citep{luo2021,yu2022}. Gaussian distributions are used with $\sigma = 50$ (approximately 4 minutes) for the Sleep Dataset and $\sigma = 256$ (1 second) for the Seizure Dataset, guided by the metric thresholds.
+  \item \textbf{EDAP Regression:} Targets are directly optimized for the Event Detection AP metric specific to each dataset. The regression target increases as the event approaches the designated time thresholds, aligning with the metric intervals (1, 3, 5, 7.5, 10, 12.5, 15, 20, 25, and 30 minutes for Sleep; 1, 2, 5, 10, 20, and 60 seconds for Seizure).
+\end{itemize}
+
+\begin{figure*}
+    \caption{Examples for Regression Targets}
+    \includegraphics[width=\textwidth]{figures/all_regressiontargetexample.png}
+    \centering
+\end{figure*}
+
+We need to normalize each of these pdfs before using them to train the model. This ensures that the model converges consistently across various target distributions by aligning the initial expected loss from the model for each pdf. As such, we normalize the target by dividing the target sequence with the following scaling factor $\gamma$:
+
+\begin{align} \label{eqn:normalize}
+\displaystyle \gamma = \sqrt{\dfrac{1}{d}\sum\limits_{i=0}^{w} y_i^2} \approx \sqrt{\dfrac{1}{d}\int\limits_{-\nicefrac{w}{2}}^{\nicefrac{w}{2}} f(x)^2 dx}
+\end{align}
+
+In (\ref{eqn:normalize_ipred}), $w$ denotes the width of the regression target, and $d$ is a constant that denotes the length of day in timesteps, in which we expect an event every $d$ steps. 
+
+Thus, assuming the model initializes with normally distributed values, the model should initially output an average around zero for all steps in the time series. With this assumption in (\ref{eqn:normalize_ipred}), applying the MSE loss function $\mathcal{L}$ to each initial prediction yields a loss of approximately $1$ using (\ref{eqn:normalize_loss}):
+
+\begin{align} 
+\hat{y} &\sim \begin{tabular}{|c|c|c|c|c|}
+    \hline
+    $0$ & $0$ & $\cdots$ & $0$ & $0$\\
+    \hline
+\end{tabular} \label{eqn:normalize_ipred} \\
+\displaystyle \mathcal{L}(\hat{y},y) &= \dfrac{1}{d}\sum_{i=1}^{d}(y_i/\gamma - \hat{y_i})^2 \approx 1 \label{eqn:normalize_loss}
+\end{align}
+
+Transforming the target in this way ensures that all regression targets scale up to generate similar loss values, thereby ensuring training stability across different pdfs.
+
+\subsection{Preprocessing}
+
+Before feeding the training data into the models for deep learning, we preprocess it to reduce dimensionality and memory usage. This involves downsampling the time series by an order of magnitude, wherein aggregated features such as mean, standard deviation, maximum, and minimum are computed along each time segment for continuous features, which are then appended to the feature list. For categorical features, we take the last value in the downsampled time series.
+
+\subsection{Modeling and Training Parameters}
+
+Previous research has shown that event detection in time series can be effectively addressed using a variety of deep learning architectures, including recurrent neural networks (RNNs) such as GRUs and LSTMs, convolutional neural networks (CNNs), and hybrid architectures that combine both \citep{supratak2017,perslev2019,phan2019}.
+
+In this study, we explore the effectiveness of our proposed regression method across a range of architectures. We employed the following models:
+
+\begin{itemize}
+\item Bidirectional GRU: This model captures temporal dependencies in both forward and backward directions, providing a strong baseline for event detection.
+\item U-Net: Inspired by the U-Net architecture \citep{ronneberger2015}, this fully convolutional model effectively captures temporal features within the time series using convolutions, very similar to U-Time \citep{perslev2019}.
+\item U-Net with Attention: We extended the simplified U-Net by incorporating an attention mechanism at the bottleneck layer. This partially emulates the attention mechanism used in transformers, enabling the model to capture long-range dependencies more effectively while maintaining a computationally more efficient architecture compared to full transformer models.
+\end{itemize}
+
+Transformer models, while highly effective in natural language processing tasks, exhibit quadratic complexity with respect to sequence length. Given the substantial temporal dependencies present in the long time series data analyzed in this study, and considering the computational constraints of the environment, architectures with more favorable scaling properties were deemed more appropriate.
+
+For comparison, we additionally included a state-of-the-art model, PrecTime \citep{gaugel2023}, which demonstrates the effectiveness of hybrid architectures combining convolutional and recurrent layers for precise event detection.
+
+This diverse set of architectures allows us to demonstrate the versatility and generalizability of our regression-based approach, showcasing its applicability across different model types. Figures illustrating the architectures can be found in Appendix \ref{appendix:architecture}.
+
+\subsection{Postprocessing}
+
+Figure \ref{fig:post_processing_diagram} illustrates examples of various post-processing pipelines applied to raw regression and segmentation model outputs.
+
+\begin{figure*}
+    \centering
+    \subfloat[\centering Regression Method]{{\includegraphics[width=6cm]{figures/all_regression_prediction_example.png} }}
+    \subfloat[\centering {Segmentation \hyperref[seg:m1]{Method 1}}]{{\includegraphics[width=6cm]{figures/all_segmentation_m1_prediction_example.png} }}
+    \subfloat[\centering {Segmentation \hyperref[seg:m2]{Method 2}}]{{\includegraphics[width=6cm]{figures/all_segmentation_m2_prediction_example.png} }}
+    \caption{All post-processing procedures step-by-step. Including both forms of segmentation processing and the regression post-processing results}
+    \label{fig:post_processing_diagram}
+\end{figure*}
+
+\subsubsection{Regression Postprocessing}
+\label{section:reg_pp}
+
+Our post processing pipeline for regression follows three simple steps with adjustable hyperparameters applied on a raw regression prediction:
+
+\begin{itemize}
+  \item Gaussian-smoothing step:
+Smooth all predictions along the time series with a gaussian filter, with hyperparameter $\sigma$ denoting the standard deviation of the gaussian kernel.
+  \item Finding Events:
+Apply a simple peak-finding function, for example, $scipy.find\_peaks$, to find candidate peaks in the predictions. This function is similar to the peak detection algorithm detailed in \citep{phan2015}.
+  \item Scoring Each Event:
+The EDAP metric requires each prediction to have a score assigned to it in order to rank the predictions and determine the optimal thresholds. Thus, we assign the peak probability of the probability density of an event to that event.
+\end{itemize}
+
+\subsubsection{Segmentation Postprocessing}
+
+To compare our regression methods with segmentation models, we employ a post-processing step for segmentation outputs. This involves thresholding the predicted class probabilities to identify potential event occurrences. However, this can lead to multiple probability fluctuations within a single true event. To mitigate this, we implement a post-processing step to refine event boundaries and reduce the likelihood of spurious detections.
+
+\begin{itemize}
+  \item Gaussian-smoothing step:
+Smooth all probability predictions along the time series with a gaussian filter, with the hyperparameter $\sigma$ denoting the standard deviation of the gaussian.
+  \item Finding Events: 
+Use a threshold $\mu$ to denote class thresholds. Events occur where the event class’s predicted probabilities exceed $\mu$.  
+  \item Scoring Each Event:
+    \begin{align} 
+    H(t) &= \begin{cases}  
+    0, & t\leq -\alpha, \\
+    \nicefrac{-1}{\alpha} ,& -\alpha\leq t\leq 0, \\
+    \nicefrac{1}{\alpha} ,& 0\leq t\leq\alpha, \\
+    0, & \alpha\leq t \\
+    \end{cases} \label{eqn:seg_window_func} \\
+    I(t) &= (\hat{Y} \ast H)(t) \label{eqn:seg_window_conv}
+    \end{align}
+\end{itemize}
+
+The EDAP metric requires scoring each prediction to rank them and determine optimal thresholds. To achieve this, we convolve the predicted class probabilities along the time dimension using a piecewise sliding window function (Equation \ref{eqn:seg_window_func}). This generates a pseudo-probability function $I(t)$ that mimics the PDFs obtained from regression, with $\alpha$ denoting the window size. 
+
+Equation \ref{eqn:seg_window_conv} illustrates this procedure. The absolute value of $I(t)$ is maximized at points where class probabilities exhibit abrupt changes. This allows us to score each candidate event, prioritizing those with more significant changes in class probabilities.
+
+This segmentation post-processing procedure will be referred to as \hyperref[seg:m1]{Method 1}.
+
+Alternatively, events can be directly detected by performing a regression-based peak-finding procedure on the pseudo probability function generated by $I$. This peak-based event detection method is referred to as \hyperref[seg:m2]{Method 2}. Details of the post-processing algorithms are provided in Appendix \ref{appendix:algos}.
+
+Both methods were tested and compared.
+
+\section{Results}
+\label{section:results}
+
+\subsection{Experimental Setup}
+
+We trained our models using the PyTorch framework \citep{ansel2024}, employing the Adam optimizer \citep{kingma15} with a cosine learning rate schedule \citep{loshchilov2017}. Hyperparameters, including batch size, learning rate, and gradient clipping, were optimized for each dataset. We conducted 4-fold cross-validation and selected the model with the best performance on the validation set.
+
+We evaluated our models by deploying default hyperparameters and estimating the optimal post-processing parameters using a grid search to maximize the EDAP metric. 
+
+The training parameters and search space used for each dataset are detailed in Appendix \ref{appendix:experiment_params}.
+
+\subsection{Experimental Results}
+
+\subsection{Observations}
+
+The results presented in Tables \ref{tbl:cmi_thr} and \ref{tbl:sei_thr} demonstrate that our PDF regression approach consistently achieves comparable or superior performance to segmentation models across diverse datasets with diverse time spans, sampling frequencies, and data types. In particular, the best-performing regression models matched or surpassed segmentation models across narrow and wide tolerance thresholds, highlighting the robustness of our approach. Further experimental findings are detailed in Section \ref{section:results}.
+
+\textbf{Regression vs Segmentation} Again, models trained on pdf regression consistently achieved comparable or improved performance than the models trained on segmentation tasks (Table \ref{tbl:cmi_full} and \ref{tbl:sei_full}). The top-performing regression models also match or exceed the precision of segmentation models across all time tolerance thresholds, demonstrating that pdf regression is superior to the segmentation approaches on these two datasets (Table \ref{tbl:cmi_thr} and \ref{tbl:sei_thr})
+
+\textbf{Impact of peak-finding approaches} There is a significant difference between framing the event detection challenge as a peak detection task versus a segmentation task. This is evident in the superior performance of regression-based methods compared to segmentation methods on the CMI dataset. The best regression approach achieved a tuned EDAP of $0.621$, while the best segmentation method achieved $0.508$ (Table \ref{tbl:cmi_full}). Even within segmentation models, employing peak-finding techniques instead of solely identifying class change locations can be beneficial. Segmentation \hyperref[seg:m2]{Method 2}, which uses a sliding window function to identify peaks from class probabilities, outperformed \hyperref[seg:m1]{Method 1} in $75\%$ of optimized models on the CMI Dataset, achieving a maximum EDAP of $0.508$ compared to $0.477$ for \hyperref[seg:m1]{Method 1}. However, \hyperref[seg:m1]{Method 1} outperformed \hyperref[seg:m2]{Method 2} on the CHB-MIT Dataset, achieving a maximum EDAP of $0.221$ compared to $0.123$ (Table \ref{tbl:sei_full}). This suggests that peak detection can enhance or degrade performance depending on the model's underlying confidence. It is clear, though, that peak-finding benefits regression-based models.
+
+\section{Discussion}
+\label{section:discussion}
+
+We have demonstrated that the proposed pdf regression framework outperforms segmentation-based approaches in the given event detection problems. Additionally, our method can be applied to any seq2seq segmentation neural-network model by changing only the output layer, meaning that existing segmentation models can easily be converted to support our objectives.
+
+\subsection{Future Work}
+
+\textbf{Limitations} We may find more effective methods for extracting events from segmentation probabilities, potentially altering these experiments’ results. This limitation could be tackled in future research. Moreover, our selection of datasets and evaluation metrics is limited, warranting further exploration to validate the suitability of pdf regression for various event detection problems. This could involve exploring different evaluation metrics or datasets.
+
+\textbf{Cross-Method Ensembling} Our method facilitates straightforward ensembling by blending the output probability distributions from model trained on different PDFs and architectures. Furthermore, the segmentation post-processing method \hyperref[seg:m1]{Method 1} can convert segmentation outputs into pseudo probability distributions, enabling their integration with regression outputs. This ensemble approach leverages the strengths of both segmentation and regression methods, potentially leading to more precise event detection.
+
+\textbf{Online detection} Our method could potentially apply to real-time event detection tasks using live data streams \citep{aminikhanghahi2017}. This could involve using a unidirectional GRU for regression on our target variable and utilizing its predictions to detect events in real time.
+
+\textbf{More PDFs} Segmentation-based event detection often requires complex loss functions to optimize task-specific objectives, such as early event detection \citep{phan2018}. Our method offers a simpler alternative. By adjusting the PDF to be asymmetrical and skewed, we can prioritize pre-event detection. This approach has the potential to achieve performance comparable to custom loss functions, while requiring less effort in design and fine-tuning.
+
+\textbf{Adaptive PDFs}: Diffusion models achieve high-quality generation by gradually reducing noise levels during training \citep{ho2020}. A similar strategy could be adopted for event detection by systematically decreasing the variance of the probability distributions over time. This allows the model to refine its focus on finer temporal details as training progresses. This approach was successfully applied in the CMI Sleep Detection Competition, where decaying target PDFs with reduced variance improved model accuracy \citep{esper2023}. Future work could explore the impact of different variance schedules on model performance.
+
+\textbf{Problem Types} While this study focuses on event detection with temporal extent, our method has potential applicability to change-point detection (CPD). In CPD, each event point is treated as an onset, requiring only a single output dimension. By adapting our approach to predict the probability density function (PDF) at each change point, we can extend its applicability to this related domain.
+
+For preliminary experimental data on the point-based event detection case, the reader is referred to the additional materials presented in Appendix \ref{appendix:cpd_experiment}.
+
+\section{Conclusion}
+\label{section:conclude}
+
+This study presents a generalized regression-based approach to event detection, providing an alternative to traditional segmentation-based methods and existing regression-based approaches. We introduce techniques to normalize regression targets across unique pdfs and convert both regression and segmentation predictions into precise event locations. Specifically, we employ peak detection for regression predictions and various strategies for segmentation outputs, including peak identification and traditional event-point determination using thresholds.
+
+This approach to event detection surpasses traditional segmentation methods in accuracy and effectiveness. By leveraging regression techniques, we provide a versatile and powerful tool for identifying events in time series data. Unlike existing regression approaches, our method supports the integration of state-of-the-art neural network models, enhancing its robustness and applicability.
+
+While this study primarily focuses on event detection tasks such as sleep detection, our method shows promise for other applications, including change-point detection tasks like fraud event detection, as evidenced by preliminary experiments in appendix \ref{appendix:cpd_experiment}. This methodology not only enhances the precision of event detection but also opens new avenues for the application of deep learning models to complex time series problems, with potential for broad applicability across many fields.
+
+\bibliographystyle{plain}
+\bibliography{main}
+
+\appendix
+
+\section{Additional Figures}
+
+Below are a few supplemental figures.
+\begin{figure*}
+    \caption{Example of Segmentation vs PDF Regression Target}
+    \includegraphics[width=\textwidth]{figures/classification_vs_regression.png}
+    \centering
+\end{figure*}
+
+\begin{figure*}
+\caption{Example regarding a convolved gaussian pdf over a binary event detection problem. The bottom graph shows two time series, corresponding to the onset and offset of the event respectively.} \includegraphics[width=\textwidth]{figures/regressiontargetexample.png}
+\centering
+\end{figure*} 
+
+\section{Experimental Details}
+\label{appendix:experiment_params}.
+
+\subsection{Training Parameters}
+
+\begin{table*}
+\parbox{.45\linewidth}{
+\centering
+\caption{Sleep Detection Training Parameters}
+\label{tbl:cmi_param}
+\begin{tabular}{|l|c|}
+\hline Parameter & Value \\
+\hline 
+Day Length $d$ & $24\times60\times12 = 17280$ \\
+Sequence Length $L$ & $d\times7 = 120960$ \\
+Min Event Interval $\alpha$ & 12 * 30 = 360 \\
+Batch Size $M$ & 10 \\
+Down-sampling Factor $D$ & 10 \\
+Learning Rate & 0.001 \\
+Gradient Clipping Norm $\lambda$ & $0.1$ \\
+\hline
+\end{tabular}
+}
+\hfill
+\parbox{.45\linewidth}{
+\centering
+\caption{Seizure Detection Training Parameters}
+\label{tbl:szr_param}
+\begin{tabular}{|l|c|}
+\hline Parameter & Value \\
+\hline 
+"Day" Length $d$ & $60\times60\times256 = 921600$ \\
+Sequence Length $L$ & $d = 921600$ \\
+Min Event Interval $\alpha$ & 25600 \\
+Batch Size $M$ & 8 \\
+Down-sampling Factor $D$ & 64 \\
+Learning Rate & 0.001 \\
+Gradient Clipping Norm $\lambda$ & $0.1$ \\
+\hline
+\end{tabular}
+}
+\end{table*}
+
+
+The models were implemented using the PyTorch framework \citep{ansel2024}. We employed the Adam optimizer with a cosine learning rate schedule as proposed in \citep{kingma15,loshchilov2017}. The training parameters are shown in Table \ref{tbl:cmi_param} and \ref{tbl:szr_param}. 
+
+The models were all trained for $20$ epochs, evaluating the network after every epoch, and the one that yielded the best overall score on the validation set was retained for evaluation.  The outputs of the cross-validation folds were pooled and considered as a whole for computing the final performance of the model.
+
+\subsection{Evaluation Parameters}
+
+Our post-processing step for pdf regression, as shown in Section \ref{section:reg_pp}, involves Gaussian-smoothing using a smoothing parameter $\sigma$. Similarly, our process for segmentation uses the tunable smoothing parameter $\sigma$ and an additional tunable event threshold $\mu$. 
+
+\begin{align}
+\label{fig:gridsearch}
+\begin{split}
+\mu &\in \{0,\; \frac{1}{10},\; \frac{2}{10},\; \frac{3}{10},\; \cdots,\; 1\} \\ 
+\sigma &\in \{None,\;  1,\;  10,\;  100,\;  1000\}
+\end{split}
+\end{align}
+
+In our experiments, we compared our model’s evaluation by deploying default hyperparameters $\mu = 0.5$ and no gaussian smoothing step. The optimal values of these hyperparameters are estimated using grid search with the parameter grid shown in Figure \ref{fig:gridsearch} to maximize the EDAP metric.
+
+\section{Detailed Data Descriptions}
+\label{appendix:data_description}
+\subsection{CMI Sleep Detection Dataset}
+We conducted experiments on Child Mind Institute's (CMI) sleep detection dataset. The data is provided by CMI along with the Healthy Brain Network, a landmark mental health study based in New York City \citep{alexander2017}. 
+
+The data contains over 250 publicly available recordings of wrist-worn accelerometer data, collected using wearable accelerometers on children spanning multiple days, where each time step corresponds to the accelerometer’s reading over 5 seconds. The two types of events are onset and wakeup, which correspond to the onset of sleep and the onset of awakeness, respectively. 
+
+This dataset additionally contains the following specifications about sleep periods:
+\begin{itemize}
+  \item Each sleep period must be at least 30 minutes long.
+  \item A single sleep period can be interrupted by activity, provided that these interruptions do not exceed 30 consecutive minutes.
+  \item Sleep windows are only detected if the watch is worn for the entire duration of the monitoring period (details provided below).
+  \item Only the longest sleep window during the night is recorded.
+  \item If no valid sleep window is found, no sleep onset or wake-up event is recorded for that night.
+  \item Sleep events do not need to cross the dayline, and there is no strict limit on the number of sleep events per day. However, only one sleep window should be assigned per night.
+  \item The number of nights recorded for a series is approximately equal to the number of 24-hour periods in that series.
+\end{itemize} 
+There are two input variables that are used to train the models:
+\begin{itemize}
+  \item $anglez$ - a metric derived from individual accelerometer components and is commonly used in sleep detection. It measures the angle of the arm relative to the vertical axis of the body \citep{migueles2019}.
+  \item $enmo$ (Euclidean Norm Minus One) - the Euclidean norm of all accelerometer signals, with negative values rounded to zero. $enmo$ is one of several commonly computed features representing the acceleration detected by the accelerometer \citep{migueles2019}.
+\end{itemize} 
+
+The metric thresholds for the Sleep Detection Dataset, as provided by CMI, include the following values, in minutes:
+ \begin{center} $[1, 3, 5, 7.5, 10, 12.5, 15, 20, 25, 30]$ \end{center}
+
+\subsection{CHB-MIT Scalp EEG Seizure Detection Database}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=\textwidth]{figures/bipolarmontage_example.jpeg}
+    \caption{Chains used to caculate timeseries features using a bipolar montage}
+    \label{fig:bipolarmontage_example}
+\end{figure*}
+
+We conducted our experiments on a subset of the CHB-MIT Scalp EEG Database \citep{goldberger2000}. The original data provided by the Children's Hospital Boston and consists of EEG recordings from pediatric subjects with intractable seizures \citep{shoeb2010}.
+
+The entire database includes recordings from 22 subjects with a total of 23 cases. Subjects in this dataset were given anti-seizure medication. Each case originally contained between 9 and 42 continuous waveforms, collected from a single subject. These recordings have been segmented into one-hour waveforms, though some cases include longer segments (up to four hours). We only included the continuous waveforms with seizure events.
+
+The EEG signals were sampled at 256 samples per second with 16-bit resolution. All signals used the International 10-20 system of EEG electrode positions and nomenclature \citep{klem1999}. Features were selected to include the same 22 EEG signals, utilizing a bipolar montage for EEG recordings, where the voltage of one electrode is subtracted from another (e.g., FP1-F7). This method reduces common noise and improves the signal-to-noise ratio, enhancing the detection of localized brain activity by focusing on the potential difference between adjacent electrodes.
+
+Electrode were placed according to the International 10-20 system. Figure \ref{fig:bipolarmontage_example} highlights the bipolar electrode chains used in this study; each chain, for example, the Left Temporal Chain, subtracts neighboring measurements to produce signals like FP1-F7, F7-T7, and others. These pairs are critical for obtaining high-quality EEG signals by focusing on the differential voltages between adjacent electrodes.
+
+The metric thresholds for the Seizure Detection Dataset were inferred based on previous findings, which state that $50\%$ of seizures were detected within $3$ seconds, $71\%$ within $5$ seconds, and $91\%$ within $10$ seconds \citep{shoeb2010}. With this in mind, we define the thresholds in seconds as follows:
+\begin{center} $[1, 2, 5, 10, 20, 60]$ \end{center}
+
+\section{Additional Experiments}
+\label{appendix:cpd_experiment}
+
+We additionally evaluated our approach on two CPD datasets provided by \citep{azib2023}: the bow shock event detection dataset and fraud-detection dataset. Table \ref{tbl:bs_param} and \ref{tbl:fr_param} lists the experimental training parameters for each dataset respectively, while Table \ref{tbl:bs_result}  and Table \ref{tbl:fr_result} presents the validation results after training with 5 fold cross validation.
+
+It is worth mentioning that the validation scheme used in our experiments are not the same used in \citep{azib2023}. Thus, results may not be entirely comparable.
+
+\begin{table*}
+\parbox{.45\linewidth}{
+\centering
+\caption{Bowshock Experimental Parameters}
+\label{tbl:bs_param}
+\begin{tabular}{|l|c|}
+\hline Parameter & Value \\
+\hline 
+Day Length $d$ & $24\times60\times15 = 21600$ \\
+Sequence Length $L$ & $d = 21600$ \\
+Min Event Interval $\alpha$ & 1 \\
+Batch Size $M$ & 10 \\
+Down-sampling Factor $D$ & 15 \\
+Learning Rate & 0.001 \\
+Gradient Clipping Norm $\lambda$ & $0.1$ \\
+\hline
+\end{tabular}
+}
+\hfill
+\parbox{.45\linewidth}{
+\centering
+\caption{Bowshock Results}
+\label{tbl:bs_result}
+\begin{tabular}{|ccc|}
+\hline
+Regression Method & Precision      & F1             \\ \hline
+Universal Deep Learning Approach \citep{azib2023}       & 0.95           & 0.95 \\
+Ours              & 0.992 & \textbf{0.960}           \\ \hline
+\end{tabular}
+}
+\hfill
+\parbox{.45\linewidth}{
+\centering
+\caption{Fraud Experimental Parameters}
+\label{tbl:fr_param}
+\begin{tabular}{|l|c|}
+\hline Parameter & Value \\
+\hline 
+Day Length $d$ & $1\times60\times60 = 3600$ \\
+Sequence Length $L$ & $900$ \\
+Min Event Interval $\alpha$ & 1 \\
+Batch Size $M$ & 5 \\
+Down-sampling Factor $D$ & 1 \\
+Learning Rate & 0.001 \\
+Gradient Clipping Norm $\lambda$ & $0.1$ \\
+\hline
+\end{tabular}
+}
+\hfill
+\parbox{.45\linewidth}{
+\centering
+\caption{Fraud Results}
+\label{tbl:fr_result}
+\begin{tabular}{|ccc|}
+\hline
+Regression Method & Precision      & F1             \\ \hline
+Universal Deep Learning Approach \citep{azib2023}       & 0.98           & \textbf{0.85} \\
+Ours              & 0.783 & 0.809           \\ \hline
+\end{tabular}
+}
+\hfill
+\end{table*}
+
+
+\section{Post-processing Algorithm Details}
+\label{appendix:algos}
+
+Below are a pseudo-coded algorithms used for post-processing.
+
+\begin{algorithm*}[ht]
+\caption{Regression Post-Processing Procedure}
+\hspace*{\algorithmicindent} \textbf{Inputs} time series $\{\hat{Y}_{on}(t)\}_{t=0}^T$ and $\hat{Y}_{off}(t)\}_{t=0}^T$, threshold $\mu$, smooth coef $\sigma$ \\ 
+\hspace*{50pt} $T = \lfloor L/D \rfloor$ - sequence length
+\begin{algorithmic}[1]
+    \Procedure{FindEvents}{$\hat{Y},\mu,\sigma$}
+    \State Initialize $S$ an empty list \Comment{onsets}
+    \State Initialize $E$ an empty list \Comment{offsets}
+
+    \State Initialize $\{\hat{Y}_{on}^\prime(t)\}_{t=0}^T \leftarrow \{gaussian\_smooth(\hat{Y}_{on}(t),\sigma)\}_{t=0}^T$ 
+    \State Initialize $\{\hat{Y}_{off}^\prime(t)\}_{t=0}^T \leftarrow \{gaussian\_smooth(\hat{Y}_{off}(t),\sigma)\}_{t=0}^T$ \Comment{perform gaussian smoothing}
+    
+    \State $ S^\prime \leftarrow peak\_detect(\{\hat{Y}_{on}^\prime(t)\}_{t=0}^T)$
+    \State $ E^\prime \leftarrow peak\_detect(\{\hat{Y}_{off}^\prime(t)\}_{t=0}^T)$
+
+    \For {t $\leftarrow S^\prime$}
+        \State $S$.append($t, \hat{Y}_{on}(t)$)
+    \EndFor
+    \For {t $\leftarrow E^\prime$}
+        \State $E$.append($t, \hat{Y}_{off}(t)$)
+    \EndFor
+    \EndProcedure
+\end{algorithmic}
+\hspace*{\algorithmicindent} \textbf{Outputs} $S$, $E$ event locations with relative probability scores
+\end{algorithm*}
+\begin{algorithm*}[ht]
+\label{seg:m1}
+\caption{Traditional Segmentation Post-Processing Procedure (\hyperref[seg:m1]{Method 1})}\label{euclid}
+\hspace*{\algorithmicindent} \textbf{Inputs} time series $\{\hat{Y}(t)\}_{t=0}^T$, threshold $\mu$, smooth coef $\sigma$ \\ 
+\hspace*{50pt} $T = \lfloor L/D \rfloor$ - sequence length
+\begin{algorithmic}[1]
+    \Procedure{FindEvents}{$\hat{Y},\mu,\sigma$}
+    \State Initialize $S$ an empty list \Comment{onsets}
+    \State Initialize $E$ an empty list \Comment{offsets}
+    \State Initialize $\{\hat{Y}^\prime(t)\}_{t=0}^T \leftarrow \{gaussian\_smooth(\hat{Y}(t),\sigma)\}_{t=0}^T$ \Comment{perform gaussian smoothing}
+    \State Initialize $\{I(t)\}_{t=0}^T \leftarrow \{(\hat{Y}^\prime * H)(t)\}_{t=0}^T$ \Comment{get pseudo probability density}
+
+    \For {t $\leftarrow$ 1 ... $T$}
+        \If {$\hat{Y}^\prime[t-1] < \mu$ \textbf{and} $\hat{Y}^\prime[t] > \mu$} 
+            \State $S$.append($t, \mathopen|I[t]\mathclose|$)
+        \ElsIf {$\hat{Y}^\prime[t-1] > \mu$ \textbf{and} $\hat{Y}^\prime[t] < \mu$} 
+            \State $E$.append($t, \mathopen|I[t]\mathclose|$)
+        \EndIf
+    \EndFor
+    \EndProcedure
+\end{algorithmic}
+\hspace*{\algorithmicindent} \textbf{Outputs} $S$, $E$ event locations with relative probability scores
+\end{algorithm*}
+
+\begin{algorithm*}[ht]
+\label{seg:m2}
+\caption{Alternative Segmentation Post-Processing Procedure (\hyperref[seg:m2]{Method 2})}
+\hspace*{\algorithmicindent} \textbf{Inputs} time series $\{\hat{Y}(t)\}_{t=0}^T$, threshold $\mu$, smooth coef $\sigma$ \\ 
+\hspace*{50pt} $T = \lfloor L/D \rfloor$ - sequence length
+\begin{algorithmic}[1]
+    \Procedure{FindEvents}{$\hat{Y},\mu,\sigma$}
+    \State Initialize $S$ an empty list \Comment{onsets}
+    \State Initialize $E$ an empty list \Comment{offsets}
+
+    \State Initialize $\{\hat{Y}^\prime(t)\}_{t=0}^T \leftarrow \{gaussian\_smooth(\hat{Y}(t),\sigma)\}_{t=0}^T$ \Comment{perform gaussian smoothing}
+
+    \State Initialize $\{I(t)\}_{t=0}^T \leftarrow \{(\hat{Y}^\prime * H)(t)\}_{t=0}^T$ \Comment{get pseudo probability density}
+    
+    \State $ S^\prime \leftarrow peak\_detect(\{\hat{I}^\prime(t)\}_{t=0}^T)$
+    \State $ E^\prime \leftarrow peak\_detect(\{-\hat{I}^\prime(t)\}_{t=0}^T)$
+
+    \For {t $\leftarrow S^\prime$}
+        \State $S$.append($t, \mathopen|I[t]\mathclose|$)
+    \EndFor
+    \For {t $\leftarrow E^\prime$}
+        \State $E$.append($t, \mathopen|I[t]\mathclose|$)
+    \EndFor
+    \EndProcedure
+\end{algorithmic}
+\hspace*{\algorithmicindent} \textbf{Outputs} $S$, $E$ event locations with relative probability scores
+\end{algorithm*}
+
+\section{Model Architectures}
+\label{appendix:architecture}
+
+Below are visualizations for the model architectures used in our study.
+
+\begin{figure*}[htp]
+    \centering
+    \subfloat[\centering Bidirectional GRU]{\includegraphics[width=12cm,trim={4.5cm 6cm 7.7cm 5cm},clip]{figures/BiGRU.jpeg} }
+    
+    \subfloat[\centering UNet-1D]
+    {\includegraphics[width=12cm,trim={4.5cm 10cm 7.7cm 5cm},clip]{figures/UNet-1D.jpeg} }
+    
+    \subfloat[\centering UNet-1D with Attention]
+    {\includegraphics[width=12cm,trim={4.5cm 8.7cm 7.7cm 5cm},clip]{figures/UNet-1D_atten.jpeg} }
+    \caption{Custom-designed Model Architectures, a Bidirectional RNN model, a 1D UNet Model and a 1D UNet model with an Attention layer \citep{perslev2019}}
+    \label{fig:model_archs}
+\end{figure*}
+
+\end{document}
+
+
+
+
+\centering
+\caption{Performance obtained by the proposed regression objectives on the baseline models, compared with existing segmentation objectives on the CHB-MIT Scalp EEG Database. We mark the highest performing objective for each model type in bold.
+}
+\label{tbl:sei_full}
+\begin{threeparttable}
+\begin{tabular}{cllcc|ccccc|}
+\cline{6-10}
+ &  &  &  &  & \multicolumn{5}{c|}{Model Objectives} \\
+ &  &  &  &  & \multicolumn{2}{c|}{Segmentation} & \multicolumn{3}{c|}{Regression} \\ \cline{5-5}
+ &  &  & \multicolumn{1}{c|}{} & Model & \hyperref[seg:m1]{Method 1} & \multicolumn{1}{c|}{\hyperref[seg:m2]{Method 2}} & Hard & Gaussian & Custom \\ \hline
+\multicolumn{1}{|c}{\multirow{16}{*}{\rotatebox{90}{Model and Training Parameters}}} & \multicolumn{1}{l|}{\multirow{8}{*}{\rotatebox{90}{Default}}} & \multirow{16}{*}{\rotatebox{90}{Hyperparameters}} & \multicolumn{1}{c|}{\multirow{4}{*}{\rotatebox{90}{Default}}} & GRU & 0.025 & \multicolumn{1}{c|}{0.006} & \textbf{0.137} & 0.069 & 0.075 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & UNet & 0.109 & \multicolumn{1}{c|}{0.018} & 0.095 & 0.188 & \textbf{0.208} \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & PrecTime \citep{gaugel2023} & 0.037 & \multicolumn{1}{c|}{0.008} & 0.116 & \textbf{0.124} & 0.092 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & UNet+Attention & 0.011 & \multicolumn{1}{c|}{0.000} & \textbf{0.012} & 0.005 & \textbf{0.012} \\ \cline{4-10} 
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{\multirow{4}{*}{\rotatebox{90}{Tuned}}} & GRU & 0.082 & \multicolumn{1}{c|}{0.060} & \textbf{0.159} & 0.075 & 0.082 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & UNet & \textbf{0.221} & \multicolumn{1}{c|}{0.123} & 0.099 & 0.192 & 0.214 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & PrecTime \citep{gaugel2023} & 0.077 & \multicolumn{1}{c|}{0.061} & 0.134 & \textbf{0.138} & 0.093 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & UNet+Attention & \textbf{0.076} & \multicolumn{1}{c|}{0.000} & 0.015 & 0.005 & 0.014 \\ \cline{2-2} \cline{4-10} 
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{\multirow{8}{*}{\rotatebox{90}{Tuned}}} &  & \multicolumn{1}{c|}{\multirow{4}{*}{\rotatebox{90}{Default}}} & GRU\tnote{1} & 0.220 & \multicolumn{1}{c|}{0.048} & \textbf{0.284} & 0.159 & 0.121 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & UNet\tnote{2} & 0.153 & \multicolumn{1}{c|}{0.022} & 0.221 & 0.369 & \textbf{0.383} \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & PrecTime\tnote{3} \space \citep{gaugel2023} & 0.083 & \multicolumn{1}{c|}{0.030} & \textbf{0.151} & 0.142 & 0.126 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & UNet+Attention\tnote{4} & 0.078 & \multicolumn{1}{c|}{0.023} & 0.220 & 0.303 & \textbf{0.365} \\ \cline{4-10} 
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{\multirow{4}{*}{\rotatebox{90}{Tuned}}} & GRU\tnote{1} & 0.263 & \multicolumn{1}{c|}{0.105} & \textbf{0.323} & 0.178 & 0.125 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & UNet\tnote{2} & 0.252 & \multicolumn{1}{c|}{0.095} & 0.230 & 0.380 & \textbf{0.387} \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & PrecTime\tnote{3} \space \citep{gaugel2023} & 0.098 & \multicolumn{1}{c|}{0.072} & \textbf{0.166} & 0.163 & 0.127 \\
+\multicolumn{1}{|c}{} & \multicolumn{1}{l|}{} &  & \multicolumn{1}{c|}{} & UNet+Attention\tnote{4} & 0.133 & \multicolumn{1}{c|}{0.070} & 0.238 & 0.307 & \textbf{0.365} \\ \hline
+\end{tabular}
+\begin{tablenotes}[flushleft]\footnotesize
+\item[1]    GRU with 3 layers and 128 hidden dimensions, $D = 512$
+\item[2]    UNet with 8 layers, $D = 64$
+\item[3]    UNet with 7 layers and Attention Layer, $D = 64$
+\item[4]    Default PrecTime model \citep{gaugel2023}, $D = 512$ 
+\end{tablenotes}
+\end{threeparttable}

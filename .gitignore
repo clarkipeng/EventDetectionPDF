@@ -5,3 +5,5 @@ src/__pycache__/
 experiments/
 data/
 data/*
+# paper/
+# sleep-plots.ipynb

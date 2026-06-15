@@ -1,0 +1,58 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true,citecolor=blue,linkcolor=black,urlcolor=blue]{hyperref}
+
+\title{Boundary Density Likelihood for Time-Series Event Detection}
+\author{Clark Peng \and Tolga Dincer}
+\date{}
+
+\newtheorem{proposition}{Proposition}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Many time-series event-detection systems are trained as per-timestep segmentation models and then post-processed to recover event boundaries.
+This draft reframes interval event detection as boundary-density estimation: annotated onsets and offsets define sparse boundary measures, and neural sequence models learn nonnegative boundary rates by maximum likelihood.
+The final submission will compare this likelihood objective against legacy mean-squared-error heatmap targets and segmentation baselines under tolerance-based event average precision.
+\end{abstract}
+
+\section{Introduction}
+
+This manuscript is being rewritten for an ML workshop audience.
+The central claim is no longer that heatmap-style mean-squared-error regression is universally better than segmentation.
+Instead, we study whether a likelihood over event-boundary locations is a better training objective for metrics that score localized onsets and offsets.
+
+\section{Related Work}
+
+The rewrite will connect four threads: time-series event detection, temporal boundary localization, heatmap/keypoint regression, and temporal point-process likelihoods.
+
+\section{Problem Setup}
+
+Let $x_{1:T}$ denote a multivariate time series and let each interval event be represented by an onset and offset pair $(a_j,b_j)$.
+The method constructs separate boundary targets for onset and offset channels.
+
+\section{Boundary Density Likelihood}
+
+The main method will define smoothed boundary count targets and train nonnegative model rates with a discrete Poisson negative log-likelihood.
+
+\section{Experiments}
+
+The final experiments will rerun the core sleep and seizure benchmarks from scratch, treating the existing figures as disposable placeholders.
+
+\section{Discussion}
+
+This rewrite will emphasize when boundary likelihoods are appropriate, when segmentation remains the right abstraction, and what empirical evidence is still missing.
+
+\bibliographystyle{plainnat}
+\bibliography{main}
+
+\end{document}

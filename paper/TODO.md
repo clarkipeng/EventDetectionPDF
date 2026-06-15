@@ -75,6 +75,19 @@ These are starting commands, not final hyperparameter claims. Record the exact c
 - Describe online ablations as streaming-context stress tests, not as the main architecture contribution.
 - State clearly that the likelihood emits independent onset/offset rates; legal interval alternation is a decoder/post-processing constraint.
 
+## Related-work additions to triage
+
+Searched June 15, 2026. Add only the references that support a sentence we actually need in the paper.
+
+- Heatmap regression foundations: add one or two canonical pose-estimation heatmap papers, such as Newell et al. "Stacked Hourglass Networks for Human Pose Estimation" and Xiao et al. "Simple Baselines for Human Pose Estimation and Tracking." Use these to establish that Gaussian/soft heatmaps are a standard localization target, then keep Luo et al. and Yu et al. for quantization/heatmap-analysis details.
+- Heatmap encoding bias: consider Huang et al. "The Devil is in the Details: Delving into Unbiased Data Processing for Human Pose Estimation" if we discuss annotation-to-grid encoding and decoding bias. This is relevant to our finite-window kernel normalization and peak-decoding details.
+- Temporal boundary localization: add Lin et al. "BSN: Boundary Sensitive Network for Temporal Action Proposal Generation" and/or Lin et al. "BMN: Boundary-Matching Network for Temporal Action Proposal Generation." Use them as adjacent work on learned start/end boundary probabilities and boundary pairing, while making clear that video action proposals are not our physiological time-series setting.
+- Event and range metrics: keep SoftED as the closest event-detection metric reference, and add Tatbul et al. "Precision and Recall for Time Series" if we discuss range-based/event-aware precision-recall beyond point AP. Consider Lavin and Ahmad's NAB paper only if we discuss streaming anomaly scoring or early-detection rewards.
+- Sleep from accelerometers: add van Hees et al. work on accelerometer sleep-period detection, especially HDCZA / sleep-period time-window estimation, to ground the Child Mind sleep task in the sleep-wearables literature. Keep GGIR as tooling/background rather than a method baseline.
+- Temporal point processes: current RMTPP and neural TPP survey citations are useful; add Mei and Eisner "The Neural Hawkes Process" if we need a canonical neural intensity-process reference, and Omi et al. "Fully Neural Network based Model for General Temporal Point Processes" if we discuss intensity parameterization and likelihood integration. In all cases, state that our model is a supervised conditional boundary-rate objective, not a full event-history generative model.
+- Online/streaming localization: for the online ablation, cite a small amount of adjacent online temporal action localization work, such as Kim et al. "A Sliding Window Scheme for Online Temporal Action Localization," Xu et al. "Long Short-Term Transformer for Online Action Detection," or Song et al. "Online Temporal Action Localization with Memory-Augmented Transformer." Use this only to justify the streaming constraint, not to imply we solve video action localization.
+- Competition-specific sleep cleanup: keep the Kaggle competition citation for EDAP and alternating onset/wakeup submission constraints; avoid relying on forum solution writeups unless we explicitly cite them as competition practice rather than peer-reviewed prior work.
+
 ## Acceptance checklist
 
 - `python3 -m py_compile src/utils.py train.py train_all.py eval.py models/load_model.py` passes.

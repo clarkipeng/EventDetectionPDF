@@ -9,7 +9,13 @@ from src.bowshock import get_bowshock_dataclass
 from src.fraud import get_fraud_dataclass
 from src.seizure import get_seizure_dataclass
 
-from src.utils import get_loss, set_random_seed, DataClass
+from src.utils import (
+    DENSITY_OBJECTIVES,
+    MSE_OBJECTIVES,
+    get_loss,
+    set_random_seed,
+    DataClass,
+)
 
 import torch
 import argparse
@@ -88,7 +94,7 @@ if __name__ == "__main__":
         sequence_length = dataclass.default_sequence_length
 
     for model in ["gru", "unet", "unet_t", "prectime"]:
-        for objective in ["seg", "hard", "gau", "custom"]:
+        for objective in ["seg"] + MSE_OBJECTIVES + DENSITY_OBJECTIVES:
 
             train(
                 dataclass=dataclass,

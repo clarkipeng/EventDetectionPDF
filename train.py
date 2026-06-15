@@ -26,7 +26,7 @@ from src.bowshock import get_bowshock_dataclass
 from src.fraud import get_fraud_dataclass
 from src.seizure import get_seizure_dataclass
 
-from src.utils import get_loss, set_random_seed, DataClass
+from src.utils import OBJECTIVE_CHOICES, get_loss, set_random_seed, DataClass
 
 from models.load_model import get_model
 
@@ -128,7 +128,7 @@ def train(
     save_pred_dir.mkdir(parents=True, exist_ok=True)
     save_model_dir.mkdir(parents=True, exist_ok=True)
 
-    loss_fn = get_loss(objective)
+    loss_fn = get_loss(objective, dataclass=dataclass, downsample=downsample)
     kfold = KFold(n_splits=folds, shuffle=True, random_state=0)
 
     for fold in range(folds):
@@ -291,7 +291,7 @@ def get_args_parser():
         "--objective",
         type=str,
         required=True,
-        choices=["seg", "seg1", "seg2", "hard", "gau", "custom"],
+        choices=OBJECTIVE_CHOICES,
     )
     # data
     parser.add_argument("--downsample", default=10, type=int)

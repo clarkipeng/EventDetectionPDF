@@ -2,7 +2,7 @@ from models.BiRNN import MultiBiRNN
 from models.PrecTime import PrecTime
 from models.UNet1D import UNet1D
 
-from src.utils import DataClass
+from src.utils import DataClass, is_segmentation_objective
 from torch import Tensor, nn
 
 
@@ -19,7 +19,7 @@ def get_model(
     cat_feats, cat_unique = 0, 0
 
     # model output dimensions
-    if objective[:3] == "seg" or dataclass.event_type == "point":
+    if is_segmentation_objective(objective) or dataclass.event_type == "point":
         outsize = 1
     else:
         outsize = 2

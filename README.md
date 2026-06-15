@@ -89,14 +89,14 @@ After you have done all the necessary steps listed above, you are ready to train
 ```
 python train.py --dataset [dataset_name] --model [model_name] --objective [objective_name] --datadir [path_to_dataset]
 ```
-Model choices vary: *rnn* (or *lstm* and *gru*), *unet* (or *unet_t*), and *prectime*. More information about model choices can be found at [load_model.py](models/load_model.py). Objectives can be *hard*, *gau*, *custom*, *seg1*, *seg2*, or *seg* (a combination of both segmentation methods).
+Model choices vary: *rnn* (or *lstm* and *gru*), *unet* (or *unet_t*), and *prectime*. More information about model choices can be found at [load_model.py](models/load_model.py). Objectives can be legacy MSE targets (*hard*, *gau*, *custom*), likelihood-based boundary density targets (*density_hard*, *density_gau*, *density_custom*), or segmentation targets (*seg1*, *seg2*, or *seg*, a combination of both segmentation post-processing methods).
 
 In order to evaluate the trained models, run: 
 ```
 python eval.py --dataset [dataset_name] --datadir [path_to_dataset]
 ```
 
-In order to train the 5 main models (*seg*, *gru*, *unet*, *unet_t* and *prectime*) on all objectives, run: 
+In order to train the main model/objective matrix, run:
 ```
 python train_all.py --dataset [dataset_name] --datadir [path_to_dataset]
 ```
@@ -181,4 +181,3 @@ gru hard results:
 ## References
 [1]: https://github.com/menouarazib/eventdetector
 [2]: https://archive.physionet.org/physiobank/database/chbmit/
-

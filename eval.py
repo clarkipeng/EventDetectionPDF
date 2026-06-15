@@ -68,12 +68,12 @@ def get_candidates(
 
     if threshold == None:
         # default values
-        threshold = 0.5 if (objective[:3] == "seg") else 0
+        threshold = 0.5 if is_segmentation_objective(objective) else 0
     if smooth:
         for i in range(predictions.shape[1]):
             predictions[:, i] = gaussian_filter1d(predictions[:, i], smooth)
 
-    if objective[:3] == "seg" and dataclass.event_type == "interval":
+    if is_segmentation_objective(objective) and dataclass.event_type == "interval":
         if len(objective) == 3 or objective[3] == "1":
             candidates, c_scores = [], []
 
@@ -209,10 +209,9 @@ def evaluate(
         num_workers=workers,
         shuffle=False,
     )
-    loss_fn = get_loss(objective)
-
     truth = dataset.events
     downsample = dataset.downsample
+    loss_fn = get_loss(objective, dataclass=dataclass, downsample=downsample)
 
     max_distance = dataclass.max_distance // downsample
     day_length = dataclass.day_length // downsample
@@ -256,8 +255,10 @@ def evaluate(
         loss = loss_fn(prediction.double(), target.double()).double().mean().float()
         valid_loss += loss.item()
 
-        if objective[:3] == "seg":
+        if is_segmentation_objective(objective):
             prediction = prediction.sigmoid()
+        elif is_density_objective(objective):
+            prediction = density_logits_to_rates(prediction, dataclass, downsample)
 
         prediction = prediction.numpy()
 
@@ -366,6 +367,18 @@ def get_optimal_cutoff(
         )
         return scores
 
+    def get_prediction_max():
+        max_pred = 0.0
+        for id in dataset.ids:
+            pred_path = save_pred_dir / f"{id}.npy"
+            if not pred_path.exists():
+                continue
+            pred = np.load(pred_path)
+            if pred.size == 0:
+                continue
+            max_pred = max(max_pred, float(np.nanmax(pred)))
+        return max_pred if max_pred > 0 else 1.0
+
     def get_scores_param(param):
         param = {k: param[i] for i, k in enumerate(hyperparam_dict.keys())}
 
@@ -388,10 +401,12 @@ def get_optimal_cutoff(
             f" default scores: {format_score_output({k:default_scores[k] for k in evaluation_metrics})}"
         )
 
-        if objective[:3] == "seg":
+        if is_segmentation_objective(obj):
             max_pred = 1
+        elif is_density_objective(obj):
+            max_pred = get_prediction_max()
         else:
-            max_pred = 1 / normalize_error(dataclass, objective)
+            max_pred = 1 / normalize_error(dataclass, obj)
 
         hyperparam_dict = {}
         if "cutoff" in hyperparams_tune:
@@ -486,7 +501,7 @@ def get_best_scores(
     save_model_path = Path(f"./experiments/{dataset_name}/{model_name}/{objective}/")
     save_pred_dir = save_model_path / "predictions"
 
-    loss_fn = get_loss(objective)
+    loss_fn = get_loss(objective, dataclass=dataclass, downsample=downsample)
     kfold = KFold(n_splits=folds, shuffle=True, random_state=0)
 
     full_dataset = dataset_construct(
@@ -528,7 +543,7 @@ def get_args_parser():
         "--objective",
         type=str,
         required=True,
-        choices=["seg", "seg1", "seg2", "hard", "gau", "custom"],
+        choices=OBJECTIVE_CHOICES,
     )
     # data
     parser.add_argument("--downsample", default=10, type=int)

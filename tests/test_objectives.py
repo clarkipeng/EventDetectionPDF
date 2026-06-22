@@ -7,6 +7,7 @@ from src.utils import (
     DENSITY_OBJECTIVES,
     apply_objective_overrides,
     density_logits_to_rates,
+    downsample_targets,
     get_loss,
     get_targets,
 )
@@ -51,6 +52,19 @@ class ObjectiveTests(unittest.TestCase):
                 downsample=1,
             )(prediction, torch.tensor(target[None], dtype=torch.float32))
             self.assertTrue(torch.isfinite(loss).all())
+
+    def test_density_downsampling_preserves_count_mass(self):
+        dataclass = DummyDataClass()
+        locations = (np.array([10, 30]), np.array([20, 40]))
+        for objective in DENSITY_OBJECTIVES:
+            target = get_targets(dataclass, 60, locations, objective, normalize=True)
+            downsampled = downsample_targets(target, 5, objective)
+            np.testing.assert_allclose(downsampled.sum(axis=0), target.sum(axis=0))
+
+    def test_legacy_downsampling_keeps_peak_targets(self):
+        target = np.array([[0.1], [0.4], [0.2], [0.7], [0.3], [0.5]])
+        downsampled = downsample_targets(target, 3, "custom")
+        np.testing.assert_allclose(downsampled, np.array([[0.4], [0.7]]))
 
     def test_density_prior_modes_produce_positive_rates(self):
         dataclass = DummyDataClass()

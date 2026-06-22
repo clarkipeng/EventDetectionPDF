@@ -1,0 +1,27 @@
+\section{Related Work}
+\label{sec:related-work}
+
+\paragraph{Event-level evaluation.}
+Event detection and changepoint detection have long been treated separately from samplewise classification because a long sequence may matter primarily through the events it contains \citep{guralnik1999,aminikhanghahi2017}.
+Modern benchmarks increasingly use the ranked-matching structure of object and activity detection: predicted times are sorted by confidence, matched to annotations under a tolerance rule, and summarized by precision--recall or average precision \citep{everingham2010pascal,lin2014coco}.
+SoftED and range-aware precision--recall make the same point for time series, where per-sample accuracy can disagree with event-level utility \citep{salles2023,tatbul2018precision}.
+This paper follows that evaluation view back to the training objective.
+If the metric ranks matched events, the training signal should describe the events that can be matched in a time region, rather than only which state label holds at each sample.
+
+\paragraph{Segmentation and localized supervision.}
+Samplewise segmentation models remain practical because they share computation across long recordings, and segmentation architectures are well established in sleep and biomedical time series \citep{supratak2017,perslev2019,phan2019,ronneberger2015}.
+The question is what loss should be attached to such sequence predictors when the benchmark consumes detections.
+Pose estimation, acoustic-event detection, and temporal action localization provide useful precedents for placing supervision near annotated times through keypoint maps, proximity targets, or start/end evidence \citep{newell2016stacked,xiao2018simple,luo2021,yu2022,phan2015,gao2017turn,lin2018bsn,lin2019bmn}.
+Recent time-series event work makes a similar criticism of samplewise event/non-event labels, especially for rare and interval-defined events, and argues for a broad regression-based alternative to classification \citep{azib2023universal}.
+These methods motivate moving supervision toward the times that will be detected, but a proximity target alone does not specify what the output should estimate after the recording is windowed, smoothed, or downsampled.
+BDL addresses the complementary question of what that localized supervision estimates once a continuous recording is clipped, smoothed, and mapped to a shorter output timeline.
+If localized labels are arbitrary proximity scores, their scale can depend on window length, kernel width, pooling, or nearby annotations.
+BDL fixes the unit and the scoring rule instead: each annotation contributes one event, smoothing distributes that contribution over plausible times, binning sums contributions onto the model timeline, and a proper log score fits the conditional mean.
+The event unit therefore keeps the same interpretation before and after discretization, including windows with no events or multiple nearby events.
+
+\paragraph{Counting-process likelihoods.}
+Temporal point processes provide the standard language of counting measures, conditional intensities, and likelihoods over event times \citep{kingman1993,du2016rmtpp,mei2017neural,shchur2021neural}.
+BDL borrows the counting-measure view for supervised prediction: given an observed window, it predicts the expected number of scored events in each output bin without modeling censoring, future histories, survival terms, or mark distributions.
+The Poisson negative log-likelihood is a proper log score for this conditional mean \citep{gneiting2007proper}, making it a natural objective when the benchmark consumes temporal detections rather than complete event histories.
+This places BDL between segmentation and full event-history modeling.
+It keeps the efficient sequence-prediction interface used by segmentation models, while giving each output the likelihood interpretation of expected events per bin.

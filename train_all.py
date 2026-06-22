@@ -73,6 +73,15 @@ def get_args_parser():
         choices=["mAP", "loss"],
     )
     parser.add_argument("--save_all_epochs", default=False, type=str2bool)
+    parser.add_argument("--lr", default=1e-3, type=float)
+    parser.add_argument("--weight_decay", default=0.0, type=float)
+    parser.add_argument("--clip_grad_norm", default=1e-1, type=float)
+    parser.add_argument("--run_tag", default=None, type=str)
+    parser.add_argument("--tune_cutoff_steps", default=11, type=int)
+    parser.add_argument("--tune_smooth_values", default="none,1,10,100,1000", type=str)
+    parser.add_argument("--tune_alternating", default=True, type=str2bool)
+    parser.add_argument("--score_after_train", default=True, type=str2bool)
+    parser.add_argument("--eval_every", default=1, type=int)
     parser.add_argument("--gaussian_sigma", default=None, type=float)
     parser.add_argument("--tolerance_scale", default=1.0, type=float)
     # helper
@@ -136,4 +145,13 @@ if __name__ == "__main__":
                 density_prior=args.density_prior,
                 best_metric=args.best_metric,
                 save_all_epochs=args.save_all_epochs,
+                lr=args.lr,
+                weight_decay=args.weight_decay,
+                clip_grad_norm=args.clip_grad_norm,
+                run_tag=args.run_tag,
+                tune_cutoff_steps=args.tune_cutoff_steps,
+                tune_smooth_values=args.tune_smooth_values,
+                tune_alternating=args.tune_alternating,
+                score_after_train=args.score_after_train,
+                eval_every=args.eval_every,
             )

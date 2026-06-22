@@ -1,0 +1,548 @@
+\section{Experimental Details}
+\label{app:experimental-details}
+
+Each reported comparison is specified by dataset, architecture, objective family, cross-validation split, and event-scoring configuration.
+For each configuration, the selected hyperparameters, fold-level validation metrics, validation predictions, and validation-selected scoring settings are retained.
+The summary tables and tolerance-specific AP curves are computed from those fold-level outputs.
+
+\subsection{Training and Scoring Protocol}
+
+Splits are made at the series level so windows from the same series are not split across train and validation.
+Unless otherwise stated, sleep experiments use four folds, 20 training epochs, batch size 32, learning rate $3\times10^{-3}$, and validation every five epochs.
+We separate optimization settings from decoder calibration.
+Training hyperparameters are chosen at the benchmark-and-backbone level for stable multi-epoch learning and then held fixed inside matched objective comparisons.
+Decoder parameters are selected on validation folds after training, because every objective must still be converted into ranked detections before event AP can be computed.
+The decoder search includes score cutoffs, candidate smoothing, peak separation, and interval-alternation choices when they apply.
+This makes each table a comparison of training signals under a shared validation protocol, not a collection of separately tuned detectors.
+For the reported CHB-MIT comparisons, decoder calibration uses expanded predictions on the original 256 Hz timeline.
+The candidate smoothing scales are no smoothing, one second, and two seconds, corresponding to Gaussian smoothing widths of 0, 256, and 512 samples.
+This keeps the decoder search aligned with second-scale seizure endpoint tolerances rather than reusing the broader sleep-scale smoothing grid.
+When repeated seeds are available for the same configuration, tables report their mean and omit seed standard deviations for compactness.
+The protocol is chosen to make objective comparisons controlled rather than to maximize any single configuration.
+Four folds give each long recording a validation role while keeping full multi-epoch sweeps feasible.
+Twenty epochs are long enough for the sleep validation curves to saturate in the optimization calibration, and validation every five epochs limits scoring overhead without changing the selected training objective.
+The sleep learning rate comes from that Poisson-objective calibration; after selection, the value is shared with the matched segmentation controls.
+We use one optimizer scale per benchmark and backbone rather than tuning a separate scale for every objective after seeing event AP.
+This can leave some individual configurations below their best possible setting, but it prevents the objective comparison from becoming a post-hoc hyperparameter search.
+Checkpoint selection follows the same rule for every configuration: validation event mAP is computed at the scheduled evaluation epochs, the best validation checkpoint supplies the saved predictions, and the same decoder search is then applied to those predictions.
+The CHB-MIT high-capacity GRU configurations use a smaller learning rate, batch size 8, and gradient clipping because the EEG sequences are longer and the recurrent state is larger.
+Batch size, clipping, and validation frequency are therefore memory, stability, and scoring-cost settings held fixed inside each benchmark comparison, not objective-specific advantages.
+Output downsampling is selected by the metric-resolution and sparsity heuristic in Appendix~\ref{app:derivation}: the target has a consistent summed unit for any stride, but strict-localization claims require the output timeline to be fine enough for the matching tolerance.
+When a coarser stride is used for memory or optimization, we treat it as a detector setting to be scored, not as a property guaranteed by the likelihood.
+
+\begin{center}
+\captionof{table}{Core training and scoring settings.
+Settings are fixed within each matched benchmark comparison; CHB-MIT high-capacity configurations are rescored after training on the original 256 Hz timeline.}
+\centering
+\label{tab:core-protocol}
+\resizebox{0.96\textwidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Benchmark setting & Model & Folds & Epochs & Batch & Learning rate & Output stride \\
+\midrule
+Sleep objective/backbone comparison & GRU / U-Net variants & 4 & 20 & 32 & $3\times10^{-3}$ & 50 s \\
+CHB-MIT high-capacity & GRU 3x128 & 4 & 20 & 8 & $1\times10^{-3}$ & 2 s / 1 s \\
+\bottomrule
+\end{tabular}
+}
+\end{center}
+
+At evaluation time, every trained model is converted to the ranked detection format required by the benchmarks.
+BDL ranks local maxima of the learned score sequences.
+Segmentation baselines derive event scores from changes in the predicted interval mask.
+This conversion standardizes evaluation; BDL supervision remains the expected events per output bin implied by the annotations.
+The sleep benchmark uses minute-scale event matching windows from 1 to 30 minutes, while CHB-MIT uses second-scale matching windows from 1 to 60 seconds.
+
+\section{Additional Results}
+\label{app:additional-results}
+
+The appendix tables provide the numerical values behind the main-text figures and report ablations that test alternative explanations for the BDL result.
+The central comparison remains the training-objective contrast between BDL and segmentation losses under the same event-scoring protocol.
+
+\subsection{Sleep Objective and Architecture Sweeps}
+
+Tables~\ref{tab:sleep-target-comparison} and~\ref{tab:sleep-architecture-main} expand the main sleep result.
+The first table isolates the training objective with the architecture fixed, and the second asks whether the BDL--segmentation gap persists when the backbone changes.
+The objective sweep is deliberately narrow: all configurations share the same splits, encoder, event scorer, and validation-time decoder search.
+The BDL configurations differ only in how each annotation is distributed before binning, while the segmentation configurations differ only in how the same interval mask is weighted during training.
+This design makes the comparison about the training signal rather than about model capacity or a specialized decoder.
+The architecture sweep then repeats the most direct BDL and segmentation objectives across recurrent, convolutional, and self-attention sequence encoders.
+The U-Net configurations test multi-scale convolutional representations that are natural controls for samplewise segmentation because they combine long context with time-localized decoding.
+The attention-gated U-Net configuration remains within that convolutional family while adding learned selection over skip features before the final prediction.
+The Transformer configuration tests a different detector family, with different sequence-length, memory, and optimizer tradeoffs.
+For that reason, the self-attention result is interpreted as an architecture-specific comparison under the same scorer rather than as a minor skip-connection variant.
+
+The objective table also includes two controls for alternative explanations of the main claim.
+First, the BDL kernel configurations separate the Poisson objective from a generic smoothing trick: BDL-Hard uses an unsmoothed event at the annotated time, while the Gaussian and tolerance-aligned variants distribute the same one-event contribution over nearby bins.
+If smoothing were the whole explanation, the smoothed configurations would be strongest.
+Second, the weighted and focal segmentation configurations keep the samplewise state labels and change only how errors on rare sleep-state samples are weighted.
+If the main problem were only class imbalance, these segmentation controls should close the gap without changing the supervision from samplewise state labels to event occurrences.
+
+\begin{center}
+\captionof{table}{Sleep benchmark target comparison with a bidirectional GRU.
+All objectives use the same splits and event-scoring protocol; mAP is the event-localization score used for model selection.}
+\centering
+\label{tab:sleep-target-comparison}
+\resizebox{0.86\textwidth}{!}{%
+\input{results/generated/sleep_objective_sweep.tex}
+}
+\end{center}
+
+\begin{center}
+\captionof{table}{Sleep benchmark architecture comparison.
+Values are validation mAP aggregated over validation folds; $\Delta$ is BDL-Hard minus cross-entropy segmentation.}
+\centering
+\label{tab:sleep-architecture-main}
+\input{results/generated/sleep_main_architecture.tex}
+\end{center}
+
+\IfFileExists{results/generated/attention_unet_control.tex}{%
+\begin{center}
+\captionof{table}{Attention-gated U-Net convolutional sensitivity check on the sleep benchmark.
+Values are validation mAP aggregated over validation folds; $\Delta$ is BDL-Hard minus cross-entropy segmentation.}
+\centering
+\label{tab:attention-unet-control}
+\input{results/generated/attention_unet_control.tex}
+\end{center}
+}{}
+
+\clearpage
+\subsection{Transfer, Smoothing, and Context Ablations}
+
+Tables~\ref{tab:seizure-replication}--\ref{tab:online-ablation} organize additional evidence around transfer, smoothing choices, and available context.
+Each table keeps the event-level scoring protocol fixed while changing one part of the detector setting.
+The aim is not to claim a new best model for every domain, but to separate the contribution of the training target from the effects of signal type, architecture, decoder calibration, and causal information.
+The studies therefore answer four questions: whether the same supervision transfers across signal domains, whether BDL is sensitive to sparse-output initialization or timing-uncertainty kernels, whether future context is needed to rank a boundary sharply, and whether outputs trained for event AP can be converted back to state sequences.
+
+Table~\ref{tab:seizure-replication} is a compact transfer study from wrist accelerometry to CHB-MIT EEG while keeping the same objective families and ranked event-matching evaluation.
+The seizure labels are still treated as event endpoints, but the signal, class rarity, sampling rate, and useful temporal scale differ substantially from sleep.
+This transfer study deliberately moves the same objective family to sparse, high-rate EEG before changing capacity or output stride.
+It therefore serves as a domain-shift control under the shared protocol.
+Differences in this setting can reflect capacity, output stride, or decoder calibration as well as the training objective, so the later high-capacity and stride comparisons provide the main CHB-MIT evidence after those factors are controlled.
+
+Tables~\ref{tab:prior-ablation} and~\ref{tab:target-width-ablation} isolate choices that are specific to BDL.
+The prior ablation changes the initial output scale while leaving the one-event-per-annotation construction and Poisson loss unchanged.
+The smoothing-width ablation changes only the support of the tolerance-aligned smoothing kernel before renormalization.
+These comparisons test whether the main result depends on a particular rare-event initialization or a particular amount of label-time smoothing.
+Because each annotation still contributes one event in every configuration, changes in performance cannot be attributed to changing the total amount of supervision assigned to an annotation.
+The prior ablation is instead a calibration and optimization check: it asks whether the sparse Poisson output must be initialized near the event frequency for training to find useful peaks.
+The width ablation asks a different question, namely how much timing uncertainty should be encoded around each annotation before training.
+Together, these ablations identify whether performance is sensitive to output initialization or to the assumed label-time uncertainty, without changing the likelihood or the event occurrence assigned to each annotation.
+Neither result changes BDL itself; these comparisons test practical calibration and smoothing choices around the same likelihood.
+
+Table~\ref{tab:online-ablation} changes the information available to the encoder while keeping the event-occurrence construction and scorer fixed.
+The offline GRU and U-Net configurations in the main text can use future samples inside the input window, whereas the forward recurrent models and causal Transformer only use current and past samples.
+This study asks whether BDL remains effective when the representation has less temporal context for deciding an event time.
+It isolates streaming context from the training signal: the loss can place event supervision on the scored output quantity, while the encoder may still lack the future evidence needed to rank the event time sharply.
+The unsmoothed BDL streaming configurations underperform their segmentation controls, which identifies a context or representation limitation rather than a different event quantity.
+The smoothed BDL streaming analysis in Table~\ref{tab:online-smoothing-ablation} asks a narrower follow-up question: when future context is removed, does encoding label-time uncertainty help BDL recover sharper detections?
+Smoothing improves the forward GRU and LSTM comparisons but does not close the causal Transformer gap, suggesting that kernel shape can help when timing evidence is delayed but cannot by itself replace an adequate causal representation.
+Together, these tables document where event-level supervision helps and where representation, context, calibration, or post-processing become the limiting factors.
+
+\begin{center}
+\captionof{table}{Compact CHB-MIT transfer study.
+Values are validation mAP from the shared low-capacity configuration; Table~\ref{tab:seizure-highscore} gives the main stride-controlled CHB-MIT comparison.}
+\centering
+\label{tab:seizure-replication}
+\input{results/generated/seizure_replication.tex}
+\end{center}
+
+\IfFileExists{results/generated/seizure_highscore_ready.tex}{%
+The high-capacity CHB-MIT comparison separates two practical questions.
+First, it tests whether the seizure benchmark needs a larger recurrent encoder than the compact GRU used in the shared transfer sweep.
+Second, it tests whether output stride changes the objective comparison once the raw 256 Hz EEG timeline is compressed into a shorter model sequence.
+This matters because endpoint matching is second-scale: a 256-sample stride gives a one-second model timeline at the original sampling rate, while a coarser stride can make optimization easier but changes localization quantization.
+The fixed question is whether the same objective remains competitive when event duration, sampling rate, and evidence type change; the capacity and stride checks prevent that question from being confounded with a single low-capacity detector setting.
+In both stride settings, at least one BDL variant exceeds cross-entropy under the relaxed CHB-MIT event-matching protocol.
+The best variant also changes with stride: the Gaussian kernel is strongest at two seconds, while the hard target is strongest at one second.
+This is evidence about detector sensitivity, not a universal kernel ranking: BDL remains competitive on high-rate EEG, while kernel choice, stride, and decoder calibration still matter.
+\IfFileExists{results/generated/seizure_highscore_strict3_ready.tex}{%
+The stricter one-to-three-second endpoint table sharpens the same conclusion.
+At the one-second stride, BDL-Hard and BDL-Gaussian remain above cross-entropy
+under strict endpoint matching, whereas BDL-Tolerance is essentially tied with
+cross-entropy.
+At the two-second stride, the Gaussian kernel is strongest under strict scoring.
+This pattern is consistent with the stride heuristic: tight endpoint matching
+rewards kernels and output timelines that keep peaks localized, while a
+tolerance-shaped target can become too diffuse for the strictest boundary
+windows.
+}{}
+
+\begin{center}
+\captionof{table}{High-capacity CHB-MIT GRU stride ablation.
+The two-second setting is the coarser compute--accuracy configuration; the one-second setting reduces boundary quantization under the same ranked event-scoring protocol.}
+\centering
+\label{tab:seizure-highscore}
+\resizebox{0.86\textwidth}{!}{%
+\input{results/generated/seizure_highscore_ready.tex}
+}
+\end{center}
+\IfFileExists{results/generated/seizure_highscore_strict3_ready.tex}{%
+\begin{center}
+\captionof{table}{Strict CHB-MIT endpoint ablation.
+Configurations use one-to-three-second boundary tolerances with the same high-capacity
+GRU validation outputs as Table~\ref{tab:seizure-highscore}.}
+\centering
+\label{tab:seizure-highscore-strict}
+\resizebox{0.86\textwidth}{!}{%
+\input{results/generated/seizure_highscore_strict3_ready.tex}
+}
+\end{center}
+}{}
+}{}
+
+\IfFileExists{results/generated/paired_fold_consistency.tex}{%
+The averages in the main text are supported by paired validation-fold
+outputs.
+Table~\ref{tab:paired-fold-consistency} reports the number of matched
+seed--fold comparisons in which the BDL configuration exceeds the corresponding
+segmentation configuration, using the fold-level validation mAP observed during
+training.
+It also reports an exact one-sided sign-check probability under an equal
+win--loss null over the matched comparisons.
+The folds are not independent datasets, so the statistic is a
+descriptive consistency check rather than a broad population significance
+claim.
+Its purpose is to show that the reported gains are not due to one favorable
+split.
+
+\begin{center}
+\captionof{table}{Paired-fold consistency for completed main comparisons.
+Pairs are matched by dataset split and seed where repeated seeds are available;
+$p_{\mathrm{sign}}$ is the exact one-sided sign-check probability over
+non-tied pairs, and $\Delta$ is BDL validation mAP minus the corresponding
+segmentation validation mAP.}
+\centering
+\label{tab:paired-fold-consistency}
+\resizebox{0.94\textwidth}{!}{%
+\input{results/generated/paired_fold_consistency.tex}
+}
+\end{center}
+}{}
+
+\begin{center}
+\captionof{table}{Sparse-output-prior ablation on the sleep benchmark.
+The sparse prior initializes the BDL output near the empirical rarity of the scored events; the target, loss, backbone, and decoder are unchanged.}
+\centering
+\label{tab:prior-ablation}
+\input{results/generated/prior_ablation.tex}
+\end{center}
+
+\begin{center}
+\captionof{table}{Tolerance-kernel width ablation on the sleep benchmark.
+The multiplier rescales the tolerance-derived smoothing window before unit-sum normalization, testing label-time uncertainty without changing the total contribution of each annotation.}
+\centering
+\label{tab:target-width-ablation}
+\input{results/generated/target_width_ablation.tex}
+\end{center}
+
+\begin{center}
+\captionof{table}{Online-context ablation on the sleep benchmark.
+Forward-only models remove future context, so these configurations measure how much the objective depends on future evidence rather than the central offline-localization setting.}
+\centering
+\label{tab:online-ablation}
+\input{results/generated/online_ablation.tex}
+\end{center}
+
+\IfFileExists{results/generated/online_smoothing_ablation.tex}{%
+\begin{center}
+\captionof{table}{Smoothed-target streaming-context analysis on the sleep benchmark.
+Configurations use the same forward-only and causal encoders as Table~\ref{tab:online-ablation}; $\Delta$ is the better smoothed BDL configuration minus cross-entropy segmentation.}
+\centering
+\label{tab:online-smoothing-ablation}
+\input{results/generated/online_smoothing_ablation.tex}
+\end{center}
+}{}
+
+\IfFileExists{results/generated/transformer_main_candidate_ready.tex}{%
+A tuned offline-Transformer comparison tests whether the same supervision
+effect appears under a self-attention encoder.
+This configuration uses smoothed BDL targets and a lower learning rate chosen
+for Transformer stability, while keeping the same sleep event-scoring protocol.
+The comparison is interpreted separately from the convolutional controls
+because it changes the detector family as well as the loss.
+
+\begin{center}
+\captionof{table}{Tuned offline-Transformer candidate on the sleep benchmark.
+Values are validation mAP after validation-fold decoder calibration.}
+\centering
+\label{tab:transformer-main-candidate}
+\input{results/generated/transformer_main_candidate_ready.tex}
+\end{center}
+}{}
+
+\IfFileExists{results/generated/transformer_strong_candidate_ready.tex}{%
+A higher-capacity offline Transformer provides a stronger self-attention
+comparison for the sleep benchmark.
+It uses the same event scorer and decoder calibration as the recurrent and
+convolutional controls, while using optimizer settings appropriate for the
+Transformer backbone.
+This comparison asks whether BDL remains useful when the representation changes
+substantially, without treating the Transformer as a drop-in replacement for a
+U-Net skip-connection variant.
+
+\begin{center}
+\captionof{table}{Higher-capacity offline-Transformer candidate on the sleep benchmark.
+Values are validation mAP after validation-fold decoder calibration; $\Delta$
+is the best BDL configuration minus cross-entropy segmentation.}
+\centering
+\label{tab:transformer-strong-candidate}
+\input{results/generated/transformer_strong_candidate_ready.tex}
+\end{center}
+}{}
+
+\IfFileExists{results/generated/offline_transformer_diagnostic.tex}{%
+The offline-Transformer control asks a narrower architecture question than
+the main recurrent and convolutional controls.
+It uses the same sleep folds and event scorer, but it is not tuned as a new
+Transformer detector.
+Under this shared setting, cross-entropy segmentation is substantially stronger
+than BDL-Hard.
+This marks a useful scope limit: BDL specifies how annotations become
+per-bin event occurrences and how those predictions are scored, but architecture-specific optimization and calibration can still
+be decisive when the representation is changed substantially.
+
+\begin{center}
+\captionof{table}{Offline-Transformer control on the sleep benchmark.
+Configurations use the same event-scoring protocol as the main sleep experiments, but are
+reported separately from the main recurrent and convolutional controls.}
+\centering
+\label{tab:offline-transformer-diagnostic}
+\input{results/generated/offline_transformer_diagnostic.tex}
+\end{center}
+}{}
+
+\IfFileExists{results/generated/point_event_ablation_ready.tex}{%
+\subsection{Point-Event Ablations}
+\label{app:point-event-ablations}
+
+The method does not depend on paired interval endpoints.
+To check that the same event-occurrence construction applies to point-event data, we also run ablations on Martian bow-shock and credit-card fraud detection datasets from prior time-series event-detection work \citep{azib2023universal}.
+These datasets score a single event type rather than onset--offset pairs, so interval alternation and duration constraints are absent.
+Table~\ref{tab:point-event-ablation} reports the matched GRU comparison among BDL kernels and cross-entropy segmentation under the same ranked event-scoring protocol.
+For these point-event configurations, the segmentation baseline is the corresponding samplewise event/non-event classifier: the positive label is placed at the event sample and peaks in the predicted event channel are ranked.
+Thus the comparison removes interval masks and transition scoring, leaving a direct test of whether the Poisson objective is useful beyond paired boundaries.
+These comparisons test an orthogonal structural question: whether the same likelihood remains well defined when there is no interval state to segment.
+Bowshock is nearly saturated for both objective families, while Fraud shows a larger BDL advantage.
+These results do not imply that every point-event dataset favors BDL.
+They show the structural claim: the construction is not tied to paired endpoints and can train directly on isolated scored events as well as on interval boundaries.
+
+\begin{center}
+\captionof{table}{Point-event ablations.
+Bowshock and Fraud contain a single scored event type, so they test BDL without paired interval endpoints or interval-validity post-processing.}
+\centering
+\label{tab:point-event-ablation}
+\input{results/generated/point_event_ablation_ready.tex}
+\end{center}
+}{}
+
+\subsection{State Reconstruction from BDL Outputs}
+\label{app:state-reconstruction}
+
+The sleep annotations also induce a binary sleep-state sequence, which lets us ask a different question from event AP: whether the learned outputs can reconstruct samplewise state labels.
+This appendix analysis is separate from the main objective, because BDL is trained and selected for ranked onset and wake-up detection.
+It is nevertheless useful because it checks whether BDL outputs can be reconciled with the segmentation view.
+The conversion reverses the paper's main direction: the main method trains outputs for event scoring, whereas reconstruction asks how much of an interval mask can be recovered after training only on BDL outputs.
+It is an analysis tool, and it does not require the number of sleep intervals at test time.
+It is a controlled way to ask whether event-trained boundary channels contain enough transition information to recover a state sequence when a downstream user needs one.
+
+For BDL we evaluate three conversions, each using only validation-selected post-processing parameters.
+The peak-fill decoder first chooses ranked onset and wake-up peaks, then fills the state sequence between alternating onset--wake-up pairs.
+This is closest to the event detector used for AP, because it starts from discrete scored detections and imposes interval legality afterward.
+The integrated-output decoder instead works directly with the score sequences: it accumulates onset evidence minus wake-up evidence over time and thresholds the resulting cumulative sequence.
+This tests whether the two boundary channels contain enough signed transition evidence to recover an interval mask without first committing to individual peaks.
+The hazard decoder gives the most probabilistic conversion.
+In discrete time, a hazard is the probability that a transition occurs in the next output bin, conditional on the current state.
+The BDL outputs are expected events per output bin, not probabilities, so the hazard conversion introduces a scalar calibration before mapping them to transition probabilities.
+The onset output controls the probability of entering the sleep state, and the wake-up output controls the probability of leaving it,
+\begin{align}
+    p_t = p_{t-1}(1-\beta_t) + (1-p_{t-1})\alpha_t,
+    \qquad
+    \alpha_t = 1-\exp(-s\lambda^{\mathrm{on}}_t),
+    \quad
+    \beta_t = 1-\exp(-s\lambda^{\mathrm{off}}_t),
+\end{align}
+where $p_t$ is the induced sleep-state probability.
+The scale $s$ is selected on validation folds and converts expected events per bin into discrete transition hazards for this appendix conversion.
+The recursion updates a state probability at every output bin, naturally allows zero, one, or multiple transitions over a long recording, and does not require knowing the number of sleep intervals in advance.
+The initial state probability and final state threshold are also selected on validation folds.
+Segmentation uses its direct state probabilities.
+Table~\ref{tab:state-reconstruction} shows that BDL outputs can produce coherent state sequences, especially with hazard recursion, but direct segmentation remains stronger on state-occupancy metrics.
+This supports the paper's separation between event-localization supervision and samplewise state supervision.
+BDL is better matched to ranked detections, while direct segmentation remains the preferred objective when evaluation consumes samplewise states.
+The analysis changes the evaluation target after training and asks whether information learned for event localization can be integrated back into a state sequence.
+It clarifies when direct segmentation remains preferred.
+
+\begin{center}
+\captionof{table}{State reconstruction analysis on the sleep benchmark.
+Configurations use the same GRU validation outputs as the main objective comparison; F1 and IoU are computed on the induced binary sleep-state sequence.}
+\centering
+\label{tab:state-reconstruction}
+\resizebox{0.94\textwidth}{!}{%
+\input{results/generated/segmentation_reconstruction.tex}
+}
+\end{center}
+
+\clearpage
+\section{Proofs and Additional Derivations}
+\label{app:derivation}
+
+\subsection{Event Count Under Smoothing and Binning}
+
+For the target in Equation~\ref{eq:smoothed-target},
+\begin{align}
+    \sum_{t=1}^{T} y_c(t)
+    =
+    \sum_{\tau\in B_c}\sum_{t=1}^{T}\kernel(t-\tau)
+    =
+    \sum_{\tau\in B_c}1
+    =
+    |B_c|.
+\end{align}
+The second equality uses the unit-sum kernel and finite-window renormalization.
+
+\subsection{Output-Stride Heuristic}
+
+The summation rule defines how to downsample the target, but it does not by
+itself choose the output stride.
+Let $\Delta$ be the number of original timesteps represented by one model
+output bin and let $\delta_{\min}$ be the strictest matching tolerance used by
+the event metric.
+Because the decoded peak is piecewise constant at the bin scale, the event time
+has a quantization uncertainty on the order of $\Delta/2$ after the prediction
+is mapped back to the original timeline.
+A conservative localization condition is therefore
+\begin{align}
+    \Delta \le \delta_{\min},
+\end{align}
+with a smaller stride preferred when strict-tolerance AP is the main metric.
+This rule keeps the entire bin inside the smallest matching window.
+A weaker quantization-only check is $\Delta/2\le\delta_{\min}$; it says a
+centered peak can still fall within the strict tolerance, but it leaves little
+margin for model error, smoothing, or decoder shifts.
+This is a metric-resolution condition rather than a likelihood condition.
+It is also an endpoint-localization condition, not an event-duration condition.
+For CHB-MIT, the strict tolerance asks whether the reported onset or offset
+time is close to the annotated endpoint; a seizure lasting many seconds can
+still receive a poor strict endpoint score if its boundary is quantized or
+shifted by the decoder.
+
+There is also an event-sparsity condition.
+For event type $c$, let $\rho_c$ denote the local event frequency measured
+per original timestep.
+The expected number of type-$c$ events in one output bin is
+\begin{align}
+    m_c = \rho_c\Delta.
+\end{align}
+Under the Poisson approximation used by BDL,
+\begin{align}
+    \Pr[N_c(b)\ge 2]
+    =
+    1 - \exp(-m_c)(1+m_c)
+    \approx
+    0.5\,m_c^2,
+    \qquad m_c \ll 1.
+\end{align}
+If one wants the probability of merging same-type events in one bin to be
+at most $\eta$, this approximation gives the sufficient rule
+\begin{align}
+    \rho_c\Delta \le \sqrt{2\eta}.
+\end{align}
+Thus the output stride should keep $m_c$ well below one for each scored event
+type whenever the goal is to rank individual event times.
+The likelihood can still train on bins with counts larger than one, but those
+bins merge multiple events into a single temporal cell and make
+localization depend more heavily on the decoder.
+
+Table~\ref{tab:stride-heuristic} applies these checks to the completed sleep
+and high-capacity CHB-MIT settings.
+In both sleep and CHB-MIT, the expected same-type collision probability is far
+below one for the tested strides.
+The practical tradeoff is therefore not whether the Poisson objective can represent
+the annotation count; it can.
+The tradeoff is between metric resolution and the sequence length seen by the
+encoder.
+
+For sleep, the sampled timeline has a five-second step.
+The main downsampling factor of 10 gives a 50-second model stride and about
+25 seconds of half-bin quantization, which is below the strict one-minute
+matching tolerance.
+This setting is both sparse and comfortably inside the metric-resolution
+condition.
+For CHB-MIT, a factor of 512 gives a two-second stride at 256 Hz.
+This is attractive computationally: one hour of EEG is reduced from 921600 raw
+samples to 1800 model steps.
+It also explains why the setting can perform well under relaxed seizure
+matching.
+However, its half-bin quantization is already one second, which equals the
+strictest endpoint tolerance.
+It satisfies the weaker centered-peak check but not the conservative full-bin
+condition, so we treat it as a compute--accuracy configuration rather than as
+the cleanest boundary-localization setting.
+
+The matched high-capacity CHB-MIT factor of 256 gives a one-second model stride
+and roughly 0.5 seconds of half-bin quantization.
+It satisfies the conservative one-second rule and is therefore the better
+setting for strict endpoint claims, but it doubles the recurrent sequence length
+relative to the 512 setting.
+We report the two high-capacity settings as a stride ablation because they test
+different parts of the detector tradeoff: 512 asks whether the objective remains
+useful in a compute-stable reproduction setting, while 256 asks whether the
+same comparison holds when the output timeline is aligned to the strict
+boundary metric.
+Event duration does not replace this endpoint argument.
+The annotated CHB-MIT seizures in our event file have minimum duration
+6 seconds and median duration 45.5 seconds, so even a two-second model bin does
+not collapse an entire seizure episode into one cell.
+The endpoint metric is different: an onset or offset can still be late, early,
+or poorly ranked relative to a one-second tolerance.
+For boundary-localization claims we therefore treat one-to-three-second
+CHB-MIT AP as the strict analysis and the wider five-to-sixty-second windows as
+relaxed matching.
+
+\begin{center}
+\captionof{table}{Output-stride check for the sleep and CHB-MIT configurations.
+$\Delta$ is the downsampling factor in original samples, strict tol. is the
+smallest matching tolerance, $m$ is the expected same-type event count per bin
+under the sparse-event prior, and $P_{\ge 2}$ is the small-$m$ collision
+approximation.}
+\centering
+\label{tab:stride-heuristic}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Setting & $\Delta$ & Stride & Strict tol. & $m$ & $P_{\ge 2}$ \\
+\midrule
+Sleep benchmark & 10 & 50 s & 60 s & 5.79e-4 & 1.67e-7 \\
+CHB-MIT high-capacity GRU & 512 & 2 s & 1 s & 5.79e-4 & 1.68e-7 \\
+CHB-MIT high-capacity GRU & 256 & 1 s & 1 s & 2.90e-4 & 4.20e-8 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Conditional Mean Target}
+
+For a fixed input, bin, and event type, write $m=\mathbb{E}[Y\mid\xseq]$.
+The conditional expected BDL loss is
+\begin{align}
+    \mathbb{E}[\rate-Y\log\rate\mid\xseq]
+    =
+    \rate - m\log\rate + \mathrm{const}.
+\end{align}
+For $m>0$, the derivative is $1-m/\rate$ and the second derivative is $m/\rate^2>0$, so the unique minimizer is $\rate=m$.
+For $m=0$, the loss is increasing in $\rate$ and has infimum at $\rate\rightarrow0$.
+
+\subsection{Poisson Deviance Form}
+
+For integer per-bin event counts, Equation~\ref{eq:bdl-loss} is the Poisson negative log-likelihood up to constants.
+For smoothed targets, replacing $Y!$ with $\Gamma(Y+1)$ gives the same continuous extension.
+The omitted $\log\Gamma(Y+1)$ term is target-only, so it does not change optimization.
+
+The loss also has a Bregman-divergence form.
+Let $\phi(u)=u\log u-u$ for $u>0$.
+Then
+\begin{align}
+    \rate - Y\log\rate
+    =
+    D_{\phi}(Y,\rate) - \phi(Y)
+\end{align}
+up to target-only constants, so minimizing the empirical BDL loss estimates the conditional mean count in each bin.

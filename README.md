@@ -1,10 +1,6 @@
-# Event Detection via Probability Density Function Regression
+# Boundary Density Likelihood for Time-Series Event Detection
 
-![](PDFR.gif)
-<!-- <img src="PDFR.gif" width="100" height="100" /> -->
-<!-- ![Alt Text](https://giphy.com/gifs/4xBzU3jqWZfdWwSeoO) -->
-
-This repository may be used to train all the the models used for experiments in the [paper](https://arxiv.org/abs/2408.12792)
+This repository contains the training, evaluation, and paper-generation code for Boundary Density Likelihood (BDL), a likelihood objective for time-series event detection.
 
 ## Contents
 
@@ -17,9 +13,10 @@ This repository may be used to train all the the models used for experiments in 
 
 
 ## Overview
-This document describes the official software package developed for and used to create the general regression-based approach for sleep CPD. It features different models, like [PrecTime](https://arxiv.org/ftp/arxiv/papers/2302/2302.10182.pdf), 1D UNets, and Bidirectional RNNS.
+This document describes the software package used to train time-series event detectors for the BDL paper.
+The code supports recurrent models, forward-only online models, causal and offline Transformers, one-dimensional U-Nets, and attention-gated U-Nets.
 
-This software allows the training of binary sleep CPD models using Child Mind Institute's [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data) and seizure event detection models using Physionet's [CHB-MIT Scalp EEG Database](https://archive.physionet.org/physiobank/database/chbmit/) from <cite>[Shoeb, Ali, 2009][2]</cite>. It features a command-line interface for training and evaluating models without needing to modify the underlying codebase.
+This software allows the training of sleep-event detection models using Child Mind Institute's [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data) and seizure event detection models using Physionet's [CHB-MIT Scalp EEG Database](https://archive.physionet.org/physiobank/database/chbmit/) from <cite>[Shoeb, Ali, 2009][2]</cite>. It features a command-line interface for training and evaluating models without needing to modify the underlying codebase.
 
 ## System Requirements
 **Hardware Requirements**
@@ -51,22 +48,26 @@ On a computer with `pip` installed, run the following commands to download the r
 ```
 git clone https://github.com/clarkipeng/EventDetectionPDF
 cd EventDetectionPDF
-pip install -r requirements.txt
+uv venv --python /usr/bin/python3.9 .venv
+uv pip install --python .venv/bin/python -r requirements.txt
+export EVENTPDF_PY="uv run --offline python"
 ```
 
 ## Data Preparation:
 
-Download the [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data) or [seizure detection dataset](https://www.kaggle.com/datasets/werus23/chb-mit-scalp-eeg-database-seizure-only) from Kaggle.com. Place the downloaded dataset in a new directory called `data`. We require the directory structure to include the following:
+Download the [sleep detection dataset](https://www.kaggle.com/competitions/child-mind-institute-detect-sleep-states/data) or [seizure detection dataset](https://www.kaggle.com/datasets/werus23/chb-mit-scalp-eeg-database-seizure-only) from Kaggle.com. For the paper runbook, place each dataset in a dataset-specific directory:
 ```
 path/to/repo/data
-  train_series.parquet
-  train_events.csv
+  sleep/
+    train_series.parquet
+    train_events.csv
 ```
 or
 ```
 path/to/repo/data
-  seizure_256Hz_dataset
-  seizure_events.csv
+  seizure/
+    seizure_256Hz_dataset
+    seizure_events.csv
 ```
 
 This repository also provides support for other datasets, such as the [bowshock detection dataset](https://archive.org/download/martian_bow_shock_dataset/martian_bow_shock_dataset.pkl) and [fraud detection dataset](https://archive.org/download/credit_card_fraud_dataset/credit_card_fraud_dataset.csv) as well as their [bowshock event labels](https://archive.org/download/martian_bow_shock_events/martian_bow_shock_events.csv) and [fraud event labels](https://archive.org/download/credit_card_fraud_events/credit_card_fraud_events.csv) provided by <cite>[Azib et al, 2023][1]</cite>. Place the downloaded datasets in the `data` directory. The required directory structure is:
@@ -87,26 +88,26 @@ We have 3 different scripts to aid in training and evaluation. These scripts are
 After you have done all the necessary steps listed above, you are ready to train and evaluate the models. In order to train a model on a certain objective, you can simply run the following script with the names of the models and objectives: 
 
 ```
-python train.py --dataset [dataset_name] --model [model_name] --objective [objective_name] --datadir [path_to_dataset]
+$EVENTPDF_PY train.py --dataset [dataset_name] --model [model_name] --objective [objective_name] --datadir [path_to_dataset]
 ```
-Model choices vary: *rnn* (or *lstm* and *gru*), online forward-only RNNs (*frnn*, *flstm*, *fgru*), causal decoder-style Transformers (*causal_transformer*), *unet* (or *unet_t*), and *prectime*. More information about model choices can be found at [load_model.py](models/load_model.py). Objectives can be legacy MSE targets (*hard*, *gau*, *custom*), likelihood-based boundary density targets (*density_hard*, *density_gau*, *density_custom*), or segmentation targets (*seg*, *seg_weighted*, *seg_focal*). Segmentation models are evaluated with both threshold-crossing and peak-based post-processing variants.
+Model choices vary: *rnn* (or *lstm* and *gru*), online forward-only RNNs (*frnn*, *flstm*, *fgru*), causal decoder-style Transformers (*causal_transformer*), offline Transformers, and *unet* (or *unet_t*). More information about model choices can be found at [load_model.py](models/load_model.py). Objectives include BDL event-occurrence targets (*density_hard*, *density_gau*, *density_custom*) and segmentation targets (*seg*, *seg_weighted*, *seg_focal*). Segmentation models are evaluated with both threshold-crossing and transition-based post-processing variants.
 
 In order to evaluate the trained models, run: 
 ```
-python eval.py --dataset [dataset_name] --datadir [path_to_dataset]
+$EVENTPDF_PY eval.py --dataset [dataset_name] --datadir [path_to_dataset]
 ```
 
 In order to train the main model/objective matrix, run:
 ```
-python train_all.py --dataset [dataset_name] --datadir [path_to_dataset]
+$EVENTPDF_PY train_all.py --dataset [dataset_name] --datadir [path_to_dataset]
 ```
 For paper reruns, the recommended wrapper is:
 ```
-python paper/run_experiments.py --datasets sleep --datadir data
-python paper/run_experiments.py --datasets sleep --datadir data --write-script paper/generated_runs/sleep_full.sh
-python paper/run_experiments.py --datasets sleep --datadir data --execute
+$EVENTPDF_PY paper/run_experiments.py --datasets sleep --datadir data/sleep --python "$EVENTPDF_PY"
+$EVENTPDF_PY paper/run_experiments.py --datasets sleep --datadir data/sleep --python "$EVENTPDF_PY" --write-script paper/generated_runs/sleep_full.sh
+$EVENTPDF_PY paper/run_experiments.py --datasets sleep --datadir data/sleep --python "$EVENTPDF_PY" --execute
 ```
-The first command prints the planned matrix, the second writes an executable script for later GPU use, and the third executes it. See [paper/EXPERIMENTS.md](paper/EXPERIMENTS.md) for the full no-GPU-now, GPU-later runbook.
+The first command prints the planned matrix, the second writes an executable script for later GPU use, and the third executes it. See [paper/PAPER_OPS.md](paper/PAPER_OPS.md) for the paper runbook, current status, vocabulary, claims, and acceptance checks.
 
 Each run writes checkpoints, out-of-fold predictions, and machine-readable result files under:
 ```
@@ -116,13 +117,22 @@ For interval datasets, evaluation tunes both unconstrained boundary peaks and an
 
 After experiments finish, paper plots can be regenerated with:
 ```
-python paper/make_plots.py --dataset sleep --results-root experiments
+$EVENTPDF_PY paper/collect_results.py --results-root experiments
+$EVENTPDF_PY paper/make_plots.py --dataset sleep --results-root experiments
 ```
 
 #### Example
-Here is a minimal single-objective command. For paper claims, use the rerun matrix above rather than legacy example outputs.
+Here is a minimal single-objective command. For paper claims, use the rerun matrix above rather than ad hoc example outputs.
 ```
-python train.py --dataset sleep --model gru --objective density_custom --epochs 1 --folds 2 --datadir data
+$EVENTPDF_PY train.py --dataset sleep --model gru --objective density_custom --epochs 1 --folds 2 --datadir data/sleep
+```
+
+## Tests
+
+The lightweight local tests use the standard-library `unittest` runner:
+
+```
+uv run --offline python -m unittest tests/test_objectives.py tests/test_models.py tests/test_postprocessing.py
 ```
 
 ## References

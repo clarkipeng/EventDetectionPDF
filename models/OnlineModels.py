@@ -63,7 +63,7 @@ class SinusoidalPositionEncoding(nn.Module):
 
 
 class FlashCausalSelfAttention(nn.Module):
-    def __init__(self, hidden_size, num_heads, dropout=0.0):
+    def __init__(self, hidden_size, num_heads, dropout=0.0, causal=True):
         super().__init__()
         if hidden_size % num_heads != 0:
             raise ValueError("hidden_size must be divisible by num_heads")
@@ -71,6 +71,7 @@ class FlashCausalSelfAttention(nn.Module):
         self.num_heads = num_heads
         self.head_dim = hidden_size // num_heads
         self.dropout = dropout
+        self.causal = causal
         self.qkv = nn.Linear(hidden_size, 3 * hidden_size)
         self.proj = nn.Linear(hidden_size, hidden_size)
 
@@ -91,24 +92,29 @@ class FlashCausalSelfAttention(nn.Module):
             and x.is_cuda
             and x.dtype in (torch.float16, torch.bfloat16)
         ):
-            attn = flash_attn_func(q, k, v, dropout_p=dropout_p, causal=True)
+            attn = flash_attn_func(q, k, v, dropout_p=dropout_p, causal=self.causal)
         else:
             attn = F.scaled_dot_product_attention(
                 q.transpose(1, 2),
                 k.transpose(1, 2),
                 v.transpose(1, 2),
                 dropout_p=dropout_p,
-                is_causal=True,
+                is_causal=self.causal,
             ).transpose(1, 2)
 
         return self.proj(attn.reshape(batch, length, self.hidden_size))
 
 
 class CausalTransformerBlock(nn.Module):
-    def __init__(self, hidden_size, num_heads, mlp_ratio=4, dropout=0.1):
+    def __init__(self, hidden_size, num_heads, mlp_ratio=4, dropout=0.1, causal=True):
         super().__init__()
         self.ln1 = nn.LayerNorm(hidden_size)
-        self.attn = FlashCausalSelfAttention(hidden_size, num_heads, dropout=dropout)
+        self.attn = FlashCausalSelfAttention(
+            hidden_size,
+            num_heads,
+            dropout=dropout,
+            causal=causal,
+        )
         self.ln2 = nn.LayerNorm(hidden_size)
         self.mlp = nn.Sequential(
             nn.Linear(hidden_size, hidden_size * mlp_ratio),
@@ -136,8 +142,10 @@ class CausalTransformer(nn.Module):
         num_heads=4,
         n_layers=4,
         dropout=0.1,
+        causal=True,
     ):
         super().__init__()
+        self.causal = causal
         self.project = FeatureProjector(
             input_channels=input_channels,
             hidden_size=hidden_size,
@@ -152,6 +160,7 @@ class CausalTransformer(nn.Module):
                     hidden_size=hidden_size,
                     num_heads=num_heads,
                     dropout=dropout,
+                    causal=causal,
                 )
                 for _ in range(n_layers)
             ]

@@ -63,11 +63,12 @@ def get_model(
             num_classes=outsize,
             bidir=bidir,
         )
-    elif model_prefix in ["causal", "decoder", "ct"]:
+    elif model_prefix in ["causal", "decoder", "ct", "transformer", "tf"]:
         layers = 4
         hidden_size = 64
         heads = 4
         dropout = 0.1
+        causal = model_prefix in ["causal", "decoder", "ct"]
 
         for arg in model_parts:
             if arg[:-1].isdigit() and arg[-1] == "l":
@@ -88,6 +89,7 @@ def get_model(
             num_heads=heads,
             dropout=dropout,
             num_classes=outsize,
+            causal=causal,
         )
     elif model_name == "prectime":
         return PrecTime(

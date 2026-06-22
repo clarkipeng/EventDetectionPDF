@@ -1,0 +1,47 @@
+\section{Discussion}
+\label{sec:limitations}
+
+BDL is a training objective for sequence models evaluated by ranked temporal detections.
+It changes what the model is asked to learn, but it does not replace the rest of the detector.
+A trained model still produces score sequences, and an application still chooses peak selection, thresholds, and any validity constraints.
+Its purpose is to align training with the temporal decisions later matched by AP.
+Segmentation asks the model to label samples, while BDL asks it to estimate the expected number of events in each output bin.
+That distinction covers point events, onset-only labels, repeated events,
+interval endpoints, and multi-type streams without requiring the likelihood to
+encode interval structure.
+If an application needs valid intervals, duration priors, or endpoint pairing,
+those constraints remain decoder choices.
+If deployment consumes calibrated labels at every sample, segmentation remains
+the direct objective.
+
+The sleep benchmark exposes the training--evaluation mismatch especially clearly because long annotated intervals are scored by much shorter tolerance windows around onset and wake-up times.
+Across a recurrent encoder and U-Net variants, the improvement is largest where event AP depends most on the ranking of localized event scores.
+Class-weighted and focal segmentation losses address imbalance, but they still train on interval-mask labels and recover event scores afterward.
+Their lower performance suggests that the issue is not only class prevalence, but also the mismatch between state-occupancy training and event-time evaluation.
+
+BDL also separates event-localized training from generic localized labels.
+Smoothing can help when annotation times are uncertain, but an annotation
+should still represent one event after clipping, downsampling, or overlap
+with nearby events.
+In BDL, smoothing redistributes that event over nearby times and binning sums
+the contributions onto the model timeline.
+The output is therefore the expected number of events in each bin, giving the
+sequence a fixed unit where proximity maps or normalized location distributions
+would leave scale as a modeling convention.
+The state-reconstruction analysis makes the complementary point: learned
+score sequences can be integrated back into state sequences, including through
+a hazard recursion that treats onset and wake-up scores as transition
+probabilities over time.
+Direct segmentation remains stronger when performance is measured by
+samplewise state-label accuracy rather than ranked detections.
+
+The seizure and streaming-context ablations expose the remaining dependencies.
+The smoothing kernel encodes annotation uncertainty, the receptive field must
+include the evidence that makes an event recognizable, and some domains need
+calibrated thresholds or structured decoders.
+BDL specifies what the sequence output should estimate, but architecture,
+context, calibration, and post-processing determine whether the learned scores
+become accurate detections for a particular signal.
+This is the intended scope of the method: it supplies a statistically defined
+training signal for event detection while leaving representation learning and
+domain constraints as detector design choices.

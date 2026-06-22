@@ -1,0 +1,65 @@
+\section{Results}
+\label{sec:results}
+
+\input{sections/result_figures}
+
+Figure~\ref{fig:sleep-main-results} shows the central empirical result: BDL improves the part of the precision--recall curve where event timing matters most.
+At a one-minute tolerance, BDL-Hard reaches 0.219 AP, compared with 0.051 for cross-entropy.
+At three minutes the comparison is 0.530 versus 0.283.
+By thirty minutes the curves nearly meet, 0.838 versus 0.821, because both objectives often identify the sleep episode when the matching window is broad.
+The separation at strict tolerances is therefore a localization effect, not merely better episode discovery.
+This convergence at broad tolerances is also informative: BDL's advantage appears when the benchmark asks for a well-ranked detection rather than only the right episode.
+
+One alternative explanation is class imbalance rather than BDL supervision itself.
+With the GRU, split, scorer, and post-processing search fixed, BDL-Hard reaches 0.680 mAP, while cross-entropy, class-weighted cross-entropy, and focal loss reach 0.575, 0.544, and 0.525.
+These segmentation controls change class balance without changing the interval-mask labels, so event scores are still recovered from state predictions after training.
+BDL-Gaussian and BDL-Tolerance reach 0.660 and 0.605, showing that smoothing affects performance but does not account for the improvement by itself.
+Among the BDL variants, the unsmoothed kernel is strongest, placing each annotated event at the recorded time.
+
+The main architecture controls ask whether the pattern is tied to the recurrent encoder.
+BDL-Hard improves over cross-entropy in each completed main architecture row, while the event scorer and validation-time decoder calibration are held fixed.
+These comparisons replace the representation with recurrent, convolutional, and, when supported by the matched results, self-attention backbones designed for time-localized sequence prediction.
+They also rule out a simpler explanation: segmentation is not weak only because the baseline recurrent encoder is mismatched to interval-mask prediction.
+Across these controls the main change is the supervision and loss, while every trained model is still converted to ranked detections and scored by the same event-matching protocol.
+Figure~\ref{fig:qualitative-window} illustrates the mechanism in a held-out sleep window: segmentation learns an interval mask and derives event scores afterward, while BDL directly scores the onset and wake-up events ranked by event AP.
+Appendix Table~\ref{tab:paired-fold-consistency} shows the same direction on every matched sleep seed-fold comparison for the completed recurrent and convolutional controls.
+\IfFileExists{results/generated/attention_unet_control.tex}{%
+Appendix Table~\ref{tab:attention-unet-control} retains the attention-gated U-Net result as a convolutional sensitivity check after the Transformer row is promoted to the main architecture table.
+}{}
+\IfFileExists{results/generated/transformer_strong_candidate_ready.tex}{%
+A matched self-attention comparison is reported in Appendix Table~\ref{tab:transformer-strong-candidate}; it gives the full Transformer objective sweep beyond the main BDL-Hard comparison.
+}{}
+
+\IfFileExists{results/generated/seizure_highscore_ready.tex}{%
+The high-capacity CHB-MIT comparison gives a second benchmark check under a
+different signal modality and timing scale.
+With a three-layer GRU and the standard one-to-sixty-second seizure scoring
+protocol, BDL-Gaussian reaches 0.360 mAP at a two-second output stride,
+compared with 0.252 for cross-entropy segmentation.
+At a one-second output stride, BDL-Hard reaches 0.388 mAP compared with 0.287
+for cross-entropy.
+The preferred BDL kernel changes with output stride, which is consistent with
+the resolution tradeoff in the stride heuristic: coarser outputs shorten the
+sequence but make endpoint localization more dependent on smoothing and
+decoder calibration.
+The stricter endpoint analysis in the appendix separates boundary localization
+from broader episode retrieval.
+Across both stride settings, the main comparison is stable: after capacity and
+output timeline are fixed, BDL remains above the matched segmentation baseline.
+\IfFileExists{results/generated/seizure_highscore_strict3_ready.tex}{%
+Under the stricter one-to-three-second endpoint analysis in the appendix,
+BDL-Hard and BDL-Gaussian remain above cross-entropy, while the tolerance-shaped
+kernel no longer helps.
+}{}
+}{}
+
+Together, sleep and CHB-MIT support the same event-detection claim: when the benchmark ranks matched event times, aligning the training signal with event occurrences improves localization under matched scoring and post-processing settings.
+The likelihood defines the training signal; kernel shape, output stride, representation, calibration, and decoder constraints still determine how well that signal becomes detections, especially on high-rate EEG.
+
+The appendix uses the same logic to test alternative explanations.
+If the gain came from a fortunate smoothing width, rare-class initialization, stronger encoder, or ordinary class-imbalance handling, then the kernel, prior, segmentation-reweighting, and architecture controls should close the gap under the same event scorer.
+They do not close the gap on sleep.
+Other controls change the setting around the objective: CHB-MIT changes signal type and timing scale, point-event data remove paired endpoints, stride changes the output timeline, streaming comparisons remove future context, and state reconstruction changes the quantity evaluated after training.
+These studies define the useful scope of the method: BDL supplies event-scoring outputs for AP, while representation, output stride, context, calibration, and post-processing determine how accurately those scores become detections.
+
+\input{sections/qualitative_figure}

@@ -36,6 +36,13 @@ from src.utils import (
     str2bool,
     DataClass,
 )
+from src.wandb_utils import (
+    init_wandb_run,
+    log_score_payload_to_wandb,
+    log_wandb,
+    log_wandb_artifact,
+    update_wandb_summary,
+)
 
 from models.load_model import get_model
 
@@ -80,7 +87,17 @@ def plot_history(history, model_path=".", show=True):
     plt.close()
 
 
-def train_epoch(loader, loss_fn, model, epoch, scheduler, optimizer, normalize, device):
+def train_epoch(
+    loader,
+    loss_fn,
+    model,
+    epoch,
+    scheduler,
+    optimizer,
+    normalize,
+    device,
+    clip_grad_norm,
+):
     train_loss = 0.0
     n_tot_chunks = 0
     model.train()
@@ -101,7 +118,8 @@ def train_epoch(loader, loss_fn, model, epoch, scheduler, optimizer, normalize, 
         #         loss = (loss_fn(pred, y) * mask).sum() / mask.sum()
 
         loss.backward()
-        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1e-1)
+        if clip_grad_norm and clip_grad_norm > 0:
+            nn.utils.clip_grad_norm_(model.parameters(), max_norm=clip_grad_norm)
         optimizer.step()
         optimizer.zero_grad()
 
@@ -110,6 +128,16 @@ def train_epoch(loader, loss_fn, model, epoch, scheduler, optimizer, normalize, 
         gc.collect()
     train_loss /= len(loader)
     return model, train_loss
+
+
+def release_device_memory(device):
+    gc.collect()
+    if str(device).startswith("cuda") and torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        try:
+            torch.cuda.ipc_collect()
+        except RuntimeError:
+            pass
 
 
 def train(
@@ -131,11 +159,29 @@ def train(
     density_prior: str = "sparse",
     best_metric: str = "mAP",
     save_all_epochs: bool = False,
+    lr: float = 1e-3,
+    weight_decay: float = 0.0,
+    clip_grad_norm: float = 1e-1,
+    run_tag: str = None,
+    tune_cutoff_steps: int = 11,
+    tune_cutoff_values=None,
+    tune_smooth_values=None,
+    tune_alternating: bool = True,
+    score_after_train: bool = True,
+    eval_every: int = 1,
+    wandb_enabled: bool = False,
+    wandb_project: str = "event-detection-pdf",
+    wandb_entity: str = None,
+    wandb_group: str = None,
+    wandb_name: str = None,
+    wandb_mode: str = None,
+    wandb_tags: str = None,
+    wandb_log_artifacts: bool = True,
 ):
     dataset_name = dataclass.name
     dataset_construct = dataclass.dataset_construct
 
-    save_path = experiment_path(dataset_name, model_name, objective, seed)
+    save_path = experiment_path(dataset_name, model_name, objective, seed, run_tag)
     save_pred_dir = save_path / "predictions"
     save_model_dir = save_path / "models"
     save_results_dir = save_path / "results"
@@ -159,12 +205,43 @@ def train(
         "device": device,
         "density_prior": density_prior,
         "best_metric": best_metric,
+        "lr": lr,
+        "weight_decay": weight_decay,
+        "clip_grad_norm": clip_grad_norm,
+        "run_tag": run_tag,
+        "tune_cutoff_steps": tune_cutoff_steps,
+        "tune_cutoff_values": tune_cutoff_values,
+        "tune_smooth_values": tune_smooth_values,
+        "tune_alternating": tune_alternating,
+        "score_after_train": score_after_train,
+        "eval_every": eval_every,
+        "wandb_enabled": wandb_enabled,
+        "wandb_project": wandb_project,
+        "wandb_entity": wandb_entity,
+        "wandb_group": wandb_group,
+        "wandb_name": wandb_name,
+        "wandb_mode": wandb_mode,
+        "wandb_tags": wandb_tags,
+        "wandb_log_artifacts": wandb_log_artifacts,
         "gaussian_sigma": dataclass.gaussian_sigma,
         "tolerances": dataclass.tolerances,
-        "target_tolerances": getattr(dataclass, "target_tolerances", dataclass.tolerances),
+        "target_tolerances": getattr(
+            dataclass, "target_tolerances", dataclass.tolerances
+        ),
     }
     with open(save_results_dir / "run_config.json", "w", encoding="utf-8") as f:
         json.dump(run_config, f, indent=2)
+    wandb_run = init_wandb_run(
+        wandb_enabled,
+        run_config,
+        project=wandb_project,
+        entity=wandb_entity,
+        group=wandb_group,
+        name=wandb_name,
+        tags=wandb_tags,
+        mode=wandb_mode,
+        job_type="train",
+    )
 
     loss_fn = get_loss(
         objective,
@@ -174,6 +251,10 @@ def train(
     )
     kfold = KFold(n_splits=folds, shuffle=True, random_state=seed)
     fold_results = []
+    epoch_results = []
+    epoch_results_path = save_results_dir / "epoch_results.csv"
+    if epoch_results_path.exists():
+        epoch_results_path.unlink()
     run_start = time.perf_counter()
 
     for fold in range(folds):
@@ -216,16 +297,28 @@ def train(
             use_cat=use_cat,
         ).to(device)
 
+        train_loader_kwargs = {
+            "batch_size": bs,
+            "num_workers": workers,
+            "shuffle": True,
+            "pin_memory": str(device).startswith("cuda"),
+        }
+        if workers > 0:
+            train_loader_kwargs["persistent_workers"] = True
+            train_loader_kwargs["prefetch_factor"] = 2
+
         train_loader = DataLoader(
             train_dataset,
-            batch_size=bs,
-            num_workers=workers,
-            shuffle=True,
+            **train_loader_kwargs,
         )
 
         steps = len(train_loader) * epochs
         warmup_steps = int(steps * 0.1)
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=0)
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=lr,
+            weight_decay=weight_decay,
+        )
         scheduler = CosineLRScheduler(
             optimizer,
             t_initial=steps,
@@ -245,8 +338,10 @@ def train(
         best_valid_mAP = -np.inf
         best_epoch = 0
         best_state = None
+        eval_every = max(1, int(eval_every))
 
         for epoch in range(1, epochs + 1):
+            epoch_start = time.perf_counter()
             model, train_loss = train_epoch(
                 train_loader,
                 loss_fn,
@@ -256,31 +351,51 @@ def train(
                 optimizer,
                 normalize,
                 device,
+                clip_grad_norm,
             )
-            valid_loss, valid_mAP = evaluate(
-                dataclass,
-                objective,
-                model_name,
-                model,
-                val_dataset,
-                device,
-                workers,
-                None,
-                density_prior=density_prior,
-            )
-            print(
-                f"fold {fold}, epoch {epoch}/{epochs}: train loss: {train_loss:.3f}, valid loss: {valid_loss:.3f}, valid mAP: {valid_mAP:.3f}"
-            )
+            should_eval = (epoch % eval_every == 0) or (epoch == epochs)
+            if should_eval:
+                valid_loss, valid_mAP = evaluate(
+                    dataclass,
+                    objective,
+                    model_name,
+                    model,
+                    val_dataset,
+                    device,
+                    workers,
+                    None,
+                    density_prior=density_prior,
+                )
+                print(
+                    f"fold {fold}, epoch {epoch}/{epochs}: train loss: {train_loss:.3f}, valid loss: {valid_loss:.3f}, valid mAP: {valid_mAP:.3f}"
+                )
+            else:
+                valid_loss, valid_mAP = np.nan, np.nan
+                print(
+                    f"fold {fold}, epoch {epoch}/{epochs}: train loss: {train_loss:.3f}, validation skipped"
+                )
             history["train_loss"].append(train_loss)
             history["valid_mAP"].append(valid_mAP)
             history["valid_loss"].append(valid_loss)
             history["lr"].append(optimizer.param_groups[0]["lr"])
+            log_metrics = {
+                "fold": fold,
+                "epoch": epoch,
+                "train/loss": train_loss,
+                "train/lr": optimizer.param_groups[0]["lr"],
+                "validation/evaluated": int(should_eval),
+            }
+            if should_eval:
+                log_metrics["valid/loss"] = valid_loss
+                log_metrics["valid/mAP"] = valid_mAP
+            log_wandb(wandb_run, log_metrics, step=fold * epochs + epoch)
 
             is_best = False
-            if best_metric == "loss":
-                is_best = valid_loss < best_valid_loss
-            else:
-                is_best = valid_mAP > best_valid_mAP
+            if should_eval:
+                if best_metric == "loss":
+                    is_best = valid_loss < best_valid_loss
+                else:
+                    is_best = valid_mAP > best_valid_mAP
 
             if is_best:
                 best_epoch = epoch
@@ -291,6 +406,36 @@ def train(
                     for key, value in model.state_dict().items()
                 }
                 torch.save(best_state, save_model_dir / f"model_{fold}.pth")
+
+            epoch_results.append(
+                {
+                    "dataset": dataset_name,
+                    "model": model_name,
+                    "objective": objective,
+                    "seed": seed,
+                    "fold": fold,
+                    "epoch": epoch,
+                    "epochs": epochs,
+                    "evaluated": bool(should_eval),
+                    "train_loss": float(train_loss),
+                    "valid_loss": float(valid_loss) if np.isfinite(valid_loss) else np.nan,
+                    "valid_mAP": float(valid_mAP) if np.isfinite(valid_mAP) else np.nan,
+                    "lr": float(optimizer.param_groups[0]["lr"]),
+                    "best_epoch_so_far": best_epoch,
+                    "best_valid_loss_so_far": (
+                        float(best_valid_loss)
+                        if np.isfinite(best_valid_loss)
+                        else np.nan
+                    ),
+                    "best_valid_mAP_so_far": (
+                        float(best_valid_mAP)
+                        if np.isfinite(best_valid_mAP)
+                        else np.nan
+                    ),
+                    "epoch_runtime_sec": time.perf_counter() - epoch_start,
+                }
+            )
+            pd.DataFrame(epoch_results).to_csv(epoch_results_path, index=False)
 
             if save_all_epochs:
                 model_path = save_model_dir / f"model_f{fold}_e{epoch}.pth"
@@ -342,6 +487,17 @@ def train(
         )
         with open(save_results_dir / "fold_results.json", "w", encoding="utf-8") as f:
             json.dump(fold_results, f, indent=2)
+        log_wandb(
+            wandb_run,
+            {
+                "fold_summary/fold": fold,
+                "fold_summary/best_epoch": best_epoch,
+                "fold_summary/best_valid_loss": best_loss,
+                "fold_summary/best_valid_mAP": best_mAP,
+                "fold_summary/runtime_sec": time.perf_counter() - fold_start,
+            },
+            step=(fold + 1) * epochs,
+        )
 
         del (
             train_dataset,
@@ -352,30 +508,72 @@ def train(
             scheduler,
             history,
         )
-        gc.collect()
+        release_device_memory(device)
 
-    full_dataset = dataclass.dataset_construct(
-        dataclass,
-        data_dir,
-        -1,
-        training=False,
-        downsample=downsample,
-        agg_feats=agg_feats,
-        sequence_length=sequence_length,
-        target_type=objective,
-    )
     run_config["runtime_sec"] = time.perf_counter() - run_start
     with open(save_results_dir / "run_config.json", "w", encoding="utf-8") as f:
         json.dump(run_config, f, indent=2)
-    get_optimal_cutoff(
-        dataclass,
-        model_name,
-        objective,
-        full_dataset,
-        save_pred_dir,
-        workers=workers,
-        metadata=run_config,
+    fold_df = pd.DataFrame(fold_results)
+    update_wandb_summary(
+        wandb_run,
+        {
+            "runtime_sec": run_config["runtime_sec"],
+            "mean_best_valid_mAP": fold_df["best_valid_mAP"].mean(),
+            "std_best_valid_mAP": fold_df["best_valid_mAP"].std(ddof=0),
+            "mean_best_valid_loss": fold_df["best_valid_loss"].mean(),
+            "mean_best_epoch": fold_df["best_epoch"].mean(),
+            "completed_folds": len(fold_df),
+        },
     )
+    if score_after_train:
+        release_device_memory(device)
+        full_dataset = dataclass.dataset_construct(
+            dataclass,
+            data_dir,
+            -1,
+            training=False,
+            downsample=downsample,
+            agg_feats=agg_feats,
+            sequence_length=sequence_length,
+            target_type=objective,
+            normalize=normalize,
+            use_cat=use_cat,
+        )
+        score_payload = get_optimal_cutoff(
+            dataclass,
+            model_name,
+            objective,
+            full_dataset,
+            save_pred_dir,
+            workers=workers,
+            metadata=run_config,
+            tune_cutoff_steps=tune_cutoff_steps,
+            tune_cutoff_values=tune_cutoff_values,
+            tune_smooth_values=tune_smooth_values,
+            tune_alternating=tune_alternating,
+        )
+        log_score_payload_to_wandb(wandb_run, score_payload)
+    if wandb_log_artifacts:
+        artifact_paths = [
+            save_results_dir / "run_config.json",
+            save_results_dir / "fold_results.csv",
+            save_results_dir / "fold_results.json",
+            save_results_dir / "epoch_results.csv",
+            save_results_dir / "scores.csv",
+            save_results_dir / "scores.json",
+            save_path / "loss_evo.png",
+            save_path / "mAP_evo.png",
+            save_path / "lr_evo.png",
+        ]
+        artifact_paths.extend(save_path.glob("history_*.json"))
+        log_wandb_artifact(
+            wandb_run,
+            f"{dataset_name}-{model_name}-{objective}-seed{seed}-{run_tag or 'default'}-results",
+            "experiment-results",
+            artifact_paths,
+        )
+    if wandb_run is not None:
+        wandb_run.finish()
 
 
 def get_args_parser():
@@ -438,6 +636,54 @@ def get_args_parser():
         help="Validation metric used to choose the checkpoint saved for OOF predictions.",
     )
     parser.add_argument("--save_all_epochs", default=False, type=str2bool)
+    parser.add_argument("--lr", default=1e-3, type=float)
+    parser.add_argument("--weight_decay", default=0.0, type=float)
+    parser.add_argument("--clip_grad_norm", default=1e-1, type=float)
+    parser.add_argument(
+        "--run_tag",
+        default=None,
+        type=str,
+        help="Optional suffix for the seed directory so tuning runs do not overwrite each other.",
+    )
+    parser.add_argument("--tune_cutoff_steps", default=11, type=int)
+    parser.add_argument("--tune_cutoff_values", default=None, type=str)
+    parser.add_argument("--tune_smooth_values", default="none,1,10,100,1000", type=str)
+    parser.add_argument("--tune_alternating", default=True, type=str2bool)
+    parser.add_argument(
+        "--score_after_train",
+        default=True,
+        type=str2bool,
+        help="Run post-processing cutoff optimization after training.",
+    )
+    parser.add_argument(
+        "--eval_every",
+        default=1,
+        type=int,
+        help="Evaluate validation folds every N epochs; final epoch is always evaluated.",
+    )
+    parser.add_argument(
+        "--wandb",
+        default=False,
+        type=str2bool,
+        help="Enable Weights & Biases logging for this run.",
+    )
+    parser.add_argument("--wandb_project", default="event-detection-pdf", type=str)
+    parser.add_argument("--wandb_entity", default=None, type=str)
+    parser.add_argument("--wandb_group", default=None, type=str)
+    parser.add_argument("--wandb_name", default=None, type=str)
+    parser.add_argument(
+        "--wandb_mode",
+        default=None,
+        choices=[None, "online", "offline", "disabled"],
+        help="Optional W&B mode override.",
+    )
+    parser.add_argument(
+        "--wandb_tags",
+        default=None,
+        type=str,
+        help="Comma-separated W&B tags.",
+    )
+    parser.add_argument("--wandb_log_artifacts", default=True, type=str2bool)
     parser.add_argument("--gaussian_sigma", default=None, type=float)
     parser.add_argument("--tolerance_scale", default=1.0, type=float)
     # helper
@@ -497,4 +743,22 @@ if __name__ == "__main__":
         density_prior=args.density_prior,
         best_metric=args.best_metric,
         save_all_epochs=args.save_all_epochs,
+        lr=args.lr,
+        weight_decay=args.weight_decay,
+        clip_grad_norm=args.clip_grad_norm,
+        run_tag=args.run_tag,
+        tune_cutoff_steps=args.tune_cutoff_steps,
+        tune_cutoff_values=args.tune_cutoff_values,
+        tune_smooth_values=args.tune_smooth_values,
+        tune_alternating=args.tune_alternating,
+        score_after_train=args.score_after_train,
+        eval_every=args.eval_every,
+        wandb_enabled=args.wandb,
+        wandb_project=args.wandb_project,
+        wandb_entity=args.wandb_entity,
+        wandb_group=args.wandb_group,
+        wandb_name=args.wandb_name,
+        wandb_mode=args.wandb_mode,
+        wandb_tags=args.wandb_tags,
+        wandb_log_artifacts=args.wandb_log_artifacts,
     )

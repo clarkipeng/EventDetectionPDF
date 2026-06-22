@@ -85,8 +85,12 @@ def base_objective(objective):
     return objective
 
 
-def experiment_path(dataset_name, model_name, objective, seed=0):
-    return Path("experiments") / dataset_name / model_name / objective / f"seed_{seed}"
+def experiment_path(dataset_name, model_name, objective, seed=0, run_tag=None):
+    seed_dir = f"seed_{seed}"
+    if run_tag:
+        safe_tag = str(run_tag).replace(os.sep, "_").replace(" ", "_")
+        seed_dir = f"{seed_dir}_{safe_tag}"
+    return Path("experiments") / dataset_name / model_name / objective / seed_dir
 
 
 def str2bool(value):
@@ -136,8 +140,15 @@ def downsample_sequence(
         return np.mean(x, -1).T
     elif method == "max":
         return np.max(x, -1).T
+    elif method == "sum":
+        return np.sum(x, -1).T
     else:
         raise ValueError("method not available")
+
+
+def downsample_targets(y, downsample_factor, target_type):
+    method = "sum" if is_density_objective(target_type) else "max"
+    return downsample_sequence(y, downsample_factor, method)
 
 
 def downsample_feats(x, downsample_factor, cat_feat=2, agg_feats=True):

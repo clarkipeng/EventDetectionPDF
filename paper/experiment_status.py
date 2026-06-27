@@ -658,14 +658,6 @@ def phase_sort_key(phase):
 
 
 def merge_status(plan, observed):
-    if observed.empty:
-        out = plan.copy()
-        out["status"] = "pending"
-        return out
-
-    keys = ["dataset", "model", "objective", "seed", "run_tag"]
-    merged = plan.merge(observed, on=keys, how="left")
-    merged["status"] = merged.apply(status_for, axis=1)
     ordered = [
         "phase",
         "name",
@@ -715,6 +707,17 @@ def merge_status(plan, observed):
         "purpose",
         "run_dir",
     ]
+    if observed.empty:
+        out = plan.copy()
+        out["status"] = "pending"
+        for column in ordered:
+            if column not in out:
+                out[column] = pd.NA
+        return out.loc[:, ordered]
+
+    keys = ["dataset", "model", "objective", "seed", "run_tag"]
+    merged = plan.merge(observed, on=keys, how="left")
+    merged["status"] = merged.apply(status_for, axis=1)
     return merged.loc[:, ordered]
 
 

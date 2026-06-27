@@ -157,13 +157,40 @@ def get_dataclass(dataset):
 def load_scores(results_root):
     paths = sorted(Path(results_root).glob("**/results/scores.csv"))
     if not paths:
-        return pd.DataFrame()
+        return pd.DataFrame(
+            columns=[
+                "dataset",
+                "model",
+                "objective",
+                "postprocess_objective",
+                "run_tag",
+                "row_type",
+                "stage",
+                "optimized_metric",
+                "metric",
+                "tolerance",
+                "score",
+                "score_path",
+            ]
+        )
     frames = []
     for path in paths:
         frame = pd.read_csv(path)
         frame["score_path"] = str(path)
         frames.append(frame)
     return pd.concat(frames, ignore_index=True)
+
+
+def empty_tuned_map():
+    return pd.DataFrame(
+        columns=[
+            "model",
+            "objective",
+            "run_tag",
+            "postprocess_objective",
+            "score",
+        ]
+    )
 
 
 def save_placeholder(outdir, filename, title):
@@ -285,7 +312,7 @@ def plot_method_overview(outdir):
 
 def tuned_map(scores, dataset, *, models=None, objectives=None, run_tags=None, dedupe_cols=None):
     if scores.empty:
-        return pd.DataFrame()
+        return empty_tuned_map()
     frame = scores[
         (scores["row_type"] == "summary")
         & (scores["stage"] == "tuned")
@@ -301,7 +328,7 @@ def tuned_map(scores, dataset, *, models=None, objectives=None, run_tags=None, d
     if run_tags is not None:
         frame = frame[frame["run_tag"].isin(run_tags)]
     if frame.empty:
-        return frame
+        return empty_tuned_map()
     frame["score"] = pd.to_numeric(frame["score"], errors="coerce")
     grouped = (
         frame.groupby(["model", "objective", "run_tag", "postprocess_objective"], as_index=False)["score"]

@@ -895,16 +895,189 @@ def complete_rows(frame, value_columns):
     return complete.loc[~missing.any(axis=1)].copy()
 
 
+def write_empty_outputs(outdir):
+    outdir.mkdir(parents=True, exist_ok=True)
+    csv_outputs = {
+        "all_scores.csv": [],
+        "all_scores_standard.csv": [],
+        "summary_tuned.csv": [
+            "dataset",
+            "model",
+            "objective",
+            "run_tag",
+            "postprocess_objective",
+            "metric",
+            "mean",
+            "std",
+            "count",
+            "mean_std",
+        ],
+        "tolerance_curves.csv": [
+            "dataset",
+            "model",
+            "objective",
+            "run_tag",
+            "postprocess_objective",
+            "tolerance",
+            "mean",
+            "std",
+            "count",
+        ],
+        "sleep_main_architecture.csv": [
+            "model",
+            "BDL-Hard",
+            "Cross-entropy",
+            "$\\Delta$",
+        ],
+        "sleep_objective_sweep.csv": [
+            "family",
+            "method",
+            "post-processing",
+            "mAP",
+        ],
+        "seizure_replication.csv": [
+            "model",
+            "BDL-Hard",
+            "BDL-Gaussian",
+            "Cross-entropy",
+        ],
+        "seizure_highscore_tracker.csv": [
+            "setting",
+            "BDL-Hard",
+            "BDL-Gaussian",
+            "BDL-Tolerance",
+            "Cross-entropy",
+        ],
+        "seizure_highscore_strict3_tracker.csv": [
+            "setting",
+            "BDL-Hard",
+            "BDL-Gaussian",
+            "BDL-Tolerance",
+            "Cross-entropy",
+        ],
+        "online_ablation.csv": [
+            "model",
+            "BDL-Hard",
+            "Cross-entropy",
+            "$\\Delta$",
+        ],
+        "online_smoothing_ablation.csv": [
+            "model",
+            "BDL-Gaussian",
+            "BDL-Tolerance",
+            "Cross-entropy",
+            "$\\Delta$",
+        ],
+        "offline_transformer_diagnostic.csv": [
+            "objective",
+            "mAP",
+            "seeds",
+        ],
+        "point_event_ablation.csv": [
+            "dataset",
+            "objective",
+            "mAP",
+            "mf1",
+        ],
+        "prior_ablation.csv": ["setting", "mAP"],
+        "target_width_ablation.csv": ["width", "mAP"],
+        "paired_fold_consistency.csv": [
+            "comparison",
+            "paired_records",
+            "wins",
+            "sign_p",
+            "mean_delta",
+            "min_delta",
+        ],
+        "segmentation_reconstruction.csv": [
+            "method",
+            "decoder",
+            "accuracy",
+            "balanced_accuracy",
+            "f1",
+            "iou",
+        ],
+    }
+    for filename, columns in csv_outputs.items():
+        pd.DataFrame(columns=columns).to_csv(outdir / filename, index=False)
+
+    latex_outputs = {
+        "sleep_main_architecture.tex": [
+            "model",
+            "BDL-Hard",
+            "Cross-entropy",
+            "$\\Delta$",
+        ],
+        "summary_tuned_map.tex": [
+            "dataset",
+            "model",
+            "objective",
+            "run_tag",
+            "postprocess_objective",
+            "mean_std",
+        ],
+        "sleep_objective_sweep.tex": [
+            "family",
+            "method",
+            "post-processing",
+            "mAP",
+        ],
+        "seizure_replication.tex": [
+            "model",
+            "BDL-Hard",
+            "BDL-Gaussian",
+            "Cross-entropy",
+        ],
+        "online_ablation.tex": [
+            "model",
+            "BDL-Hard",
+            "Cross-entropy",
+            "$\\Delta$",
+        ],
+        "online_smoothing_ablation.tex": [
+            "model",
+            "BDL-Gaussian",
+            "BDL-Tolerance",
+            "Cross-entropy",
+            "$\\Delta$",
+        ],
+        "offline_transformer_diagnostic.tex": ["objective", "mAP", "seeds"],
+        "point_event_ablation.tex": ["dataset", "objective", "mAP", "mf1"],
+        "prior_ablation.tex": ["setting", "mAP"],
+        "target_width_ablation.tex": ["width", "mAP"],
+        "paired_fold_consistency.tex": [
+            "comparison",
+            "paired_records",
+            "wins",
+            "sign_p",
+            "mean_delta",
+            "min_delta",
+        ],
+        "segmentation_reconstruction.tex": [
+            "method",
+            "decoder",
+            "accuracy",
+            "balanced_accuracy",
+            "f1",
+            "iou",
+        ],
+    }
+    for filename, columns in latex_outputs.items():
+        write_latex_table(pd.DataFrame(columns=columns), outdir / filename, columns)
+
+    (outdir / "generated_tables.txt").write_text(
+        "No experiment scores were found. Placeholder tables were written so the manuscript can compile before results are restored.\n",
+        encoding="utf-8",
+    )
+
+
 def write_outputs(scores, folds, outdir):
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     results_root = infer_results_root(scores, folds)
 
     if scores.empty:
-        (outdir / "generated_tables.txt").write_text(
-            "No experiment scores were found. Run `paper/run_experiments.py --execute` first.\n",
-            encoding="utf-8",
-        )
+        write_empty_outputs(outdir)
         return
 
     standard_scores = default_score_rows(scores)

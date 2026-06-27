@@ -179,8 +179,8 @@ Last updated: 2026-06-22 04:56 UTC.
   this P11 row as partial with 2/4 folds complete. Do not promote this diagnostic into the
   manuscript unless the full U-Net row and row-level scoring materially change
   the fine-stride picture.
-- Latest rendered manuscript checkpoint:
-  `paper/build/versions/20260622_0456_transformer_main_row_policy.pdf`.
+- Latest rendered manuscript checkpoint: none tracked in this checkout.
+  Render review PDFs locally under `paper/build/versions/` when needed.
 
 Refresh structured status after a training fold or scorer lands:
 
@@ -650,8 +650,8 @@ mkdir -p paper/build/versions
 cp paper/build/main.pdf paper/build/versions/YYYYMMDD_HHMM_short-label.pdf
 ```
 
-Current review PDF:
-`paper/build/versions/20260622_0456_transformer_main_row_policy.pdf`.
+Current review PDF: none tracked in this checkout.
+Render a local review PDF under `paper/build/versions/` when comparing page layout.
 
 Version comparison notes:
 

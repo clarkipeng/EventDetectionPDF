@@ -133,10 +133,13 @@ Neither result changes BDL itself; these comparisons test practical calibration 
 Table~\ref{tab:online-ablation} changes the information available to the encoder while keeping the event-occurrence construction and scorer fixed.
 The offline GRU and U-Net configurations in the main text can use future samples inside the input window, whereas the forward recurrent models and causal Transformer only use current and past samples.
 This study asks whether BDL remains effective when the representation has less temporal context for deciding an event time.
-It isolates streaming context from the training signal: the loss can place event supervision on the scored output quantity, while the encoder may still lack the future evidence needed to rank the event time sharply.
-The unsmoothed BDL streaming configurations underperform their segmentation controls, which identifies a context or representation limitation rather than a different event quantity.
+It isolates streaming context from the training signal: the loss can place event supervision on the scored output quantity, while the encoder may still lack evidence immediately after the transition that makes the boundary easy to rank.
+The unsmoothed BDL streaming configurations underperform their segmentation controls: BDL-Hard reaches 0.219, 0.114, and 0.109 mAP for the forward GRU, forward LSTM, and causal Transformer, while the corresponding cross-entropy controls reach 0.288, 0.254, and 0.331.
+This points to a context and representation limitation rather than a failure of the event-count target itself.
+A hard boundary target asks a causal model to place a sharp spike at a time when some confirming evidence lies in the future; a segmentation loss, by contrast, provides dense state supervision after the transition and can recover event scores from a sustained state change.
 The smoothed BDL streaming analysis in Table~\ref{tab:online-smoothing-ablation} asks a narrower follow-up question: when future context is removed, does encoding label-time uncertainty help BDL recover sharper detections?
-Smoothing improves the forward GRU and LSTM comparisons but does not close the causal Transformer gap, suggesting that kernel shape can help when timing evidence is delayed but cannot by itself replace an adequate causal representation.
+Smoothing improves the one-seed forward GRU and LSTM comparisons, with BDL-Gaussian reaching 0.298 and 0.232 mAP against 0.213 and 0.198 for cross-entropy, but it does not close the causal Transformer gap.
+The Transformer result is therefore not only an online-context result: offline Transformer controls also favor segmentation, suggesting an architecture or optimization mismatch between the sparse Poisson objective and the current self-attention detector.
 Together, these tables document where event-level supervision helps and where representation, context, calibration, or post-processing become the limiting factors.
 
 \begin{center}
@@ -280,6 +283,12 @@ Transformer backbone.
 This comparison asks whether BDL remains useful when the representation changes
 substantially, without treating the Transformer as a drop-in replacement for a
 U-Net skip-connection variant.
+The current result is negative: all BDL variants are near 0.013 mAP, while
+cross-entropy reaches 0.308.
+Together with the smaller offline-Transformer diagnostic, this suggests that
+the current self-attention detector is not a reliable vehicle for sparse
+boundary-rate training without additional optimization, output-resolution, or
+decoder work.
 
 \begin{center}
 \captionof{table}{Higher-capacity offline-Transformer candidate on the sleep benchmark.

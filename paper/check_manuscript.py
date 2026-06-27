@@ -430,10 +430,6 @@ def check_review_pdf_references():
         r"Current review PDF:\s*\n`([^`]+\.pdf)`",
         text,
     )
-    if not latest_match:
-        failures.append("PAPER_OPS.md is missing latest rendered manuscript checkpoint")
-    if not current_match:
-        failures.append("PAPER_OPS.md is missing current review PDF")
     if latest_match and current_match:
         latest_path = latest_match.group(1)
         current_path = current_match.group(1)
@@ -449,6 +445,10 @@ def check_review_pdf_references():
                 "current review PDF is not listed in version comparison notes: "
                 f"{current_name}"
             )
+    elif latest_match or current_match:
+        failures.append(
+            "PAPER_OPS.md should either list both latest and current review PDFs or neither"
+        )
     for pdf_name in sorted(set(re.findall(r"`(paper/build/versions/[^`]+\.pdf)`", text))):
         pdf_path = REPO_ROOT / pdf_name
         if not pdf_path.exists():

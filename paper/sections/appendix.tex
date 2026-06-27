@@ -66,11 +66,11 @@ The first table isolates the training objective with the architecture fixed, and
 The objective sweep is deliberately narrow: all configurations share the same splits, encoder, event scorer, and validation-time decoder search.
 The BDL configurations differ only in how each annotation is distributed before binning, while the segmentation configurations differ only in how the same interval mask is weighted during training.
 This design makes the comparison about the training signal rather than about model capacity or a specialized decoder.
-The architecture sweep then repeats the most direct BDL and segmentation objectives across recurrent, convolutional, and self-attention sequence encoders.
+The architecture sweep then repeats the most direct BDL and segmentation objectives across recurrent and convolutional sequence encoders.
 The U-Net configurations test multi-scale convolutional representations that are natural controls for samplewise segmentation because they combine long context with time-localized decoding.
 The attention-gated U-Net configuration remains within that convolutional family while adding learned selection over skip features before the final prediction.
-The Transformer configuration tests a different detector family, with different sequence-length, memory, and optimizer tradeoffs.
-For that reason, the self-attention result is interpreted as an architecture-specific comparison under the same scorer rather than as a minor skip-connection variant.
+Transformer diagnostics are reported separately because they change the detector family, sequence length, memory use, and optimizer tradeoffs at the same time.
+For that reason, the self-attention results define a scope check under the same scorer rather than extending the main architecture table.
 
 The objective table also includes two controls for alternative explanations of the main claim.
 First, the BDL kernel configurations separate the Poisson objective from a generic smoothing trick: BDL-Hard uses an unsmoothed event at the annotated time, while the Gaussian and tolerance-aligned variants distribute the same one-event contribution over nearby bins.

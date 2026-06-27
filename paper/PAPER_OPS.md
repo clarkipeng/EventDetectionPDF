@@ -65,56 +65,23 @@ Last updated: 2026-06-22 04:56 UTC.
   main architecture result. Appendix Table `tab:offline-transformer-diagnostic`
   now records the compact averaged control.
 - The P9 offline Transformer configurations are an optional architecture control, not
-  a planned main-table replacement for the attention-gated U-Net controls.
+  a main-table replacement for the attention-gated U-Net controls.
   Completed P9 configurations show segmentation much stronger than BDL-Hard for
   this unoptimized Transformer setting, so include P9 only if the completed
   matrix supports a clear scope point rather than weakening the main
   objective story.
-- The P15 Transformer candidate is running as hosted Trace jobs launched by
-  PID 2858147 with log
-  `paper/run_logs/transformer_main_candidate_lr1e3_seed0_trace_20260622_0348.log`.
-  It uses the offline `transformer_4l_64h_4a` encoder, sleep data, seed 0,
-  20 epochs, four folds, batch size 32, `eval_every=5`, train-only scoring,
-  lower learning rate `1e-3`, and objectives BDL-Gaussian, BDL-Tolerance, and
-  cross-entropy segmentation under run tag
-  `transformer_main_candidate_lr1e3_e20_bs32_eval5`. The BDL-Gaussian row
-  completed all four folds as Trace `exp082`; selected validation mAP values
-  were 0.0207, 0.0249, 0.0230, and 0.0200. Row-level scoring started as Trace
-  `exp085` and reported default mAP 0.022, then failed during decoder tuning
-  before writing `scores.csv` and without a Python traceback. Treat this as a
-  weak configuration and a scorer robustness issue, not as a main-table
-  replacement. The BDL-Tolerance row is active as Trace `exp083`; the latest
-  generated status has fold 0 at epoch 11/20 with best validation mAP 0.018 at
-  epoch 10. The matched cross-entropy row is still pending.
-  The manuscript now has a conditional appendix hook,
-  `paper/results/generated/transformer_main_candidate_ready.tex`, that will
-  appear only after all P15 matched objectives are scored. Until then,
-  `paper/results/generated/transformer_main_candidate.csv` remains a tracker
-  with missing values.
-- A stronger P16 offline Transformer candidate is active as hosted Trace
-  `exp084`. It started at 04:42 UTC after the P15 BDL-Gaussian row PID exited,
-  which was earlier than intended because the queue watched a row-level train
-  PID rather than the whole P15 launcher. The train log is
-  `paper/run_logs/p16_transformer_strong_train_after_p15_20260622_0427.log`;
-  the scorer waiter log is
-  `paper/run_logs/p16_transformer_strong_score_after_ready_trace_20260622_0427.log`.
-  P16 uses `transformer_6l_128h_8a_10d`, seed 0, 20 epochs, four folds, batch
-  size 8, downsample 10, learning rate `5e-4`, weight decay `1e-2`, and
-  objectives BDL-Hard, BDL-Gaussian, BDL-Tolerance, and cross-entropy
-  segmentation under run tag
-  `transformer_strong_lr5e4_wd1e2_e20_bs8_eval5`. The scorer will evaluate
-  each completed row on CPU through Trace while the GPU moves to later rows.
-  `paper/collect_results.py` now writes
-  `paper/results/generated/transformer_strong_candidate.csv` and only emits
-  `paper/results/generated/transformer_strong_candidate_ready.tex` when all
-  matched objectives are scored. The main sleep architecture table and figure
-  use GRU, U-Net, and the attention-gated U-Net until P16 has a favorable
-  scored BDL-Hard-versus-cross-entropy comparison; if that condition is met,
-  generated tables and figures replace the attention-gated U-Net row with the
-  strong Transformer and emit `attention_unet_control.tex` as an appendix
-  sensitivity check. Do not replace the main table with the failed P9
-  diagnostic or the weak P15 row. The latest generated status has P16
-  BDL-Hard at fold 0 epoch 5/20 with validation mAP 0.009.
+- The P15 Transformer candidate remains a weak/incomplete tracker rather than
+  a paper result. The BDL rows reported very low validation mAP before complete
+  matched scoring was available, and
+  `paper/results/generated/transformer_main_candidate_ready.tex` is still not
+  emitted.
+- The stronger P16 offline Transformer candidate is complete as a negative
+  diagnostic. `paper/results/generated/transformer_strong_candidate_ready.tex`
+  reports BDL-Hard, BDL-Gaussian, and BDL-Tolerance at 0.013 mAP versus
+  cross-entropy segmentation at 0.308. Keep Transformer evidence in the
+  appendix as a scope check; the main architecture table should remain GRU,
+  U-Net, and attention-gated U-Net unless the paper is deliberately reframed
+  around new Transformer experiments.
 - The optional P11 CHB-MIT fine-stride sensitivity queue started as hosted
   Trace `exp071` in
   `paper/run_logs/p11_seizure_fine_stride_trace_20260621_1911.log`.

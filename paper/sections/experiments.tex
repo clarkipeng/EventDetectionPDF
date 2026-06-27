@@ -19,12 +19,12 @@ Sleep makes the mismatch visible because a long state interval is evaluated thro
 The sleep study first isolates the objective before varying the encoder.
 With a bidirectional GRU fixed, we compare BDL-Hard, BDL-Gaussian, and BDL-Tolerance against cross-entropy segmentation.
 We add class-weighted cross-entropy and focal segmentation to test whether standard imbalance handling explains the result \citep{krawczyk2016,lin2017focal}.
-We then repeat the strongest BDL and segmentation objectives with one-dimensional U-Nets, an attention-gated U-Net variant, and an offline Transformer candidate \citep{ronneberger2015,oktay2018attention,vaswani2017attention}.
+We then repeat the strongest BDL and segmentation objectives with one-dimensional U-Nets and an attention-gated U-Net variant \citep{ronneberger2015,oktay2018attention}.
 The U-Net controls test whether the same objective effect appears after replacing the recurrent encoder with convolutional segmentation backbones whose multi-scale skip connections are designed to recover time-localized labels from long context.
 The attention-gated variant remains within this convolutional family: it changes skip-feature selection without changing the detector into a self-attention model.
 If cross-entropy were weak only because the GRU was a poor interval-mask predictor, these segmentation-oriented backbones should narrow the gap before any specialized event decoder is introduced.
-The Transformer comparison adds a self-attention detector family with different sequence-length, memory, and optimizer tradeoffs.
-Its objective comparison still uses matched scoring and decoder calibration, but the result is interpreted as backbone-specific evidence rather than as a simple skip-connection variant.
+Offline Transformer diagnostics are reported separately because they add a self-attention detector family with different sequence-length, memory, and optimizer tradeoffs \citep{vaswani2017attention}.
+Those objective comparisons still use matched scoring and decoder calibration, but they are interpreted as backbone-specific scope checks rather than as simple skip-connection variants.
 Optimization settings are selected at the benchmark-and-backbone level for stable multi-epoch training, then held fixed inside each matched objective comparison.
 This keeps learning rate, memory, and gradient-stability choices from becoming objective-specific advantages.
 For sleep, the shared learning rate is chosen for reliable Poisson-objective training before the matched objective comparison and then reused for the segmentation controls.

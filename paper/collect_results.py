@@ -465,27 +465,9 @@ def architecture_row(best, model):
     }, bdl_mean, seg_mean
 
 
-def transformer_replaces_attention_unet(summary):
-    model = "transformer_6l_128h_8a_10d"
-    best = best_metric_rows(
-        summary,
-        dataset="sleep",
-        models=[model],
-        objectives=["density_hard", "seg"],
-        run_tags=[TRANSFORMER_STRONG_CANDIDATE_TAG],
-        group_cols=["dataset", "model", "objective", "run_tag"],
-    )
-    _, bdl_mean, seg_mean = architecture_row(best, model)
-    return bdl_mean is not None and seg_mean is not None and bdl_mean >= seg_mean
-
-
 def sleep_main_architecture(summary):
-    base_models = ["gru", "unet"]
-    models = base_models + ["unet_t"]
+    models = ["gru", "unet", "unet_t"]
     run_tags = [MAIN_RUN_TAG]
-    if transformer_replaces_attention_unet(summary):
-        models = base_models + ["transformer_6l_128h_8a_10d"]
-        run_tags = [MAIN_RUN_TAG, TRANSFORMER_STRONG_CANDIDATE_TAG]
     best = best_metric_rows(
         summary,
         dataset="sleep",
@@ -501,39 +483,14 @@ def sleep_main_architecture(summary):
     return pd.DataFrame(rows)
 
 
-def attention_unet_control(summary):
-    model = "unet_t"
-    best = best_metric_rows(
-        summary,
-        dataset="sleep",
-        models=[model],
-        objectives=["density_hard", "seg"],
-        run_tags=[MAIN_RUN_TAG],
-        group_cols=["dataset", "model", "objective", "run_tag"],
-    )
-    row, _, _ = architecture_row(best, model)
-    if row["BDL-Hard"] == "--" or row["Cross-entropy"] == "--":
-        return pd.DataFrame(columns=["model", "BDL-Hard", "Cross-entropy", "$\\Delta$", "seeds"])
-    return pd.DataFrame([row])
-
-
-def write_attention_unet_control(summary, outdir):
+def write_attention_unet_control(_summary, outdir):
     path = outdir / "attention_unet_control.tex"
     csv_path = outdir / "attention_unet_control.csv"
-    if not transformer_replaces_attention_unet(summary):
-        if path.exists():
-            path.unlink()
-        if csv_path.exists():
-            csv_path.unlink()
-        return False
-    table = attention_unet_control(summary)
-    table.to_csv(csv_path, index=False)
-    write_latex_table(
-        table,
-        path,
-        ["model", "BDL-Hard", "Cross-entropy", "$\\Delta$"],
-    )
-    return True
+    if path.exists():
+        path.unlink()
+    if csv_path.exists():
+        csv_path.unlink()
+    return False
 
 
 def seizure_replication(summary):
@@ -1088,7 +1045,7 @@ def write_outputs(scores, folds, outdir):
     strict3_tolerances = tolerance_summary(strict3_scores)
     fold_table = fold_summary(folds)
     sleep_arch = sleep_main_architecture(summary)
-    attention_unet_ready = write_attention_unet_control(summary, outdir)
+    write_attention_unet_control(summary, outdir)
     seizure_table = seizure_replication(summary)
     seizure_highscore = seizure_highscore_table(summary)
     seizure_highscore_value_columns = [
@@ -1321,7 +1278,7 @@ def write_outputs(scores, folds, outdir):
                 "- `all_scores.csv`: all score files, including suffixed diagnostics such as strict CHB-MIT rescoring.",
                 "- `all_scores_standard.csv`: default `scores.csv` rows used by the main generated tables.",
                 "- `sleep_main_architecture.csv`: main sleep architecture comparison.",
-                f"- `attention_unet_control.tex`: {'available; strong Transformer replaced the attention-gated U-Net in the main architecture table' if attention_unet_ready else 'not emitted; attention-gated U-Net remains in the main architecture table'}.",
+                "- `attention_unet_control.tex`: not emitted; attention-gated U-Net remains in the main architecture table.",
                 "- `sleep_objective_sweep.csv`: compact best-postprocessing table for the sleep GRU objective sweep.",
                 "- `seizure_replication.csv`: second-benchmark replication table.",
                 "- `seizure_highscore_tracker.csv`: CHB-MIT high-capacity GRU reproduction and stride-ablation tracker.",

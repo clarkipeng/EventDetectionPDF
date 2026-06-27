@@ -24,7 +24,7 @@ Across these controls the main change is the supervision and loss, while every t
 Figure~\ref{fig:qualitative-window} illustrates the mechanism in a held-out sleep window: segmentation learns an interval mask and derives event scores afterward, while BDL directly scores the onset and wake-up events ranked by event AP.
 Appendix Table~\ref{tab:paired-fold-consistency} shows the same direction on every matched sleep seed-fold comparison for the completed recurrent and convolutional controls.
 \IfFileExists{results/generated/attention_unet_control.tex}{%
-Appendix Table~\ref{tab:attention-unet-control} retains the attention-gated U-Net result as a convolutional sensitivity check after the Transformer row is promoted to the main architecture table.
+Appendix Table~\ref{tab:attention-unet-control} reports the attention-gated U-Net as a convolutional sensitivity check.
 }{}
 \IfFileExists{results/generated/transformer_strong_candidate_ready.tex}{%
 A matched self-attention diagnostic is reported in Appendix Table~\ref{tab:transformer-strong-candidate}; in the current runs it is a negative control rather than evidence for the main architecture claim.

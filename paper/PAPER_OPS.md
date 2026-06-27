@@ -40,8 +40,8 @@ Last updated: 2026-06-27 23:14 UTC.
 ## Current Status
 
 - Title: **Boundary Density Likelihood for Time-Series Event Detection**.
-- `paper/main_ts4h_4page.tex` is the anonymized compact review draft for
-  TS4H-style feedback. Compile from `paper/` with
+- `paper/main_ts4h_4page.tex` is the anonymized compact TS4H-style workshop
+  draft. Compile from `paper/` with
   `tectonic main_ts4h_4page.tex`; the generated PDF is ignored by git.
 - Sleep-event experiments are complete for the current paper matrix, including
   the Transformer diagnostics described below.

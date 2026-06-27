@@ -1,4 +1,4 @@
-% Four-page short-paper review draft for TS4H-style feedback.
+% Four-page short-paper draft for TS4H-style workshop submission.
 \documentclass[10pt,twocolumn]{article}
 
 \usepackage[margin=0.72in]{geometry}
@@ -229,8 +229,8 @@ CHB-MIT, 1 s stride & 0.388 & 0.287 & +0.101 \\
 
 \begin{table}[t]
 \centering
-\caption{What the compact controls test.  The short paper keeps these controls
-because they probe direct alternatives to the BDL explanation.}
+\caption{What the compact controls test.  Each row probes a direct alternative
+explanation for the BDL result.}
 \label{tab:short-controls}
 \small
 \begin{tabular}{lp{0.58\columnwidth}}
@@ -285,7 +285,7 @@ sequence output estimates when the benchmark matches ranked event times, while
 state labels remain the direct target when the benchmark measures samplewise
 occupancy.
 
-\section{Positioning}
+\section{Related Work and Scope}
 
 BDL is closest in spirit to heatmap or proximity supervision, but its output has
 a different unit.
@@ -322,24 +322,26 @@ constraints, architecture choice, and calibrated state estimation as separate
 detector-design questions.
 
 \newpage
-\section{Questions for Feedback}
+\section{Conclusion}
 
-This draft is meant to test whether the training-evaluation mismatch is clear
-and whether the current evidence is sufficient for a workshop paper.
-The main question is whether the likelihood framing reads as a real contribution
-beyond localized labels or heatmap regression.
-BDL uses the same practical sequence-prediction interface as a heatmap method,
-but claims a different supervised quantity: expected scored events per output
-bin, with unit-sum smoothing and sum-binning preserving the annotation count.
-
-We would also value feedback on the experimental package.
-The current short version emphasizes two health benchmarks, matched
-segmentation baselines, class-imbalance controls, kernel controls, architecture
-controls, CHB-MIT stride analysis, and state reconstruction.
-For a short workshop paper, the intended claim is not that BDL is a complete
-detector, but that event-AP evaluation deserves an event-count training target.
-The most useful criticism would identify the one baseline, dataset, or analysis
-that would most change a skeptical reader's mind.
+Boundary Density Likelihood addresses a common mismatch in health time-series
+detection: models are often trained as samplewise segmenters, but evaluated by
+the timing of ranked detections.
+It converts annotations into expected events on the model output timeline and
+fits the corresponding conditional mean with a Poisson log score.
+Across sleep-event and CHB-MIT seizure benchmarks, changing this training
+signal improves event AP under matched architectures, folds, and
+post-processing.
+On sleep, the gain is largest at strict matching tolerances, persists across
+multiple backbones, and is not reproduced by segmentation reweighting or
+smoothing choices alone.
+More broadly, time-discretized sequence models do not have to inherit the
+assumptions of samplewise segmentation.
+When a health system is judged by ranked event times, its training signal should
+estimate the events that will later be matched; when it is judged by per-sample
+decisions, state labels remain the direct supervision.
+BDL keeps the practical advantages of sequence prediction while making the model
+output estimate the temporal detections used by event-level metrics.
 
 \begin{figure}[b]
 \vspace{-0.2em}

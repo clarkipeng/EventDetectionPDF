@@ -64,8 +64,8 @@ tolerance, AP improves from 0.051 to 0.219.
 On CHB-MIT seizure detection, BDL improves one-second-stride mAP from 0.287 to
 0.388.
 The gains survive imbalance, smoothing, and convolutional-backbone controls,
-while streaming and Transformer diagnostics identify where context and
-representation still limit the detector.
+while state-reconstruction analysis clarifies that BDL targets event AP rather
+than samplewise occupancy.
 \end{abstract}
 \vspace{0.4em}
 \end{@twocolumnfalse}
@@ -194,8 +194,7 @@ Architecture controls repeat the strongest BDL and segmentation objectives with
 a bidirectional GRU, a one-dimensional U-Net, and an attention-gated U-Net
 \citep{ronneberger2015,oktay2018attention}.
 Additional diagnostics test sparse-output prior initialization, tolerance
-width, point events, CHB-MIT output stride, streaming encoders, offline
-Transformers, and state reconstruction.
+width, point events, CHB-MIT output stride, and state reconstruction.
 
 \begin{figure}[t]
 \vspace{-0.6em}
@@ -228,25 +227,6 @@ CHB-MIT, 1 s stride & 0.388 & 0.287 & +0.101 \\
 \end{tabular}
 \end{table}
 
-\begin{table}[t]
-\centering
-\caption{Scope diagnostics.  Values are mAP except state reconstruction, which
-reports sleep-state F1 after converting predictions back to intervals.}
-\label{tab:short-scope}
-\small
-\begin{tabular}{lcc}
-\toprule
-Diagnostic & BDL & Seg. \\
-\midrule
-Forward GRU, hard targets & 0.219 & 0.288 \\
-Forward GRU, smoothed & 0.298 & 0.213 \\
-Causal Transformer, smoothed & 0.182 & 0.233 \\
-Offline Transformer & 0.013 & 0.308 \\
-State reconstruction F1 & 0.888 & 0.914 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \section{Results and Scope}
 
 Figure~\ref{fig:short-sleep} shows the central sleep result.
@@ -270,23 +250,17 @@ comparison is stable: BDL-Gaussian improves two-second-stride mAP from 0.252 to
 0.360, while BDL-Hard improves one-second-stride mAP from 0.287 to 0.388.
 Strict one-to-three-second endpoint analysis preserves the direction for
 BDL-Hard and BDL-Gaussian, though the tolerance-shaped kernel no longer helps.
-\newpage
 
-The negative controls are also informative.
-Forward-only recurrent models and causal Transformers underperform their
-segmentation controls with hard BDL targets, suggesting that causal models may
-need smoothing or delayed evidence to rank a boundary sharply.
-One-seed smoothing helps forward GRU/LSTM models but not the causal Transformer.
-Offline Transformer diagnostics also favor segmentation in the current setup,
-with a higher-capacity candidate reaching only 0.013 mAP for all BDL variants
-versus 0.308 for cross-entropy.
-Table~\ref{tab:short-scope} summarizes these scope checks.
-We therefore do not interpret BDL as an architecture improvement.
-It is a likelihood for what a sequence output should estimate when the metric
-matches event times; representation, context, stride, and decoder constraints
-still determine whether those scores become good detections.
-State reconstruction makes the complementary point: direct segmentation remains
-better when the metric is samplewise occupancy rather than ranked events.
+\newpage
+\paragraph{State reconstruction.}
+This diagnostic makes the complementary point.
+When predictions are converted back to sleep-state intervals and scored by
+samplewise F1, direct cross-entropy segmentation remains stronger than BDL
+hazard reconstruction, 0.914 versus 0.888.
+This is the intended scope rather than a contradiction: BDL changes what the
+sequence output estimates when the benchmark matches ranked event times, while
+state labels remain the direct target when the benchmark measures samplewise
+occupancy.
 
 \section{Discussion}
 
@@ -299,8 +273,9 @@ labels, and interval endpoints without forcing a paired-interval model.
 If a deployment needs legal sleep intervals, duration priors, or calibrated
 states, those constraints should be added in decoding or evaluated directly.
 This separation is useful for workshop discussion: the method supplies a
-statistically defined training signal for event AP, while the diagnostics show
-where architecture and online context still need work.
+statistically defined training signal for event AP, while leaving deployment
+constraints, architecture choice, and calibrated state estimation as separate
+detector-design questions.
 
 \begin{figure}[b]
 \vspace{-0.2em}

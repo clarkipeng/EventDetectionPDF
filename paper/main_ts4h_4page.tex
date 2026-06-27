@@ -227,6 +227,25 @@ CHB-MIT, 1 s stride & 0.388 & 0.287 & +0.101 \\
 \end{tabular}
 \end{table}
 
+\begin{table}[t]
+\centering
+\caption{What the compact controls test.  The short paper keeps these controls
+because they probe direct alternatives to the BDL explanation.}
+\label{tab:short-controls}
+\small
+\begin{tabular}{lp{0.58\columnwidth}}
+\toprule
+Control & Interpretation \\
+\midrule
+Weighted/focal CE & Tests whether ordinary rare-class handling closes the gap. \\
+BDL kernels & Tests whether the result is only smoothing around an endpoint. \\
+U-Net variants & Tests whether segmentation fails only under a recurrent encoder. \\
+CHB-MIT stride & Tests a different modality and stricter timing scale. \\
+State F1 & Tests whether event AP gains transfer to samplewise occupancy. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Results and Scope}
 
 Figure~\ref{fig:short-sleep} shows the central sleep result.
@@ -240,6 +259,10 @@ both methods often find the sleep episode, while BDL better ranks localized
 endpoints.
 BDL-Gaussian and BDL-Tolerance reach 0.660 and 0.605 mAP, so smoothing is not
 the entire explanation.
+Table~\ref{tab:short-controls} summarizes how the compact controls should be
+read.
+They are not meant to exhaust detector design; they are meant to reject the
+nearest alternative explanations for the main effect.
 
 The architecture controls ask whether this is only a GRU artifact.
 Table~\ref{tab:short-summary} shows that BDL-Hard remains above segmentation
@@ -262,6 +285,27 @@ sequence output estimates when the benchmark matches ranked event times, while
 state labels remain the direct target when the benchmark measures samplewise
 occupancy.
 
+\section{Positioning}
+
+BDL is closest in spirit to heatmap or proximity supervision, but its output has
+a different unit.
+A heatmap can be a useful engineering target, yet its scale often depends on
+kernel width, pooling, window boundaries, or the number of nearby annotations.
+BDL instead asks for the conditional expected number of scored events in each
+output bin.
+This distinction is small in implementation but important for health time
+series, where long empty windows, repeated events, clipped windows, and variable
+output strides are common.
+
+The method is also more limited than a temporal point process.
+It does not model censoring, a full history likelihood, mark dynamics, or
+clinical event generation.
+The point-process language is used only to define the supervised quantity that a
+sequence predictor should estimate.
+This is why the same objective can be used for point events, onset-only labels,
+and interval endpoints, while any requirement for legal intervals remains a
+decoder or evaluation constraint.
+
 \section{Discussion}
 
 BDL reframes a common health time-series mismatch.
@@ -276,6 +320,26 @@ This separation is useful for workshop discussion: the method supplies a
 statistically defined training signal for event AP, while leaving deployment
 constraints, architecture choice, and calibrated state estimation as separate
 detector-design questions.
+
+\newpage
+\section{Questions for Feedback}
+
+This draft is meant to test whether the training-evaluation mismatch is clear
+and whether the current evidence is sufficient for a workshop paper.
+The main question is whether the likelihood framing reads as a real contribution
+beyond localized labels or heatmap regression.
+BDL uses the same practical sequence-prediction interface as a heatmap method,
+but claims a different supervised quantity: expected scored events per output
+bin, with unit-sum smoothing and sum-binning preserving the annotation count.
+
+We would also value feedback on the experimental package.
+The current short version emphasizes two health benchmarks, matched
+segmentation baselines, class-imbalance controls, kernel controls, architecture
+controls, CHB-MIT stride analysis, and state reconstruction.
+For a short workshop paper, the intended claim is not that BDL is a complete
+detector, but that event-AP evaluation deserves an event-count training target.
+The most useful criticism would identify the one baseline, dataset, or analysis
+that would most change a skeptical reader's mind.
 
 \begin{figure}[b]
 \vspace{-0.2em}

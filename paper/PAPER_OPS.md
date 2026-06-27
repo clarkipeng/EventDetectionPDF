@@ -6,7 +6,7 @@ guide and this file for paper operations. Generated summaries under
 `paper/results/generated/` or `paper/generated_runs/` are outputs, not source
 documentation.
 
-Last updated: 2026-06-22 04:56 UTC.
+Last updated: 2026-06-27 23:14 UTC.
 
 ## Document Policy
 
@@ -40,8 +40,11 @@ Last updated: 2026-06-22 04:56 UTC.
 ## Current Status
 
 - Title: **Boundary Density Likelihood for Time-Series Event Detection**.
-- Sleep-event experiments are complete for the current paper matrix, except
-  for the active P15/P16 Transformer candidates described below.
+- `paper/main_ts4h_4page.tex` is the anonymized compact review draft for
+  TS4H-style feedback. Compile from `paper/` with
+  `tectonic main_ts4h_4page.tex`; the generated PDF is ignored by git.
+- Sleep-event experiments are complete for the current paper matrix, including
+  the Transformer diagnostics described below.
 - Bowshock P13 and Fraud P14 point-event appendix ablations are complete, and
   `paper/results/generated/point_event_ablation_ready.tex` exists.
 - CHB-MIT ds512 high-capacity rows are scored. Normal-tolerance tuned mAP:

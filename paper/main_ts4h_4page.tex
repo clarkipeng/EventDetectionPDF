@@ -1,0 +1,327 @@
+% Four-page short-paper review draft for TS4H-style feedback.
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[margin=0.72in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[font=small,labelfont=bf,hypcap=false]{caption}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{xurl}
+
+\Urlmuskip=0mu plus 1mu
+\setlength{\columnsep}{0.24in}
+\setlength{\textfloatsep}{6pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\renewcommand{\dbltopfraction}{0.94}
+\renewcommand{\topfraction}{0.94}
+\renewcommand{\textfraction}{0.04}
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{6pt plus 2pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\setlength{\@dblfptop}{0pt}
+\setlength{\@dblfpsep}{6pt plus 2pt}
+\setlength{\@dblfpbot}{0pt plus 1fil}
+\makeatother
+\raggedbottom
+\emergencystretch=1.4em
+\hbadness=10000
+
+\graphicspath{{figures/}{figures/generated/}}
+
+\title{Boundary Density Likelihood for Health Time-Series Event Detection}
+\author{Anonymous Authors}
+\date{}
+
+\newcommand{\xseq}{x_{1:T}}
+\newcommand{\rate}{\lambda}
+\newcommand{\kernel}{\kappa}
+\newcommand{\Rnonneg}{\mathbb{R}_{\ge 0}}
+
+\begin{document}
+\twocolumn[
+\begin{@twocolumnfalse}
+\maketitle
+\begin{abstract}
+Health time-series systems often make sparse temporal decisions: sleep onset,
+wake-up, seizure onset, alarms, or episode endpoints.
+A common shortcut trains dense segmentation masks and extracts events only after
+thresholding, even when the evaluation metric ranks temporal detections.
+We propose Boundary Density Likelihood (BDL), a supervised likelihood objective
+that converts annotations into expected events per output bin and fits
+nonnegative sequence outputs with a Poisson log score.
+Unit-sum smoothing represents timing uncertainty without changing the number of
+annotated events, and peak decoding yields ranked detections for
+tolerance-based average precision.
+On sleep-event detection, BDL improves event mAP from 0.575 to 0.680 over
+cross-entropy segmentation under matched folds and decoders; at one-minute
+tolerance, AP improves from 0.051 to 0.219.
+On CHB-MIT seizure detection, BDL improves one-second-stride mAP from 0.287 to
+0.388.
+The gains survive imbalance, smoothing, and convolutional-backbone controls,
+while streaming and Transformer diagnostics identify where context and
+representation still limit the detector.
+\end{abstract}
+\vspace{0.4em}
+\end{@twocolumnfalse}
+]
+
+\section{Motivation}
+
+Long health recordings are frequently judged by a small set of times.
+For sleep monitoring, a many-hour interval is scored through onset and wake-up
+matches; for seizure review, clinical utility depends on the timing of episode
+boundaries \citep{shoeb2010,goldberger2000,alexander2017,esper2023}.
+Modern detection benchmarks reflect this interface: predictions are sorted by
+confidence, matched to annotations inside task-specific tolerance windows, and
+summarized by precision--recall or average precision \citep{everingham2010pascal,lin2014coco,salles2023}.
+Samplewise accuracy can therefore be high while event AP is poor, because late,
+early, duplicated, or weakly ranked event times are what the benchmark consumes
+\citep{tatbul2018precision}.
+
+The standard reduction expands sparse annotations into dense state labels.
+That is the right objective when deployment consumes calibrated labels at every
+sample.
+It is indirect when the downstream decision is a ranked onset, offset, alarm, or
+episode time.
+The broader detection literature already uses localized supervision for
+keypoints, sound events, action starts and ends, and temporal boundaries
+\citep{newell2016stacked,xiao2018simple,phan2015,gao2017turn,lin2018bsn,lin2019bmn}.
+The unresolved question is what the localized target should mean after
+windowing, smoothing, clipping, and downsampling.
+BDL answers this by preserving the event count: each annotation contributes one
+event occurrence, and model outputs estimate expected events per bin.
+
+\section{Boundary Density Likelihood}
+
+\begin{figure}[t]
+\vspace{-0.4em}
+\centering
+\includegraphics[width=0.64\columnwidth]{target_pipeline_column.png}
+\caption{BDL preserves one event per annotation through smoothing and binning,
+then fits expected events per output bin with a Poisson log score.}
+\label{fig:short-method}
+\vspace{-0.7em}
+\end{figure}
+
+Let $\xseq$ be a time series and let $c$ index a scored event type.
+For point events, $c$ is the event label; for interval data, onset and offset
+are separate event types.
+The annotations define a counting measure
+\begin{align}
+    \mu_c = \sum_{\tau\in B_c} \delta_\tau ,
+\end{align}
+where $B_c$ is the collection of annotated type-$c$ event times.
+This counting view is standard in temporal point processes, but here it is used
+as supervised conditional prediction rather than as a full event-history model
+\citep{kingman1993,shchur2021neural}.
+
+Annotation times may be imprecise, so BDL optionally replaces each point with a
+nonnegative kernel $\kernel$ satisfying $\sum_r \kernel(r)=1$:
+\begin{align}
+    y_c(t) = \sum_{\tau\in B_c} \kernel(t-\tau).
+    \label{eq:short-smooth}
+\end{align}
+We use hard, truncated Gaussian, and tolerance-aligned kernels.
+Because each kernel has unit sum, smoothing changes where an annotation can
+appear but not how many events it represents.
+If model bin $b$ covers original timesteps $G_b$, the output target is the
+bin-integrated count
+\begin{align}
+    Y_c(b) = \sum_{t\in G_b} y_c(t).
+    \label{eq:short-bin}
+\end{align}
+Thus downsampling sums expected events into coarser bins rather than averaging
+or renormalizing the target scale.
+
+A sequence model outputs logits $z_{\theta,c}(b)$, converted to nonnegative
+rates $\rate_{\theta,c}(b\mid\xseq)$ with a softplus parameterization and a
+sparse-event prior initialization.
+For one bin, the Poisson negative log score is
+\begin{align}
+    \ell(Y,\rate)=\rate-Y\log\rate ,
+\end{align}
+omitting the target-only term.
+With $\rate_{c,b}=\rate_{\theta,c}(b\mid\xseq)$, the empirical BDL objective is
+\begin{align}
+    \mathcal{L}_{\mathrm{BDL}}(\theta)
+    =
+    \sum_c\sum_b
+    \left[
+        \rate_{c,b}
+        -
+        Y_c(b)\log \rate_{c,b}
+    \right].
+    \label{eq:short-loss}
+\end{align}
+Zero-event windows penalize predicted events, while repeated nearby annotations
+can contribute counts larger than one.
+The conditional expected risk is minimized when the output equals the expected
+number of scored events in each bin, giving the sequence output a fixed unit
+rather than an arbitrary proximity or heatmap scale \citep{gneiting2007proper}.
+At inference, local maxima in each channel become ranked detections.
+For interval applications, alternation or endpoint pairing is a decoder
+constraint rather than part of the likelihood.
+
+\section{Experiments}
+
+We evaluate whether aligning the training objective with event AP improves
+localization under matched detector choices.
+The sleep benchmark contains wrist accelerometer recordings with sleep onset and
+wake-up annotations \citep{alexander2017,migueles2019,robbins2019,esper2023}.
+It is a direct stress test for the segmentation reduction: the state interval is
+long, but scoring uses minute-scale endpoint tolerances.
+The CHB-MIT benchmark contains EEG seizure intervals sampled at 256 Hz and
+tests a different signal modality with second-scale endpoint tolerances
+\citep{shoeb2010,goldberger2000,klem1999}.
+
+All methods are trained as sequence predictors and evaluated as event
+detectors.
+BDL ranks peaks in learned event-score sequences.
+Segmentation baselines predict interval masks and derive event scores from
+state transitions.
+Within each comparison we hold data splits, backbone, event scorer, and
+validation-time post-processing search fixed whenever possible.
+Sleep experiments compare BDL-Hard, BDL-Gaussian, and BDL-Tolerance against
+cross-entropy, class-weighted cross-entropy, and focal segmentation
+\citep{krawczyk2016,lin2017focal}.
+Architecture controls repeat the strongest BDL and segmentation objectives with
+a bidirectional GRU, a one-dimensional U-Net, and an attention-gated U-Net
+\citep{ronneberger2015,oktay2018attention}.
+Additional diagnostics test sparse-output prior initialization, tolerance
+width, point events, CHB-MIT output stride, streaming encoders, offline
+Transformers, and state reconstruction.
+
+\begin{figure}[t]
+\vspace{-0.6em}
+\centering
+\includegraphics[width=\columnwidth]{sleep_main_results.png}
+\caption{Sleep-event results under matched folds and event scoring.
+BDL's advantage is largest at strict tolerances (A), remains above segmentation
+losses in the objective sweep (B), and persists across recurrent and
+convolutional backbones (C).}
+\label{fig:short-sleep}
+\vspace{-0.6em}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Compact event-mAP summary.  Each row compares matched folds,
+architecture, scorer, and validation-time decoder calibration.}
+\label{tab:short-summary}
+\small
+\begin{tabular}{lccc}
+\toprule
+Setting & BDL & Seg. & $\Delta$ \\
+\midrule
+Sleep GRU & 0.680 & 0.575 & +0.104 \\
+Sleep U-Net & 0.578 & 0.416 & +0.162 \\
+Sleep attn. U-Net & 0.444 & 0.275 & +0.168 \\
+CHB-MIT, 2 s stride & 0.360 & 0.252 & +0.108 \\
+CHB-MIT, 1 s stride & 0.388 & 0.287 & +0.101 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Scope diagnostics.  Values are mAP except state reconstruction, which
+reports sleep-state F1 after converting predictions back to intervals.}
+\label{tab:short-scope}
+\small
+\begin{tabular}{lcc}
+\toprule
+Diagnostic & BDL & Seg. \\
+\midrule
+Forward GRU, hard targets & 0.219 & 0.288 \\
+Forward GRU, smoothed & 0.298 & 0.213 \\
+Causal Transformer, smoothed & 0.182 & 0.233 \\
+Offline Transformer & 0.013 & 0.308 \\
+State reconstruction F1 & 0.888 & 0.914 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Results and Scope}
+
+Figure~\ref{fig:short-sleep} shows the central sleep result.
+With the GRU fixed, BDL-Hard reaches 0.680 mAP, compared with 0.575 for
+cross-entropy segmentation, 0.544 for class-weighted cross-entropy, and 0.525
+for focal loss.
+The difference is concentrated where timing is strict: one-minute AP improves
+from 0.051 to 0.219, and three-minute AP from 0.283 to 0.530.
+At thirty minutes the curves nearly meet, 0.821 versus 0.838, suggesting that
+both methods often find the sleep episode, while BDL better ranks localized
+endpoints.
+BDL-Gaussian and BDL-Tolerance reach 0.660 and 0.605 mAP, so smoothing is not
+the entire explanation.
+
+The architecture controls ask whether this is only a GRU artifact.
+Table~\ref{tab:short-summary} shows that BDL-Hard remains above segmentation
+for the GRU, U-Net, and attention-gated U-Net when the scorer and decoder
+calibration are fixed.
+On CHB-MIT, the strongest BDL kernel depends on output stride, but the matched
+comparison is stable: BDL-Gaussian improves two-second-stride mAP from 0.252 to
+0.360, while BDL-Hard improves one-second-stride mAP from 0.287 to 0.388.
+Strict one-to-three-second endpoint analysis preserves the direction for
+BDL-Hard and BDL-Gaussian, though the tolerance-shaped kernel no longer helps.
+\newpage
+
+The negative controls are also informative.
+Forward-only recurrent models and causal Transformers underperform their
+segmentation controls with hard BDL targets, suggesting that causal models may
+need smoothing or delayed evidence to rank a boundary sharply.
+One-seed smoothing helps forward GRU/LSTM models but not the causal Transformer.
+Offline Transformer diagnostics also favor segmentation in the current setup,
+with a higher-capacity candidate reaching only 0.013 mAP for all BDL variants
+versus 0.308 for cross-entropy.
+Table~\ref{tab:short-scope} summarizes these scope checks.
+We therefore do not interpret BDL as an architecture improvement.
+It is a likelihood for what a sequence output should estimate when the metric
+matches event times; representation, context, stride, and decoder constraints
+still determine whether those scores become good detections.
+State reconstruction makes the complementary point: direct segmentation remains
+better when the metric is samplewise occupancy rather than ranked events.
+
+\section{Discussion}
+
+BDL reframes a common health time-series mismatch.
+When a benchmark evaluates event times, dense state labels are a convenient but
+indirect surrogate; BDL trains the model on expected scored events per output
+bin instead.
+The likelihood handles empty windows, repeated events, point events, onset-only
+labels, and interval endpoints without forcing a paired-interval model.
+If a deployment needs legal sleep intervals, duration priors, or calibrated
+states, those constraints should be added in decoding or evaluated directly.
+This separation is useful for workshop discussion: the method supplies a
+statistically defined training signal for event AP, while the diagnostics show
+where architecture and online context still need work.
+
+\begin{figure}[b]
+\vspace{-0.2em}
+\centering
+\includegraphics[width=0.82\columnwidth]{sleep_prediction_column.png}
+\caption{Held-out sleep window.  Segmentation predicts a state interval and
+derives boundary scores afterward; BDL directly scores the onset and wake-up
+events that are matched by event AP.}
+\label{fig:short-qualitative}
+\vspace{-0.6em}
+\end{figure}
+
+\clearpage
+\bibliographystyle{plainnat}
+\begingroup
+\renewcommand{\baselinestretch}{0.76}\selectfont
+\providecommand{\doi}[1]{doi: \url{#1}}
+\renewcommand{\doi}[1]{doi: \url{#1}}
+\setlength{\bibhang}{0.9em}
+\setlength{\bibsep}{0pt plus 0.2ex}
+\bibliography{main}
+\endgroup
+
+\end{document}

@@ -1,0 +1,8 @@
+run_id=20260616T062932Z
+repo_root=/home/ec2-user/EventDetectionPDF
+python=/home/ec2-user/EventDetectionPDF/.venv/bin/python
+status_jsonl=/home/ec2-user/EventDetectionPDF/paper/generated_runs/20260616T062932Z/experiment_events.jsonl
+log_file=/home/ec2-user/EventDetectionPDF/paper/generated_runs/20260616T062932Z/experiment_output.log
+commit=6d03155
+started_utc=2026-06-16T06:29:32Z
+finished_utc=2026-06-16T06:29:32Z

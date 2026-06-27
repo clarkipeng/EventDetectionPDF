@@ -1,0 +1,79 @@
+Experiment Status
+
+Generated from `paper/experiment_status.py`.
+Run directories under `experiments/quarantine/` are excluded.
+
+Phase Counts
+
+| phase | partial | pending | scored | trained |
+| --- | --- | --- | --- | --- |
+| P0 | 0 | 0 | 1 | 2 |
+| P1 | 0 | 0 | 1 | 0 |
+| P2 | 0 | 0 | 5 | 0 |
+| P3 | 0 | 0 | 18 | 0 |
+| P4 | 0 | 0 | 12 | 0 |
+| P4G | 0 | 0 | 6 | 0 |
+| P5 | 0 | 0 | 6 | 0 |
+| P6 | 0 | 0 | 2 | 0 |
+| P7 | 0 | 0 | 18 | 0 |
+| P8 | 0 | 0 | 4 | 0 |
+| P8G | 0 | 0 | 2 | 0 |
+| P9 | 0 | 0 | 6 | 0 |
+| P10 | 0 | 0 | 9 | 0 |
+| P11 | 1 | 2 | 3 | 0 |
+| P12 | 0 | 0 | 4 | 0 |
+| P12b | 0 | 0 | 4 | 0 |
+| P13 | 0 | 0 | 4 | 0 |
+| P14 | 0 | 0 | 4 | 0 |
+| P15 | 0 | 0 | 0 | 3 |
+| P16 | 0 | 0 | 4 | 0 |
+
+Best Observed Runs
+
+| phase | name | status | model | objective | seed | run_tag | mean_valid_mAP | tuned_mAP |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P13 | Bowshock point-event ablation | scored | GRU | BDL-Hard | 0 | Point-event ablation | 0.931 | 0.988 |
+| P13 | Bowshock point-event ablation | scored | GRU | BDL-Gaussian | 0 | Point-event ablation | 0.930 | 0.988 |
+| P13 | Bowshock point-event ablation | scored | GRU | BDL-Tolerance | 0 | Point-event ablation | 0.860 | 0.983 |
+| P3 | Main architecture table | scored | GRU | BDL-Hard | 2 | Main sleep sweep | 0.679 | 0.683 |
+| P3 | Main architecture table | scored | GRU | BDL-Hard | 1 | Main sleep sweep | 0.677 | 0.686 |
+| P14 | Fraud point-event ablation | scored | GRU | BDL-Hard | 0 | Point-event ablation | 0.677 | 0.755 |
+| P4 | Kernel and segmentation ablation | scored | GRU | BDL-Gaussian | 2 | Main sleep sweep | 0.665 | 0.669 |
+| P3 | Main architecture table | scored | GRU | BDL-Hard | 0 | Main sleep sweep | 0.665 | 0.670 |
+| P2 | GRU objective sweep | scored | GRU | BDL-Hard | 0 | Main sleep sweep | 0.665 | 0.670 |
+| P14 | Fraud point-event ablation | scored | GRU | BDL-Gaussian | 0 | Point-event ablation | 0.659 | 0.734 |
+| P4 | Kernel and segmentation ablation | scored | GRU | BDL-Gaussian | 1 | Main sleep sweep | 0.658 | 0.660 |
+| P4 | Kernel and segmentation ablation | scored | GRU | BDL-Gaussian | 0 | Main sleep sweep | 0.649 | 0.651 |
+
+Active Rows
+
+Rows here have local run artifacts but are not yet complete.
+
+| phase | name | status | model | objective | seed | run_tag | completed_folds | target_folds | latest_fold | latest_epoch | latest_epoch_total | latest_eval_epoch | latest_eval_valid_mAP | best_eval_epoch | best_eval_valid_mAP | estimated_current_fold_remaining_min |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P11 | CHB-MIT fine-stride sensitivity | partial | U-Net | BDL-Hard | 0 | CHB-MIT fine-stride sensitivity | 2.000 | 4 | 2.000 | 11.000 | 20.000 | 10.000 | 0.021 | 15.000 | 0.039 | 42.644 |
+
+Incomplete Rows
+
+Rows here still need training folds or score files before they can support manuscript tables.
+
+| phase | name | status | model | objective | seed | run_tag | completed_folds | target_folds | latest_fold | latest_epoch | latest_epoch_total | latest_valid_mAP | latest_eval_epoch | latest_eval_valid_mAP | best_eval_epoch | best_eval_valid_mAP |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P15 | Transformer main-table candidate | trained | Offline Transformer | BDL-Gaussian | 0 | Transformer main-table candidate | 4.000 | 4 | 3.000 | 20.000 | 20.000 | 0.020 | 20.000 | 0.020 | 20.000 | 0.025 |
+| P15 | Transformer main-table candidate | trained | Offline Transformer | BDL-Tolerance | 0 | Transformer main-table candidate | 4.000 | 4 | 3.000 | 20.000 | 20.000 | 0.020 | 20.000 | 0.020 | 20.000 | 0.025 |
+| P15 | Transformer main-table candidate | trained | Offline Transformer | Cross-entropy | 0 | Transformer main-table candidate | 4.000 | 4 | 3.000 | 20.000 | 20.000 | 0.187 | 20.000 | 0.187 | 20.000 | 0.203 |
+
+Strict CHB-MIT Rescoring
+
+Strict rows use one-to-three-second boundary tolerances and are stored in `scores_strict3.csv`.
+
+| phase | model | objective | run_tag | status | strict3_status | tuned_mAP | strict3_tuned_mAP |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| P12 | GRU 3x128 | BDL-Gaussian | CHB-MIT high-score reproduction | scored | scored | 0.360 | 0.138 |
+| P12 | GRU 3x128 | BDL-Hard | CHB-MIT high-score reproduction | scored | scored | 0.317 | 0.120 |
+| P12 | GRU 3x128 | BDL-Tolerance | CHB-MIT high-score reproduction | scored | scored | 0.267 | 0.048 |
+| P12 | GRU 3x128 | Cross-entropy | CHB-MIT high-score reproduction | scored | scored | 0.252 | 0.036 |
+| P12b | GRU 3x128 | BDL-Gaussian | CHB-MIT high-score stride ablation | scored | scored | 0.356 | 0.146 |
+| P12b | GRU 3x128 | BDL-Hard | CHB-MIT high-score stride ablation | scored | scored | 0.388 | 0.164 |
+| P12b | GRU 3x128 | BDL-Tolerance | CHB-MIT high-score stride ablation | scored | scored | 0.278 | 0.047 |
+| P12b | GRU 3x128 | Cross-entropy | CHB-MIT high-score stride ablation | scored | scored | 0.287 | 0.046 |

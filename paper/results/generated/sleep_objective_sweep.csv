@@ -1,0 +1,7 @@
+family,method,post-processing,objective,postprocess_objective,run_tag,mAP,seeds
+BDL,BDL-Hard,Event-score peaks,density_hard,density_hard,objective_e20_bs32_eval5,0.68,3
+BDL,BDL-Gaussian,Event-score peaks,density_gau,density_gau,objective_e20_bs32_eval5,0.66,3
+BDL,BDL-Tolerance,Event-score peaks,density_custom,density_custom,objective_e20_bs32_eval5,0.605,3
+Segmentation,Cross-entropy,Segmentation transitions,seg,seg2,objective_e20_bs32_eval5,0.575,3
+Segmentation,Weighted cross-entropy,Weighted transitions,seg_weighted,seg_weighted2,objective_e20_bs32_eval5,0.544,3
+Segmentation,Focal loss,Focal transitions,seg_focal,seg_focal2,objective_e20_bs32_eval5,0.525,3

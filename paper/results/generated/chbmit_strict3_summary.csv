@@ -1,0 +1,15 @@
+dataset,model,objective,run_tag,postprocess_objective,metric,mean,std,count,mean_std
+seizure,gru,density_hard,seizure_rescue_lr3e4_ds5_bs8_e20_eval5,density_hard,mAP,0.0005433730764367,,1,0.001
+seizure,gru,density_gau,seizure_rescue_lr3e4_ds5_bs8_e20_eval5,density_gau,mAP,0.0002727583174458,,1,0.000
+seizure,gru,seg,seizure_rescue_lr3e4_ds5_bs8_e20_eval5,seg1,mAP,0.0035285684898776,,1,0.004
+seizure,gru,seg,seizure_rescue_lr3e4_ds5_bs8_e20_eval5,seg2,mAP,0.0104696976877933,,1,0.010
+seizure,gru_3l_128h,density_hard,seizure_highscore_gru3l128h_ds256_bs8_e20,density_hard,mAP,0.1643126282619457,,1,0.164
+seizure,gru_3l_128h,density_custom,seizure_highscore_gru3l128h_ds256_bs8_e20,density_custom,mAP,0.0473170975660268,,1,0.047
+seizure,gru_3l_128h,density_gau,seizure_highscore_gru3l128h_ds256_bs8_e20,density_gau,mAP,0.1461538544243901,,1,0.146
+seizure,gru_3l_128h,seg,seizure_highscore_gru3l128h_ds256_bs8_e20,seg1,mAP,0.045564379429385,,1,0.046
+seizure,gru_3l_128h,seg,seizure_highscore_gru3l128h_ds256_bs8_e20,seg2,mAP,0.0076321314864632,,1,0.008
+seizure,gru_3l_128h,density_hard,seizure_highscore_gru3l128h_ds512_bs8_e20,density_hard,mAP,0.119844392329686,,1,0.120
+seizure,gru_3l_128h,density_custom,seizure_highscore_gru3l128h_ds512_bs8_e20,density_custom,mAP,0.0475949323211949,,1,0.048
+seizure,gru_3l_128h,density_gau,seizure_highscore_gru3l128h_ds512_bs8_e20,density_gau,mAP,0.1381980224961901,,1,0.138
+seizure,gru_3l_128h,seg,seizure_highscore_gru3l128h_ds512_bs8_e20,seg1,mAP,0.0363394274281772,,1,0.036
+seizure,gru_3l_128h,seg,seizure_highscore_gru3l128h_ds512_bs8_e20,seg2,mAP,0.0048102498333122,,1,0.005

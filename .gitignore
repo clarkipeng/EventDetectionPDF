@@ -66,11 +66,11 @@ data_cache/
 *.7z
 
 # Generated paper artifacts
-paper/build/
-paper/generated_runs/
-paper/run_logs/
-paper/figures/generated/
-paper/results/
+# paper/build/
+# paper/generated_runs/
+# paper/run_logs/
+# paper/figures/generated/
+# paper/results/
 paper/*.pdf
 paper/*.png
 paper/*.dvi

@@ -1,0 +1,6 @@
+run_id=density_gau_queued_20260616T0654Z
+repo_root=/home/ec2-user/EventDetectionPDF
+python=/home/ec2-user/EventDetectionPDF/.venv/bin/python
+wait_pid=72903
+started_utc=2026-06-16T06:55:02Z
+commit=6d03155

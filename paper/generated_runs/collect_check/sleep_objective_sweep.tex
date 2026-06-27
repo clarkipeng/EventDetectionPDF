@@ -1,0 +1,13 @@
+\begin{tabular}{lllrrr}
+\toprule
+Family & Method & Post-processing & mAP & mean F1 & Seeds \\
+\midrule
+Boundary density likelihood & BDL-Hard & Boundary peaks & 0.680 & 0.727 & 3 \\
+Boundary density likelihood & BDL-Gaussian & Boundary peaks & 0.651 & 0.709 & 1 \\
+Legacy heatmap ablation & MSE-Hard & Boundary peaks & 0.599 & 0.694 & 3 \\
+Boundary density likelihood & BDL-Tolerance & Boundary peaks & 0.595 & 0.675 & 1 \\
+Segmentation & Cross-entropy & Segmentation transitions & 0.575 & 0.660 & 3 \\
+Segmentation & Weighted cross-entropy & Weighted transitions & 0.552 & 0.643 & 1 \\
+Segmentation & Focal loss & Focal transitions & 0.514 & 0.605 & 1 \\
+\bottomrule
+\end{tabular}

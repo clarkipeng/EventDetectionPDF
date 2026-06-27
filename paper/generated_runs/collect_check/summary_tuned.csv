@@ -1,0 +1,27 @@
+dataset,model,objective,run_tag,postprocess_objective,metric,mean,std,count,mean_std
+sleep,gru,density_custom,lr3e3_e2,density_custom,mAP,0.0332659705324627,,1,0.033
+sleep,gru,density_custom,lr3e3_e2,density_custom,mf1,0.0791698903784621,,1,0.079
+sleep,gru,density_custom,lr3e3_e20_gpu_bs32_eval5,density_custom,mAP,0.5952504561796061,,1,0.595
+sleep,gru,density_custom,lr3e3_e20_gpu_bs32_eval5,density_custom,mf1,0.6745204800033334,,1,0.675
+sleep,gru,density_hard,objective_e20_bs32_eval5,density_hard,mAP,0.679692928365807,0.008087783360111908,3,0.680 $\pm$ 0.008
+sleep,gru,density_gau,objective_e20_bs32_eval5,density_gau,mAP,0.6514676993362588,,1,0.651
+sleep,gru,seg,objective_e20_bs32_eval5,seg1,mAP,0.5361049385408868,0.00816023146476677,3,0.536 $\pm$ 0.008
+sleep,gru,seg,objective_e20_bs32_eval5,seg2,mAP,0.575371964498676,0.0039695820381497595,3,0.575 $\pm$ 0.004
+sleep,gru,seg_weighted,objective_e20_bs32_eval5,seg_weighted1,mAP,0.5321830313599729,,1,0.532
+sleep,gru,seg_weighted,objective_e20_bs32_eval5,seg_weighted2,mAP,0.551820626356865,,1,0.552
+sleep,gru,seg_focal,objective_e20_bs32_eval5,seg_focal1,mAP,0.4120076896096191,,1,0.412
+sleep,gru,seg_focal,objective_e20_bs32_eval5,seg_focal2,mAP,0.5142161181162086,,1,0.514
+sleep,gru,hard,objective_e20_bs32_eval5,hard,mAP,0.5991150696835107,0.01530238572972825,3,0.599 $\pm$ 0.015
+sleep,gru,gau,objective_e20_bs32_eval5,gau,mAP,0.5834302570919555,,1,0.583
+sleep,gru,custom,objective_e20_bs32_eval5,custom,mAP,0.545348128498409,,1,0.545
+sleep,gru,density_hard,objective_e20_bs32_eval5,density_hard,mf1,0.7274360635554302,0.004638765043955209,3,0.727 $\pm$ 0.005
+sleep,gru,density_gau,objective_e20_bs32_eval5,density_gau,mf1,0.7089770172779496,,1,0.709
+sleep,gru,seg,objective_e20_bs32_eval5,seg1,mf1,0.6356527907565278,0.0071744374863807045,3,0.636 $\pm$ 0.007
+sleep,gru,seg,objective_e20_bs32_eval5,seg2,mf1,0.6598555631906967,0.0021537691882685937,3,0.660 $\pm$ 0.002
+sleep,gru,seg_weighted,objective_e20_bs32_eval5,seg_weighted1,mf1,0.6412252903959674,,1,0.641
+sleep,gru,seg_weighted,objective_e20_bs32_eval5,seg_weighted2,mf1,0.6434071580078717,,1,0.643
+sleep,gru,seg_focal,objective_e20_bs32_eval5,seg_focal1,mf1,0.5187261474861637,,1,0.519
+sleep,gru,seg_focal,objective_e20_bs32_eval5,seg_focal2,mf1,0.6051642115005316,,1,0.605
+sleep,gru,hard,objective_e20_bs32_eval5,hard,mf1,0.694356939448543,0.007535604030509778,3,0.694 $\pm$ 0.008
+sleep,gru,gau,objective_e20_bs32_eval5,gau,mf1,0.6793197469889245,,1,0.679
+sleep,gru,custom,objective_e20_bs32_eval5,custom,mf1,0.6528981551983104,,1,0.653

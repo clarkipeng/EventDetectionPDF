@@ -1,0 +1,31 @@
+Generated Experiment Tables
+
+Regenerate with `uv run --offline python paper/collect_results.py --results-root experiments`.
+Run directories under `experiments/quarantine/` are excluded.
+
+- `summary_tuned.csv`: tuned summary metrics grouped by run tag.
+- `all_scores.csv`: all score files, including suffixed diagnostics such as strict CHB-MIT rescoring.
+- `all_scores_standard.csv`: default `scores.csv` rows used by the main generated tables.
+- `sleep_main_architecture.csv`: main sleep architecture comparison.
+- `attention_unet_control.tex`: not emitted; attention-gated U-Net remains in the main architecture table.
+- `sleep_objective_sweep.csv`: compact best-postprocessing table for the sleep GRU objective sweep.
+- `seizure_replication.csv`: second-benchmark replication table.
+- `seizure_highscore_tracker.csv`: CHB-MIT high-capacity GRU reproduction and stride-ablation tracker.
+- `seizure_highscore_completed.tex`: available for completed stride rows.
+- `seizure_highscore_ready.tex`: available.
+- `seizure_highscore_strict3_tracker.csv`: compact strict 1--3 second CHB-MIT tracker matching the high-capacity table schema.
+- `seizure_highscore_strict3_completed.tex`: available for completed strict stride rows.
+- `seizure_highscore_strict3_ready.tex`: available.
+- `online_ablation.csv`: causal/online context ablation table.
+- `online_smoothing_ablation.csv`: smoothed-target streaming-context diagnostic table.
+- `offline_transformer_diagnostic.csv`: optional sleep offline-Transformer diagnostic.
+- `transformer_main_candidate_ready.tex`: not yet available; P15 Transformer candidate still needs complete scores.
+- `transformer_strong_candidate_ready.tex`: available.
+- `point_event_ablation.csv`: Bowshock/Fraud point-event ablation tracker.
+- `point_event_ablation_ready.tex`: available.
+- `paired_fold_consistency.csv`: paired validation-fold consistency checks for completed main comparisons.
+- `prior_ablation.csv`: sparse-output-prior ablation table.
+- `target_width_ablation.csv`: tolerance-kernel width ablation table.
+- `tolerance_curves.csv`: tuned mAP by tolerance.
+- `chbmit_strict3_*.csv`: optional CHB-MIT strict 1--3 second boundary-rescoring outputs when `scores_strict3.csv` files exist.
+- `fold_summary.csv`: fold-level validation diagnostics.

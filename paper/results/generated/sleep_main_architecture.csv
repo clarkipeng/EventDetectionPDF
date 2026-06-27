@@ -1,0 +1,4 @@
+model,BDL-Hard,Cross-entropy,$\Delta$,seeds
+gru,0.680,0.575,+0.104,3
+unet,0.578,0.416,+0.162,3
+unet_t,0.444,0.275,+0.168,3

@@ -1,13 +1,15 @@
 \section{Conclusion}
 
-Boundary Density Likelihood addresses a common but consequential mismatch in time-series detection: models are often trained as samplewise segmenters, but evaluated by the timing of ranked detections.
-It changes the unit of supervision from state occupancy to expected scored events on the model output timeline, then fits the corresponding conditional mean with a Poisson log score.
-Across the sleep and CHB-MIT benchmarks, changing this training signal improves event AP under matched architectures, scorers, and post-processing.
-On sleep, the gain is largest at strict matching tolerances, persists across multiple backbones, and is not reproduced by segmentation reweighting or smoothing choices alone.
+This paper presents Boundary Density Likelihood as a direct way to train sequence models for event localization.
+Rather than treating onsets and offsets as consequences of a predicted state mask, BDL makes them the supervised objects: each annotation is one expected event on the model timeline, and the model learns a nonnegative rate sequence whose peaks are scored as detections.
+The likelihood framing gives the density target a fixed unit, so smoothing and downsampling can express timing uncertainty without changing the number of events being learned.
 
-The significance is practical as much as mathematical.
-In health recordings, the few scored times often determine which episode is reviewed, which alert is raised, or which boundary enters a clinical workflow.
-A detector that is good at labeling the interior of an interval can still be costly if it ranks the boundary late, duplicates it, or misses a short event.
-BDL makes the sequence output estimate the temporal detections that event-level metrics and downstream review systems consume, while retaining the computational convenience of dense sequence prediction.
-The state-reconstruction diagnostic keeps the scope clear: when the deployed target is samplewise occupancy, state labels remain the direct supervision.
-When the deployed target is a ranked set of event times, the training signal should preserve and estimate those events.
+Across the sleep and CHB-MIT benchmarks, this objective improves event AP under matched architectures, scorers, and post-processing.
+On sleep, the gain is largest at strict matching tolerances, persists across multiple backbones, and is not reproduced by segmentation reweighting or smoothing choices alone.
+These are the settings where the distinction matters most: long recordings, long-duration states, sparse boundaries, and strict timing tolerances.
+A model can describe the interior of an episode reasonably well while still ranking the clinically relevant endpoint poorly.
+BDL improves those event-level scores without requiring a new backbone; it is mainly a change in what the sequence output is asked to estimate.
+
+The state-reconstruction result is important because it marks the boundary of the claim.
+If the deployed product is a sleep--wake mask or another samplewise state, segmentation remains the right objective.
+If the deployed product is a ranked list of onsets, offsets, or alarms, BDL is the more faithful training signal.

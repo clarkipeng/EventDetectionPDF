@@ -2,7 +2,7 @@
 \documentclass{article}
 
 \PassOptionsToPackage{numbers,compress}{natbib}
-\usepackage[dblblindworkshop,nolinenumbers]{neurips_2026}
+\usepackage[sglblindworkshop,nolinenumbers]{neurips_2026}
 \workshoptitle{Learning from Time Series for Health}
 
 \usepackage[utf8]{inputenc}
@@ -28,48 +28,54 @@
 \maketitle
 
 \begin{abstract}
-Health time-series systems are often evaluated by sparse temporal detections:
+Many health time-series problems are scored by the timing of a few events:
 sleep onset, wake-up, seizure boundaries, alarms, or episode endpoints.
-Training dense state masks is an indirect surrogate when the benchmark later
-matches ranked event times.
-We propose Boundary Density Likelihood (BDL), a maximum-likelihood objective
-that converts annotations into expected boundary counts per output bin and fits
-nonnegative rates with a Poisson log score.
-Unit-sum smoothing represents annotation uncertainty without changing the event
-count.
+The standard deep-learning reduction is still segmentation: predict a state
+label at each timestep, then search the predicted mask for transitions.
+That reduction is useful when the state mask is the desired output, but it can
+make precise onset and offset detection an indirect byproduct.
+We introduce Boundary Density Likelihood (BDL), a likelihood version of
+boundary heatmap regression for sequence models.
+Each annotation contributes one expected event, optional smoothing represents
+timing uncertainty, temporal binning preserves the event count, and a Poisson
+log score fits nonnegative boundary rates whose peaks become ranked
+detections.
 Across sleep-event and CHB-MIT seizure benchmarks, BDL improves event mean
 average precision under matched folds, architectures, and decoders.
 On sleep, it improves GRU event mAP from 0.575 to 0.680 over cross-entropy
 segmentation, with the largest gains at one- and three-minute tolerances.
-The result should be read narrowly: BDL targets event AP, while direct
-segmentation remains the right objective for samplewise occupancy.
+The result is not that segmentation is obsolete; it is that event-localization
+benchmarks benefit from training on event locations directly.
 \end{abstract}
 
 \section{Motivation}
 
-Long health recordings are commonly judged by a small set of times.
-For sleep monitoring, an overnight interval is scored through onset and
-wake-up matches; for seizure review, clinical utility depends on episode
-boundary timing \citep{shoeb2010,goldberger2000,alexander2017,esper2023}.
-Detection benchmarks therefore sort candidate times by confidence, match them
-inside task-specific tolerance windows, and summarize precision--recall
+Neural networks for health time series are often trained as segmenters, even
+when the evaluation asks for event times.
+For sleep monitoring, the important outputs are the onset and wake-up of a
+sleep episode; for seizure review, the useful summary is when an episode
+begins and ends \citep{shoeb2010,goldberger2000,alexander2017,esper2023}.
+Benchmarks reflect this use case by sorting candidate detections, matching
+them inside task-specific tolerance windows, and reporting average precision
 \citep{everingham2010pascal,lin2014coco,salles2023}.
-Samplewise accuracy can look strong while event AP is weak, because duplicated,
-late, early, or poorly ranked boundaries are what the scorer consumes
-\citep{tatbul2018precision}.
+As a result, a model can label most interior samples correctly and still lose
+credit because the boundary is late, duplicated, missed, or assigned a low
+score \citep{tatbul2018precision}.
 
-The usual reduction expands sparse annotations into dense state labels.
-That is appropriate when deployment needs calibrated labels at every sample.
-It is less direct when the downstream interface is a ranked onset, offset, or
-alarm time.
+This does not mean that dense sequence outputs are the wrong interface.
+They are often the most practical way to use long context and modern
+architectures.
+The question is what those outputs should estimate.
+Segmentation estimates state occupancy and then derives events afterward.
+For benchmarks that consume ranked onset, offset, or alarm times, a more
+direct target is the event density itself.
 Related areas already use localized supervision for keypoints, sound events,
 action boundaries, and temporal proposals
 \citep{newell2016stacked,xiao2018simple,phan2015,gao2017turn,lin2018bsn,lin2019bmn}.
-The issue for health time series is what such a target means after smoothing,
-clipping, and downsampling.
-BDL gives it a count-preserving interpretation: each annotation contributes
-one expected event, and the model estimates expected scored events per output
-bin.
+BDL gives the same idea a count-preserving likelihood interpretation for
+health time series: after smoothing, clipping, and downsampling, each
+annotation still contributes one expected event, and the model estimates the
+expected scored events in each output bin.
 
 \section{Boundary Density Likelihood}
 
@@ -247,25 +253,30 @@ explicitly rather than hidden inside a segmentation surrogate.
 
 \section{Conclusion}
 
-Boundary Density Likelihood changes the unit learned by a health time-series
-detector.
-When a long recording is ultimately reduced to a ranked list of onsets,
-offsets, or alarms, samplewise segmentation asks the model to solve a proxy
-problem and then repair the mismatch in post-processing.
-BDL instead gives each annotated boundary a conserved count, fits the
-conditional expected count on the model timeline, and decodes peaks from the
-same event-score sequences that event AP later matches.
+This paper presents Boundary Density Likelihood as a direct way to train
+health time-series models for event localization.
+Rather than treating onsets and offsets as consequences of a predicted state
+mask, BDL makes them the supervised objects: each boundary is one expected
+event on the model timeline, and the model learns a nonnegative rate sequence
+whose peaks are scored as detections.
+The likelihood framing gives the density target a fixed unit, so smoothing
+and downsampling can express timing uncertainty without changing the number
+of events being learned.
 
-This matters because sparse health events are often the points at which timing
-errors, duplicate detections, and false positives carry the largest operational
-cost: missed episode starts, extra review burden, and weaker triage.
-The current evidence shows that a likelihood-level reframe can improve event
-AP across sleep and seizure settings without changing the backbone.
-The state-reconstruction diagnostic keeps the claim honest: segmentation
-remains the direct objective when the deployed quantity is samplewise
-occupancy.
-BDL is therefore best viewed as a simple, interpretable bridge between
-time-discretized sequence models and event-level decision interfaces.
+The experiments suggest that this distinction matters in exactly the cases
+that motivated the original density-regression idea: long recordings,
+long-duration states, sparse boundaries, and strict timing tolerances.
+A segmentation model can describe the interior of a sleep episode reasonably
+well while still ranking the clinically relevant endpoint poorly.
+BDL improves those event-level scores without requiring a new backbone; it is
+mainly a change in what the sequence output is asked to estimate.
+
+The state-reconstruction result is important because it marks the boundary of
+the claim.
+If the deployed product is a sleep--wake mask or another samplewise state,
+segmentation remains the right objective.
+If the deployed product is a ranked list of onsets, offsets, or alarms, BDL is
+the more faithful training signal.
 
 \clearpage
 \bibliographystyle{plainnat}

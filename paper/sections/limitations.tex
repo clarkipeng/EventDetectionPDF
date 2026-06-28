@@ -9,7 +9,7 @@ Segmentation asks the model to label samples, while BDL asks it to estimate the 
 That distinction covers point events, onset-only labels, repeated events,
 interval endpoints, and multi-type streams without requiring the likelihood to
 encode interval structure.
-If an application needs valid intervals, duration priors, or endpoint pairing,
+If an application needs valid on--off intervals, duration priors, or endpoint pairing,
 those constraints remain decoder choices.
 If deployment consumes calibrated labels at every sample, segmentation remains
 the direct objective.

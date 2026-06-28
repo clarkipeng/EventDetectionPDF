@@ -132,9 +132,8 @@ The conditional expected risk is minimized when the output equals the expected
 number of scored events in each bin, so the sequence output has a fixed unit
 rather than an arbitrary heatmap scale \citep{gneiting2007proper}.
 At inference, local maxima become ranked detections.
-For interval states, pairing, alternation, or duration constraints belong in
-decoding; the likelihood estimates event occurrences, not complete interval
-structure.
+For on--off health events, pairing or duration constraints belong in decoding;
+the likelihood estimates event occurrences, not complete episode structure.
 
 \section{Experiments and Results}
 
@@ -278,8 +277,8 @@ BDL does not replace segmentation when the desired output is samplewise
 occupancy.
 It is instead a likelihood-grounded target for detectors that will ultimately
 be judged by localized events.
-Future work should study stronger structured decoders for interval constraints
-and repeated occurrences, calibrated online variants, and broader health
+Future work should study stronger structured decoders for on--off events and
+repeated occurrences, calibrated online variants, and broader health
 benchmarks where objective, architecture, and post-processing choices can be
 separated more fully.
 

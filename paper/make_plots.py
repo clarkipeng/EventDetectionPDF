@@ -904,8 +904,14 @@ def plot_sleep_prediction_example(outdir):
         / f"{series_id}.npy",
         "series": REPO_ROOT / "data/sleep/train_series.parquet",
     }
+    prediction_outputs = (
+        "sleep_prediction_example.png",
+        "sleep_prediction_column.png",
+        "sleep_prediction_compact.png",
+    )
     if not all(path.exists() for path in paths.values()):
-        save_placeholder(outdir, "sleep_prediction_example.png", "Sleep validation example")
+        for filename in prediction_outputs:
+            save_placeholder(outdir, filename, "Sleep validation example")
         return
 
     start = int(onset_step - margin_steps)
@@ -916,10 +922,12 @@ def plot_sleep_prediction_example(outdir):
             filters=[("id_map", "=", id_map), ("step", ">=", start), ("step", "<=", stop)],
         ).sort_values("step")
     except Exception:
-        save_placeholder(outdir, "sleep_prediction_example.png", "Sleep validation example")
+        for filename in prediction_outputs:
+            save_placeholder(outdir, filename, "Sleep validation example")
         return
     if series.empty:
-        save_placeholder(outdir, "sleep_prediction_example.png", "Sleep validation example")
+        for filename in prediction_outputs:
+            save_placeholder(outdir, filename, "Sleep validation example")
         return
 
     bdl = np.load(paths["bdl"])
@@ -1069,6 +1077,71 @@ def plot_sleep_prediction_example(outdir):
     fig_col.subplots_adjust(left=0.140, right=0.985, top=0.965, bottom=0.095)
     fig_col.savefig(outdir / "sleep_prediction_column.png", dpi=260)
     plt.close(fig_col)
+
+    fig_compact = plt.figure(figsize=(6.75, 2.75))
+    gs_compact = fig_compact.add_gridspec(3, 1, height_ratios=[0.92, 0.70, 0.78], hspace=0.12)
+    k_signal = fig_compact.add_subplot(gs_compact[0, 0])
+    k_seg = fig_compact.add_subplot(gs_compact[1, 0], sharex=k_signal)
+    k_bdl = fig_compact.add_subplot(gs_compact[2, 0], sharex=k_signal)
+    k_axes = [k_signal, k_seg, k_bdl]
+    for ax in k_axes:
+        ax.axvspan(onset_hour, wake_hour, color=PALETTE["seg_light"], alpha=0.13, lw=0)
+        ax.axvline(onset_hour, color=PALETTE["bdl_dark"], linestyle="--", linewidth=0.88)
+        ax.axvline(wake_hour, color=PALETTE["accent"], linestyle="--", linewidth=0.88)
+        ax.grid(axis="x", color=PALETTE["grid"], linewidth=0.48)
+        ax.grid(axis="y", color=PALETTE["grid"], linewidth=0.34, alpha=0.62)
+        for spine in ("top", "right"):
+            ax.spines[spine].set_visible(False)
+
+    k_signal.set_title("A. Signal", loc="left", fontsize=6.8, weight="semibold", pad=1.0)
+    k_signal.plot(hours_raw, angle_norm, color=PALETTE["raw"], linewidth=0.66, label="anglez")
+    k_signal.fill_between(hours_raw, 0, enmo_norm, color=PALETTE["gold"], alpha=0.20, label="ENMO")
+    k_signal.set_ylim(-1.9, 2.1)
+    k_signal.set_yticks([])
+    k_signal.legend(
+        loc="upper right",
+        fontsize=5.2,
+        ncols=2,
+        handlelength=1.05,
+        columnspacing=0.7,
+        borderaxespad=0.05,
+    )
+
+    k_seg.set_title("B. Segmentation", loc="left", fontsize=6.8, weight="semibold", pad=1.0)
+    k_seg.plot(hours_pred, seg, color=PALETTE["seg"], linewidth=1.05)
+    k_seg.plot(hours_pred, transition, color=PALETTE["seg_dark"], linewidth=0.55, alpha=0.50)
+    k_seg.fill_between(hours_pred, 0, seg, color=PALETTE["seg"], alpha=0.08)
+    k_seg.set_ylim(-0.04, 1.04)
+    k_seg.set_yticks([0, 1])
+    k_seg.set_yticklabels(["0", "1"], fontsize=5.7)
+
+    k_bdl.set_title("C. BDL", loc="left", fontsize=6.8, weight="semibold", pad=1.0)
+    k_bdl.plot(hours_pred, bdl_on, color=PALETTE["bdl"], linewidth=1.10)
+    k_bdl.plot(hours_pred, bdl_off, color=PALETTE["accent"], linewidth=1.10)
+    k_bdl.fill_between(hours_pred, 0, bdl_on, color=PALETTE["bdl"], alpha=0.10)
+    k_bdl.fill_between(hours_pred, 0, bdl_off, color=PALETTE["accent"], alpha=0.10)
+    k_bdl.scatter(
+        [onset_hour, wake_hour],
+        [onset_peak, wake_peak],
+        s=24,
+        color=[PALETTE["bdl"], PALETTE["accent"]],
+        edgecolor="white",
+        linewidth=0.55,
+        zorder=5,
+    )
+    k_bdl.set_ylim(-0.04, 1.05)
+    k_bdl.set_yticks([0, 1])
+    k_bdl.set_yticklabels(["0", "1"], fontsize=5.7)
+    k_bdl.set_xlabel("Hours relative to onset", fontsize=6.6)
+    k_bdl.set_xlim(hours_raw.min(), hours_raw.max())
+    for ax in k_axes:
+        ax.tick_params(axis="both", labelsize=5.8, pad=1.0)
+        ax.set_ylabel("")
+    plt.setp(k_signal.get_xticklabels(), visible=False)
+    plt.setp(k_seg.get_xticklabels(), visible=False)
+    fig_compact.subplots_adjust(left=0.060, right=0.995, top=0.935, bottom=0.160)
+    fig_compact.savefig(outdir / "sleep_prediction_compact.png", dpi=280)
+    plt.close(fig_compact)
 
 
 def plot_sleep_results_column(scores, outdir):

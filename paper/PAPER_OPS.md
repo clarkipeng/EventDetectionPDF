@@ -572,6 +572,12 @@ minimal:
   control.
 - `sleep_prediction_example.png`: held-out sleep window. Current styling uses
   white panels and light interval shading to keep the plot paper-like.
+- `sleep_prediction_compact.png`: short-paper qualitative figure. The current
+  checked-in asset is a compact, non-stretched review composite from
+  `sleep_prediction_example.png` because raw prediction arrays are not present
+  in this checkout. When Kaggle/local experiment artifacts are available,
+  regenerate it through `paper/make_plots.py`, which now contains the true
+  compact plot path.
 
 Style rules:
 

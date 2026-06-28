@@ -1,9 +1,13 @@
 \section{Conclusion}
 
-Boundary Density Likelihood addresses a common mismatch in time-series detection: models are often trained as samplewise segmenters, but evaluated by the timing of ranked detections.
-It converts annotations into expected events on the model output timeline and fits the corresponding conditional mean with a Poisson log score.
-Across the sleep and CHB-MIT benchmarks, changing this training signal improves event AP under matched architectures and post-processing.
+Boundary Density Likelihood addresses a common but consequential mismatch in time-series detection: models are often trained as samplewise segmenters, but evaluated by the timing of ranked detections.
+It changes the unit of supervision from state occupancy to expected scored events on the model output timeline, then fits the corresponding conditional mean with a Poisson log score.
+Across the sleep and CHB-MIT benchmarks, changing this training signal improves event AP under matched architectures, scorers, and post-processing.
 On sleep, the gain is largest at strict matching tolerances, persists across multiple backbones, and is not reproduced by segmentation reweighting or smoothing choices alone.
-More broadly, time-discretized sequence models do not have to inherit the assumptions of samplewise segmentation.
-When a system is judged by ranked event times, its training signal should estimate the events that will later be matched; when it is judged by per-sample decisions, state labels remain the direct supervision.
-BDL keeps the practical advantages of sequence prediction while making the model output estimate the temporal detections used by event-level metrics.
+
+The significance is practical as much as mathematical.
+In health recordings, the few scored times often determine which episode is reviewed, which alert is raised, or which boundary enters a clinical workflow.
+A detector that is good at labeling the interior of an interval can still be costly if it ranks the boundary late, duplicates it, or misses a short event.
+BDL makes the sequence output estimate the temporal detections that event-level metrics and downstream review systems consume, while retaining the computational convenience of dense sequence prediction.
+The state-reconstruction diagnostic keeps the scope clear: when the deployed target is samplewise occupancy, state labels remain the direct supervision.
+When the deployed target is a ranked set of event times, the training signal should preserve and estimate those events.

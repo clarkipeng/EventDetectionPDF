@@ -1,7 +1,7 @@
 % Local NeurIPS 2026 compatibility style for workshop draft compilation.
 % This mirrors the public NeurIPS layout conventions needed by this repo:
-% single-column letter paper, anonymous workshop title block, line numbers,
-% natbib by default, and a first-page submission notice.
+% single-column letter paper, anonymous workshop title block, optional line
+% numbers, natbib by default, and a first-page submission notice.
 
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{neurips_2026}[2026/06/27 local NeurIPS 2026 workshop style]
@@ -16,6 +16,8 @@
 \@preprintfalse
 \newif\if@workshop
 \@workshopfalse
+\newif\if@neuripslinenumbers
+\@neuripslinenumberstrue
 
 \newcommand{\@neuripsordinal}{40th}
 \newcommand{\@neuripsyear}{2026}
@@ -28,6 +30,7 @@
   \@anonymousfalse
 }
 \DeclareOption{nonatbib}{\@natbibfalse}
+\DeclareOption{nolinenumbers}{\@neuripslinenumbersfalse}
 \DeclareOption{preprint}{%
   \@preprinttrue
   \@anonymousfalse
@@ -245,29 +248,31 @@
     \NewEnviron{hide}{}
     \let\ack\hide
     \let\endack\endhide
-    \RequirePackage{lineno}
-    \linenumbers
-    \AtBeginDocument{%
-      \@ifpackageloaded{amsmath}{%
-        \newcommand*\patchAmsMathEnvironmentForLineno[1]{%
-          \expandafter\let\csname old#1\expandafter\endcsname\csname #1\endcsname
-          \expandafter\let\csname oldend#1\expandafter\endcsname\csname end#1\endcsname
-          \renewenvironment{#1}%
-                          {\linenomath\csname old#1\endcsname}%
-                          {\csname oldend#1\endcsname\endlinenomath}%
-        }%
-        \newcommand*\patchBothAmsMathEnvironmentsForLineno[1]{%
-          \patchAmsMathEnvironmentForLineno{#1}%
-          \patchAmsMathEnvironmentForLineno{#1*}%
-        }%
-        \patchBothAmsMathEnvironmentsForLineno{equation}%
-        \patchBothAmsMathEnvironmentsForLineno{align}%
-        \patchBothAmsMathEnvironmentsForLineno{flalign}%
-        \patchBothAmsMathEnvironmentsForLineno{alignat}%
-        \patchBothAmsMathEnvironmentsForLineno{gather}%
-        \patchBothAmsMathEnvironmentsForLineno{multline}%
-      }{}%
-    }%
+    \if@neuripslinenumbers
+      \RequirePackage{lineno}
+      \linenumbers
+      \AtBeginDocument{%
+        \@ifpackageloaded{amsmath}{%
+          \newcommand*\patchAmsMathEnvironmentForLineno[1]{%
+            \expandafter\let\csname old#1\expandafter\endcsname\csname #1\endcsname
+            \expandafter\let\csname oldend#1\expandafter\endcsname\csname end#1\endcsname
+            \renewenvironment{#1}%
+                            {\linenomath\csname old#1\endcsname}%
+                            {\csname oldend#1\endcsname\endlinenomath}%
+          }%
+          \newcommand*\patchBothAmsMathEnvironmentsForLineno[1]{%
+            \patchAmsMathEnvironmentForLineno{#1}%
+            \patchAmsMathEnvironmentForLineno{#1*}%
+          }%
+          \patchBothAmsMathEnvironmentsForLineno{equation}%
+          \patchBothAmsMathEnvironmentsForLineno{align}%
+          \patchBothAmsMathEnvironmentsForLineno{flalign}%
+          \patchBothAmsMathEnvironmentsForLineno{alignat}%
+          \patchBothAmsMathEnvironmentsForLineno{gather}%
+          \patchBothAmsMathEnvironmentsForLineno{multline}%
+        }{}%
+      }%
+    \fi
   \fi
 \fi
 

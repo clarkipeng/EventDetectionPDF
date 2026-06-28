@@ -2,7 +2,7 @@
 \documentclass{article}
 
 \PassOptionsToPackage{numbers,compress}{natbib}
-\usepackage[dblblindworkshop]{neurips_2026}
+\usepackage[dblblindworkshop,nolinenumbers]{neurips_2026}
 \workshoptitle{Learning from Time Series for Health}
 
 \usepackage[utf8]{inputenc}
@@ -247,15 +247,25 @@ explicitly rather than hidden inside a segmentation surrogate.
 
 \section{Conclusion}
 
-Boundary Density Likelihood addresses a common mismatch in health time-series
-detection: models are often trained as samplewise segmenters but evaluated by
-ranked event times.
-By fitting expected boundary counts with a Poisson log score, BDL keeps the
-practical advantages of sequence prediction while making the output estimate
-the temporal detections that event metrics later match.
-The current results support BDL as a simple objective-level fix for event AP,
-with segmentation retained as the appropriate baseline when the target is
-samplewise state estimation.
+Boundary Density Likelihood changes the unit learned by a health time-series
+detector.
+When a long recording is ultimately reduced to a ranked list of onsets,
+offsets, or alarms, samplewise segmentation asks the model to solve a proxy
+problem and then repair the mismatch in post-processing.
+BDL instead gives each annotated boundary a conserved count, fits the
+conditional expected count on the model timeline, and decodes peaks from the
+same event-score sequences that event AP later matches.
+
+This matters because sparse health events are often the points at which timing
+errors, duplicate detections, and false positives carry the largest operational
+cost: missed episode starts, extra review burden, and weaker triage.
+The current evidence shows that a likelihood-level reframe can improve event
+AP across sleep and seizure settings without changing the backbone.
+The state-reconstruction diagnostic keeps the claim honest: segmentation
+remains the direct objective when the deployed quantity is samplewise
+occupancy.
+BDL is therefore best viewed as a simple, interpretable bridge between
+time-discretized sequence models and event-level decision interfaces.
 
 \clearpage
 \bibliographystyle{plainnat}

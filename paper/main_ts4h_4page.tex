@@ -44,8 +44,9 @@ Across sleep-event and CHB-MIT seizure benchmarks, BDL improves event mean
 average precision under matched folds, architectures, and decoders.
 On sleep, it improves GRU event mAP from 0.575 to 0.680 over cross-entropy
 segmentation, with the largest gains at one- and three-minute tolerances.
-The result is not that segmentation is obsolete; it is that event-localization
-benchmarks benefit from training on event locations directly.
+These results do not displace segmentation for state estimation; they show
+that event-localization benchmarks benefit from training on event locations
+directly.
 \end{abstract}
 
 \section{Motivation}
@@ -279,7 +280,7 @@ the claim.
 If the deployed product is a sleep--wake mask or another samplewise state,
 segmentation remains the right objective.
 If the deployed product is a ranked list of onsets, offsets, or alarms, BDL is
-the more faithful training signal.
+the better matched training signal.
 
 \clearpage
 \bibliographystyle{plainnat}

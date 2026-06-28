@@ -5,10 +5,10 @@ BDL is designed for settings where the evaluated output is a ranked set of event
 It keeps the dense sequence-prediction interface used by segmentation models, but changes the unit of supervision: each annotation contributes one expected event, smoothing redistributes that event in time, binning sums event contributions onto the model timeline, and a Poisson log score fits nonnegative boundary rates.
 
 The experiments show that this objective can improve event AP when the surrounding detector is held fixed.
-On sleep-event detection, the gains are largest at strict onset and wake-up tolerances, persist across recurrent and convolutional backbones, and are not recovered by class weighting, focal loss, or smoothing alone.
+On sleep-event detection, the gains are largest at strict endpoint tolerances, persist across recurrent and convolutional backbones, and are not recovered by class weighting, focal loss, or smoothing alone.
 The CHB-MIT seizure experiments and point-event ablations support the same interpretation under different signal types and event structures.
 Together, these results indicate that part of the segmentation gap comes from the training target itself: a model may learn a plausible interval interior while still producing poorly ranked endpoints.
 
 The method is intentionally narrower than a full event-history model and does not replace segmentation when the desired output is samplewise occupancy.
 Instead, it provides a likelihood-grounded target for detectors that will ultimately be judged by localized events.
-Future work should study stronger structured decoders for paired endpoints, calibrated online variants, and larger multi-domain evaluations where the relative value of boundary-rate training can be separated from architecture and post-processing choices.
+Future work should study stronger structured decoders for interval constraints and repeated occurrences, calibrated online variants, and larger multi-domain evaluations where the relative value of boundary-rate training can be separated from architecture and post-processing choices.

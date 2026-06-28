@@ -53,9 +53,9 @@ directly.
 
 Neural networks for health time series are often trained as segmenters, even
 when the evaluation asks for event times.
-For sleep monitoring, the important outputs are the onset and wake-up of a
-sleep episode; for seizure review, the useful summary is when an episode
-begins and ends \citep{shoeb2010,goldberger2000,alexander2017,esper2023}.
+For interval events, the useful output may be the beginning or end of an
+episode; for point events, it may be the time of an alarm, changepoint, or
+clinical action \citep{shoeb2010,goldberger2000,alexander2017,esper2023}.
 Benchmarks reflect this use case by sorting candidate detections, matching
 them inside task-specific tolerance windows, and reporting average precision
 \citep{everingham2010pascal,lin2014coco,salles2023}.
@@ -132,8 +132,9 @@ The conditional expected risk is minimized when the output equals the expected
 number of scored events in each bin, so the sequence output has a fixed unit
 rather than an arbitrary heatmap scale \citep{gneiting2007proper}.
 At inference, local maxima become ranked detections.
-For on--off states such as sleep and wake, alternation or duration constraints
-belong in decoding; the likelihood estimates endpoints, not legal intervals.
+For interval states, pairing, alternation, or duration constraints belong in
+decoding; the likelihood estimates event occurrences, not complete interval
+structure.
 
 \section{Experiments and Results}
 
@@ -264,9 +265,9 @@ nonnegative boundary rates.
 
 The experiments show that this objective can improve event AP when the
 surrounding detector is held fixed.
-On sleep-event detection, the gains are largest at strict onset and wake-up
-tolerances, persist across recurrent and convolutional backbones, and are not
-recovered by class weighting, focal loss, or smoothing alone.
+On sleep-event detection, the gains are largest at strict endpoint tolerances,
+persist across recurrent and convolutional backbones, and are not recovered by
+class weighting, focal loss, or smoothing alone.
 The CHB-MIT results support the same interpretation at a different signal
 modality and timing scale.
 Together, these results suggest that part of the segmentation gap comes from
@@ -277,9 +278,10 @@ BDL does not replace segmentation when the desired output is samplewise
 occupancy.
 It is instead a likelihood-grounded target for detectors that will ultimately
 be judged by localized events.
-Future work should study stronger structured decoders for paired endpoints,
-calibrated online variants, and broader health benchmarks where objective,
-architecture, and post-processing choices can be separated more fully.
+Future work should study stronger structured decoders for interval constraints
+and repeated occurrences, calibrated online variants, and broader health
+benchmarks where objective, architecture, and post-processing choices can be
+separated more fully.
 
 \clearpage
 \bibliographystyle{plainnat}

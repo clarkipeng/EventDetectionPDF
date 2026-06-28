@@ -1135,6 +1135,8 @@ def plot_sleep_prediction_example(outdir):
     k_bdl.set_xlabel("Hours relative to onset", fontsize=6.6)
     k_bdl.set_xlim(hours_raw.min(), hours_raw.max())
     for ax in k_axes:
+        ax.axvline(onset_hour, color=PALETTE["bdl_dark"], linestyle="--", linewidth=0.88, zorder=8)
+        ax.axvline(wake_hour, color=PALETTE["accent"], linestyle="--", linewidth=0.88, zorder=8)
         ax.tick_params(axis="both", labelsize=5.8, pad=1.0)
         ax.set_ylabel("")
     plt.setp(k_signal.get_xticklabels(), visible=False)

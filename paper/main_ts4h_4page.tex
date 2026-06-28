@@ -208,9 +208,10 @@ helps.
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.98\linewidth]{sleep_prediction_compact.png}
-\caption{Held-out sleep window.  Segmentation predicts a state interval and
-derives boundary scores afterward; BDL directly scores the onset and wake-up
-events matched by event AP.}
+\caption{Held-out sleep window on a shared time axis.  Dashed lines mark the
+annotated onset and wake-up.  Segmentation predicts a state interval and
+derives boundary scores afterward; BDL directly scores the endpoint events
+matched by event AP.}
 \label{fig:qualitative}
 \end{figure}
 
@@ -255,17 +256,6 @@ the temporal detections that event metrics later match.
 The current results support BDL as a simple objective-level fix for event AP,
 with segmentation retained as the appropriate baseline when the target is
 samplewise state estimation.
-
-Two limitations are important for the workshop version.
-First, likelihood alignment does not remove decoder design.
-Endpoint pairing, alternating onset/offset constraints, refractory windows,
-and duration priors should be applied after scoring and ablated separately,
-especially for on--off processes such as sleep.
-Second, event gains should be reported alongside state reconstruction whenever
-the same detections might be used to recover intervals.
-That paired view is what keeps the claim honest: BDL is not a universal
-replacement for segmentation, but a likelihood-based target for detectors whose
-primary output is a ranked temporal event.
 
 \clearpage
 \bibliographystyle{plainnat}

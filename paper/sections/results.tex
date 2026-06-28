@@ -58,8 +58,8 @@ The likelihood defines the training signal; kernel shape, output stride, represe
 
 The appendix uses the same logic to test alternative explanations.
 If the gain came from a fortunate smoothing width, rare-class initialization, stronger encoder, or ordinary class-imbalance handling, then the kernel, prior, segmentation-reweighting, and architecture controls should close the gap under the same event scorer.
-They do not close the gap on sleep.
+On sleep, these controls do not close the gap.
 Other controls change the setting around the objective: CHB-MIT changes signal type and timing scale, point-event data remove paired endpoints, stride changes the output timeline, streaming and Transformer comparisons alter the available context and representation, and state reconstruction changes the quantity evaluated after training.
-These studies define the useful scope of the method: BDL supplies event-scoring outputs for AP, while representation, output stride, context, calibration, and post-processing determine how accurately those scores become detections.
+These studies define the scope of the method: BDL supplies event-scoring outputs for AP, while representation, output stride, context, calibration, and post-processing determine how accurately those scores become detections.
 
 \input{sections/qualitative_figure}

@@ -2,7 +2,7 @@
 \label{sec:method}
 
 BDL keeps the usual sequence-model interface: an input window is mapped to per-bin predictions.
-The change is what those predictions mean.
+It changes the interpretation of those predictions.
 For bin $b$ and event type $c$, the model estimates how many type-$c$ events the bin contains in expectation.
 We use ``boundary'' to mean the scored event time: for interval data this is an onset or offset, and for point-event data it is the event itself.
 The word ``density'' does not imply a probability distribution over one unknown position in the window.

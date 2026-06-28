@@ -1,5 +1,5 @@
 Event detection turns long time series into discrete decisions: alarms, boundaries, actions, or episodes that are scored by their timing.
-A common shortcut trains samplewise segmentation masks and derives event times only after thresholding or transition detection, creating a mismatch when evaluation ranks temporal detections rather than labels at every sample.
+A common reduction trains samplewise segmentation masks and derives event times only after thresholding or transition detection, creating a mismatch when evaluation ranks temporal detections rather than labels at every sample.
 We introduce Boundary Density Likelihood (BDL), a likelihood objective that trains sequence models on the events later matched by event average precision.
 BDL maps annotations to expected events on the model output timeline and fits nonnegative sequence outputs with a Poisson log score.
 Unit-sum smoothing represents timing uncertainty, while summing into output bins changes temporal resolution without changing the number of annotated events.

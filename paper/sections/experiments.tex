@@ -12,7 +12,7 @@ The Child Mind Institute sleep benchmark contains wrist-accelerometer recordings
 It highlights the supervision mismatch because the annotated sleep interval can last for hours while evaluation scores minute-scale onset and wake-up matches.
 The CHB-MIT seizure benchmark contains EEG recordings with seizure intervals sampled at 256 Hz and tests rarer events with second-scale matching tolerances \citep{shoeb2010,goldberger2000,klem1999}.
 In both cases, supervision is built only for the event types scored by average precision: onset and wake-up for sleep, and seizure onset and offset for CHB-MIT.
-The two benchmarks are deliberately different.
+The two benchmarks differ by design.
 Sleep makes the mismatch visible because a long state interval is evaluated through short endpoint matches; CHB-MIT stresses the same formulation under higher sampling rate, rarer events, and stricter absolute timing.
 \IfFileExists{results/generated/point_event_ablation_ready.tex}{Additional point-event ablations on Martian bow-shock and credit-card fraud detection test the same objective families without paired interval endpoints \citep{azib2023universal}.}{}
 
@@ -22,7 +22,7 @@ We add class-weighted cross-entropy and focal segmentation to test whether stand
 We then repeat the strongest BDL and segmentation objectives with one-dimensional U-Nets and an attention-gated U-Net variant \citep{ronneberger2015,oktay2018attention}.
 The U-Net controls test whether the same objective effect appears after replacing the recurrent encoder with convolutional segmentation backbones whose multi-scale skip connections are designed to recover time-localized labels from long context.
 The attention-gated variant remains within this convolutional family: it changes skip-feature selection without changing the detector into a self-attention model.
-If cross-entropy were weak only because the GRU was a poor interval-mask predictor, these segmentation-oriented backbones should narrow the gap before any specialized event decoder is introduced.
+These segmentation-oriented backbones test whether the gap is explained by the recurrent encoder rather than by the training target.
 Offline Transformer diagnostics are reported separately because they add a self-attention detector family with different sequence-length, memory, and optimizer tradeoffs \citep{vaswani2017attention}.
 Those objective comparisons still use matched scoring and decoder calibration, but they are interpreted as backbone-specific scope checks rather than as simple skip-connection variants.
 Optimization settings are selected at the benchmark-and-backbone level for stable multi-epoch training, then held fixed inside each matched objective comparison.
@@ -31,7 +31,7 @@ For sleep, the shared learning rate is chosen for reliable Poisson-objective tra
 For CHB-MIT, the high-capacity GRU configurations use a smaller step size, batch size 8, and gradient clipping because the EEG sequences are longer and the recurrent state is larger.
 Calibration and post-processing parameters, such as candidate smoothing, score cutoffs, peak separation, and interval alternation, are selected on validation folds before aggregation.
 They are therefore part of the evaluated detector, but not part of the training objective.
-This protocol treats optimization and calibration as controlled experimental conditions rather than hidden method components.
+This protocol treats optimization and calibration as controlled experimental conditions rather than objective-specific method components.
 The candidate-smoothing grid is chosen to match each benchmark's scoring scale.
 For the reported CHB-MIT tables, decoder calibration is performed after expanding predictions back to the original 256 Hz timeline, with no smoothing, one-second smoothing, and two-second smoothing as the candidate scales.
 This post-training rescoring keeps calibration aligned with second-scale seizure endpoint tolerances and avoids treating broad sleep-scale smoothing as a default for EEG endpoint scoring.

@@ -63,17 +63,16 @@ As a result, a model can label most interior samples correctly and still lose
 credit because the boundary is late, duplicated, missed, or assigned a low
 score \citep{tatbul2018precision}.
 
-This does not mean that dense sequence outputs are the wrong interface.
-They are often the most practical way to use long context and modern
+Dense sequence outputs remain a practical way to use long context and modern
 architectures.
-The question is what those outputs should estimate.
+The issue is what those outputs are trained to estimate.
 Segmentation estimates state occupancy and then derives events afterward.
 For benchmarks that consume ranked onset, offset, or alarm times, a more
 direct target is the event density itself.
 Related areas already use localized supervision for keypoints, sound events,
 action boundaries, temporal proposals, and time-series event regression
 \citep{newell2016stacked,xiao2018simple,phan2015,gao2017turn,lin2018bsn,lin2019bmn,azib2023universal}.
-Localized boundary targets are therefore prior art.
+These precedents make localized boundary targets prior art.
 BDL's contribution is to give that supervision a count-preserving likelihood
 interpretation for health time series: after smoothing, clipping, and
 downsampling, each annotation still contributes one expected event, and the
@@ -243,11 +242,11 @@ The state-reconstruction diagnostic makes the scope explicit.
 When predictions are converted back to sleep-state intervals and scored by
 samplewise F1, direct cross-entropy segmentation remains stronger than BDL
 hazard reconstruction, 0.914 versus 0.888.
-This is not a contradiction: BDL changes what the sequence output estimates
-when the benchmark matches ranked event times, while state labels remain the
-direct target for samplewise occupancy.
+The two results measure different prediction targets: BDL changes what the
+sequence output estimates when the benchmark matches ranked event times, while
+state labels remain the direct target for samplewise occupancy.
 
-BDL is also more modest than a temporal point process.
+BDL is also narrower than a temporal point process.
 It does not model censoring, mark dynamics, or clinical event generation.
 Its contribution is to give localized boundary supervision a likelihood and a
 unit: expected scored events per output bin.

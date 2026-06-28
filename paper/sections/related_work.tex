@@ -13,6 +13,7 @@ Samplewise segmentation models remain practical because they share computation a
 The question is what loss should be attached to such sequence predictors when the benchmark consumes detections.
 Pose estimation, acoustic-event detection, and temporal action localization provide useful precedents for placing supervision near annotated times through keypoint maps, proximity targets, or start/end evidence \citep{newell2016stacked,xiao2018simple,luo2021,yu2022,phan2015,gao2017turn,lin2018bsn,lin2019bmn}.
 Recent time-series event work makes a similar criticism of samplewise event/non-event labels, especially for rare and interval-defined events, and argues for a broad regression-based alternative to classification \citep{azib2023universal}.
+Localized boundary targets are therefore prior art.
 These methods motivate moving supervision toward the times that will be detected, but a proximity target alone does not specify what the output should estimate after the recording is windowed, smoothed, or downsampled.
 BDL addresses the complementary question of what that localized supervision estimates once a continuous recording is clipped, smoothed, and mapped to a shorter output timeline.
 If localized labels are arbitrary proximity scores, their scale can depend on window length, kernel width, pooling, or nearby annotations.

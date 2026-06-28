@@ -34,8 +34,8 @@ The standard deep-learning reduction is still segmentation: predict a state
 label at each timestep, then search the predicted mask for transitions.
 That reduction is useful when the state mask is the desired output, but it can
 make precise onset and offset detection an indirect byproduct.
-We introduce Boundary Density Likelihood (BDL), a likelihood version of
-boundary heatmap regression for sequence models.
+We introduce Boundary Density Likelihood (BDL), a count-preserving likelihood
+objective for localized boundary supervision.
 Each annotation contributes one expected event, optional smoothing represents
 timing uncertainty, temporal binning preserves the event count, and a Poisson
 log score fits nonnegative boundary rates whose peaks become ranked
@@ -70,12 +70,13 @@ Segmentation estimates state occupancy and then derives events afterward.
 For benchmarks that consume ranked onset, offset, or alarm times, a more
 direct target is the event density itself.
 Related areas already use localized supervision for keypoints, sound events,
-action boundaries, and temporal proposals
-\citep{newell2016stacked,xiao2018simple,phan2015,gao2017turn,lin2018bsn,lin2019bmn}.
-BDL gives the same idea a count-preserving likelihood interpretation for
-health time series: after smoothing, clipping, and downsampling, each
-annotation still contributes one expected event, and the model estimates the
-expected scored events in each output bin.
+action boundaries, temporal proposals, and time-series event regression
+\citep{newell2016stacked,xiao2018simple,phan2015,gao2017turn,lin2018bsn,lin2019bmn,azib2023universal}.
+Localized boundary targets are therefore prior art.
+BDL's contribution is to give that supervision a count-preserving likelihood
+interpretation for health time series: after smoothing, clipping, and
+downsampling, each annotation still contributes one expected event, and the
+model estimates the expected scored events in each output bin.
 
 \section{Boundary Density Likelihood}
 
@@ -223,11 +224,13 @@ and wake-up.}
 
 \section{Related Work and Scope}
 
-BDL is closest in spirit to heatmap or proximity supervision, but its output
-has a different unit.
-In keypoint, sound-event, and action-boundary work, localized heatmaps are
-often useful engineering labels; in health recordings, however, kernel width,
-window clipping, and output stride can silently change the target mass.
+BDL is closest in spirit to heatmap, proximity, and start/end supervision.
+Those ideas already appear in keypoint, sound-event, action-boundary, temporal
+proposal, and time-series event-regression work
+\citep{newell2016stacked,xiao2018simple,phan2015,gao2017turn,lin2018bsn,lin2019bmn,azib2023universal}.
+The difference is the unit of the output.
+In health recordings, kernel width, window clipping, and output stride can
+silently change the target mass.
 Equations~\eqref{eq:smooth}--\eqref{eq:loss} keep the unit fixed as expected
 scored events per bin.
 This matters for long empty windows, repeated events, and multi-resolution
@@ -244,8 +247,8 @@ direct target for samplewise occupancy.
 
 BDL is also more modest than a temporal point process.
 It does not model censoring, mark dynamics, or clinical event generation.
-Its contribution is to give heatmap-style boundary supervision a likelihood
-and a unit: expected scored events per output bin.
+Its contribution is to give localized boundary supervision a likelihood and a
+unit: expected scored events per output bin.
 That separation is useful in health deployments.
 If the deployed system needs legal sleep intervals, alternating onset/offset
 pairs, or duration priors, those constraints should be decoded and evaluated

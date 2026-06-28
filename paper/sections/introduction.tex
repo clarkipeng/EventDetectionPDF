@@ -8,7 +8,7 @@ Modern event-detection benchmarks encode this decision interface directly.
 They sort detections by confidence, match them to annotations inside task-specific tolerance windows, and summarize the resulting precision--recall curve.
 The model is therefore judged not only by labels assigned to samples, but by how well it ranks the temporal decisions that the benchmark and downstream system will use.
 
-A standard reduction is to convert sparse event annotations into a samplewise segmentation problem.
+A common reduction is to convert sparse event annotations into a samplewise segmentation problem.
 Interval labels are expanded into per-sample states, a sequence model predicts those states, and event scores are recovered afterward from thresholds, transitions, or edge evidence.
 This reduction is natural when deployment consumes calibrated state probabilities at every sample.
 It becomes indirect when evaluation ignores most samples and rewards the timing of localized detections.

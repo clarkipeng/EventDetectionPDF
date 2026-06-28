@@ -1,11 +1,11 @@
 \section{Conclusion}
 
-This paper introduced Boundary Density Likelihood, a count-preserving likelihood objective for sequence event detectors.
+We introduced Boundary Density Likelihood, a count-preserving likelihood objective for sequence event detectors.
 BDL is designed for settings where the evaluated output is a ranked set of event times rather than a samplewise state mask.
 It keeps the dense sequence-prediction interface used by segmentation models, but changes the unit of supervision: each annotation contributes one expected event, smoothing redistributes that event in time, binning sums event contributions onto the model timeline, and a Poisson log score fits nonnegative boundary rates.
 
-The experiments show that this objective can improve event AP when the surrounding detector is held fixed.
-On sleep-event detection, the gains are largest at strict endpoint tolerances, persist across recurrent and convolutional backbones, and are not recovered by class weighting, focal loss, or smoothing alone.
+Across matched detector comparisons, this objective improves event AP most where temporal precision matters: strict endpoint tolerances.
+On sleep-event detection, the gains persist across recurrent and convolutional backbones and are not recovered by class weighting, focal loss, or smoothing alone.
 The CHB-MIT seizure experiments and point-event ablations support the same interpretation under different signal types and event structures.
 Together, these results indicate that part of the segmentation gap comes from the training target itself: a model may learn a plausible interval interior while still producing poorly ranked endpoints.
 

@@ -30,9 +30,9 @@
 \begin{abstract}
 Many health time-series problems are scored by the timing of a few events:
 sleep onset, wake-up, seizure boundaries, alarms, or episode endpoints.
-The standard deep-learning reduction is still segmentation: predict a state
-label at each timestep, then search the predicted mask for transitions.
-That reduction is useful when the state mask is the desired output, but it can
+A common deep-learning reduction is segmentation: predict a state label at
+each timestep, then search the resulting mask for transitions.
+This reduction is useful when the state mask is the desired output, but it can
 make precise onset and offset detection an indirect byproduct.
 We introduce Boundary Density Likelihood (BDL), a count-preserving likelihood
 objective for localized boundary supervision.
@@ -44,18 +44,19 @@ Across sleep-event and CHB-MIT seizure benchmarks, BDL improves event mean
 average precision under matched folds, architectures, and decoders.
 On sleep, it improves GRU event mAP from 0.575 to 0.680 over cross-entropy
 segmentation, with the largest gains at one- and three-minute tolerances.
-These results do not displace segmentation for state estimation; they show
-that event-localization benchmarks benefit from training on event locations
-directly.
+BDL does not replace segmentation for state estimation; rather, these results
+show that event-localization benchmarks can benefit from training on event
+locations directly.
 \end{abstract}
 
 \section{Motivation}
 
 Neural networks for health time series are often trained as segmenters, even
 when the evaluation asks for event times.
-For interval events, the useful output may be the beginning or end of an
-episode; for point events, it may be the time of an alarm, changepoint, or
-clinical action \citep{shoeb2010,goldberger2000,alexander2017,esper2023}.
+For interval events, downstream decisions often depend on the beginning or end
+of an episode; for point events, on the time of an alarm, changepoint, or
+intervention trigger
+\citep{shoeb2010,goldberger2000,alexander2017,esper2023}.
 Benchmarks reflect this use case by sorting candidate detections, matching
 them inside task-specific tolerance windows, and reporting average precision
 \citep{everingham2010pascal,lin2014coco,salles2023}.
@@ -68,11 +69,11 @@ architectures.
 The issue is what those outputs are trained to estimate.
 Segmentation estimates state occupancy and then derives events afterward.
 For benchmarks that consume ranked onset, offset, or alarm times, a more
-direct target is the event density itself.
+direct target is a sequence of event counts.
 Related areas already use localized supervision for keypoints, sound events,
 action boundaries, temporal proposals, and time-series event regression
 \citep{newell2016stacked,xiao2018simple,phan2015,gao2017turn,lin2018bsn,lin2019bmn,azib2023universal}.
-These precedents make localized boundary targets prior art.
+These precedents establish localized event targets as prior work.
 BDL's contribution is to give that supervision a count-preserving likelihood
 interpretation for health time series: after smoothing, clipping, and
 downsampling, each annotation still contributes one expected event, and the
@@ -254,19 +255,19 @@ detector.
 
 \section{Conclusion}
 
-This paper introduced Boundary Density Likelihood, a count-preserving
-likelihood objective for health time-series event detectors.
+We introduced Boundary Density Likelihood, a count-preserving likelihood
+objective for health time-series event detectors.
 BDL keeps the dense sequence-prediction interface used by segmentation models,
 but changes the unit of supervision: each annotation contributes one expected
 event, smoothing redistributes that event in time, binning sums event
 contributions onto the model timeline, and a Poisson log score fits
 nonnegative boundary rates.
 
-The experiments show that this objective can improve event AP when the
-surrounding detector is held fixed.
-On sleep-event detection, the gains are largest at strict endpoint tolerances,
-persist across recurrent and convolutional backbones, and are not recovered by
-class weighting, focal loss, or smoothing alone.
+Across matched detector comparisons, this objective improves event AP most
+where temporal precision matters: strict endpoint tolerances.
+On sleep-event detection, the gains persist across recurrent and convolutional
+backbones and are not recovered by class weighting, focal loss, or smoothing
+alone.
 The CHB-MIT results support the same interpretation at a different signal
 modality and timing scale.
 Together, these results suggest that part of the segmentation gap comes from

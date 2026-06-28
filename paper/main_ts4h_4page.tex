@@ -205,6 +205,9 @@ architecture, scorer, and decoder calibration.}
 Table~\ref{tab:summary} summarizes the broader evidence.
 BDL-Hard remains above segmentation for the GRU, U-Net, and attention-gated
 U-Net.
+A paired fold check gives the same direction on all 36 matched sleep
+seed--fold comparisons across these three backbones, and on all eight
+available CHB-MIT folds for the two high-capacity stride rows.
 On CHB-MIT, the strongest BDL kernel changes with output stride, but the
 matched comparison is stable: BDL-Gaussian improves two-second-stride mAP from
 0.252 to 0.360, and BDL-Hard improves one-second-stride mAP from 0.287 to

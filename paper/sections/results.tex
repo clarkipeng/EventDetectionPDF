@@ -22,7 +22,7 @@ These comparisons replace the representation with recurrent and convolutional ba
 They also rule out a simpler explanation: segmentation is not weak only because the baseline recurrent encoder is mismatched to interval-mask prediction.
 Across these controls the main change is the supervision and loss, while every trained model is still converted to ranked detections and scored by the same event-matching protocol.
 Figure~\ref{fig:qualitative-window} illustrates the mechanism in a held-out sleep window: segmentation learns an interval mask and derives event scores afterward, while BDL directly scores the onset and wake-up events ranked by event AP.
-Appendix Table~\ref{tab:paired-fold-consistency} shows the same direction on every matched sleep seed-fold comparison for the completed recurrent and convolutional controls.
+Appendix Table~\ref{tab:paired-fold-consistency} quantifies the stability of this pattern: BDL-Hard exceeds cross-entropy on all 36 matched sleep seed--fold comparisons across the GRU, U-Net, and attention-gated U-Net controls.
 \IfFileExists{results/generated/attention_unet_control.tex}{%
 Appendix Table~\ref{tab:attention-unet-control} reports the attention-gated U-Net as a convolutional sensitivity check.
 }{}
@@ -46,6 +46,9 @@ The stricter endpoint analysis in the appendix separates boundary localization
 from broader episode retrieval.
 Across both stride settings, the main comparison is stable: after capacity and
 output timeline are fixed, BDL remains above the matched segmentation baseline.
+The paired-fold check in Appendix Table~\ref{tab:paired-fold-consistency}
+shows the same direction on all eight available CHB-MIT folds for these
+high-capacity stride comparisons.
 \IfFileExists{results/generated/seizure_highscore_strict3_ready.tex}{%
 Under the stricter one-to-three-second endpoint analysis in the appendix,
 BDL-Hard and BDL-Gaussian remain above cross-entropy, while the tolerance-shaped

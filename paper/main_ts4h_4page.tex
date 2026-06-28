@@ -232,8 +232,9 @@ proposal, and time-series event-regression work
 The difference is the unit of the output.
 In health recordings, kernel width, window clipping, and output stride can
 silently change the target mass.
-Equations~\eqref{eq:smooth}--\eqref{eq:loss} keep the unit fixed as expected
-scored events per bin.
+BDL keeps that unit fixed by smoothing each annotation as one event, summing
+the smoothed target into output bins, and fitting the resulting event count
+with a Poisson log score.
 This matters for long empty windows, repeated events, and multi-resolution
 training, where an arbitrary dense scale can change the false-positive
 pressure seen by the model.

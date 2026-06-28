@@ -99,6 +99,8 @@ kernel $\kernel$ with unit mass:
   \label{eq:smooth}
 \end{align}
 We use hard, truncated Gaussian, and tolerance-aligned kernels.
+The tolerance-aligned kernel spreads one annotation over the same timing
+windows used by event AP, then normalizes the result to one event.
 Because the kernel sums to one, smoothing changes where an annotation can
 appear but not how many events it represents.
 If output bin $b$ covers raw timesteps $G_b$, the binned target is the

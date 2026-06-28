@@ -246,14 +246,11 @@ The two results measure different prediction targets: BDL changes what the
 sequence output estimates when the benchmark matches ranked event times, while
 state labels remain the direct target for samplewise occupancy.
 
-BDL is also narrower than a temporal point process.
-It does not model censoring, mark dynamics, or clinical event generation.
-Its contribution is to give localized boundary supervision a likelihood and a
-unit: expected scored events per output bin.
-That separation is useful in health deployments.
-If the deployed system needs legal sleep intervals, alternating onset/offset
-pairs, or duration priors, those constraints should be decoded and evaluated
-explicitly rather than hidden inside a segmentation surrogate.
+BDL uses counting-process notation only to define a supervised target, not to
+model complete event histories.
+Its output is the expected number of scored events per bin; application-specific
+structure should be handled by the decoder and evaluated as part of the
+detector.
 
 \section{Conclusion}
 

@@ -1078,11 +1078,17 @@ def plot_sleep_prediction_example(outdir):
     fig_col.savefig(outdir / "sleep_prediction_column.png", dpi=260)
     plt.close(fig_col)
 
-    fig_compact = plt.figure(figsize=(6.75, 2.75))
-    gs_compact = fig_compact.add_gridspec(3, 1, height_ratios=[0.92, 0.70, 0.78], hspace=0.12)
-    k_signal = fig_compact.add_subplot(gs_compact[0, 0])
-    k_seg = fig_compact.add_subplot(gs_compact[1, 0], sharex=k_signal)
-    k_bdl = fig_compact.add_subplot(gs_compact[2, 0], sharex=k_signal)
+    fig_compact = plt.figure(figsize=(6.75, 2.90))
+    gs_compact = fig_compact.add_gridspec(
+        2,
+        2,
+        height_ratios=[1.02, 0.86],
+        hspace=0.24,
+        wspace=0.10,
+    )
+    k_signal = fig_compact.add_subplot(gs_compact[0, :])
+    k_seg = fig_compact.add_subplot(gs_compact[1, 0])
+    k_bdl = fig_compact.add_subplot(gs_compact[1, 1])
     k_axes = [k_signal, k_seg, k_bdl]
     for ax in k_axes:
         ax.axvspan(onset_hour, wake_hour, color=PALETTE["seg_light"], alpha=0.13, lw=0)
@@ -1098,6 +1104,7 @@ def plot_sleep_prediction_example(outdir):
     k_signal.fill_between(hours_raw, 0, enmo_norm, color=PALETTE["gold"], alpha=0.20, label="ENMO")
     k_signal.set_ylim(-1.9, 2.1)
     k_signal.set_yticks([])
+    k_signal.set_xlim(hours_raw.min(), hours_raw.max())
     k_signal.legend(
         loc="upper right",
         fontsize=5.2,
@@ -1112,8 +1119,10 @@ def plot_sleep_prediction_example(outdir):
     k_seg.plot(hours_pred, transition, color=PALETTE["seg_dark"], linewidth=0.55, alpha=0.50)
     k_seg.fill_between(hours_pred, 0, seg, color=PALETTE["seg"], alpha=0.08)
     k_seg.set_ylim(-0.04, 1.04)
+    k_seg.set_xlim(hours_raw.min(), hours_raw.max())
     k_seg.set_yticks([0, 1])
     k_seg.set_yticklabels(["0", "1"], fontsize=5.7)
+    k_seg.set_xlabel("Hours relative to onset", fontsize=6.6)
 
     k_bdl.set_title("C. BDL", loc="left", fontsize=6.8, weight="semibold", pad=1.0)
     k_bdl.plot(hours_pred, bdl_on, color=PALETTE["bdl"], linewidth=1.10)
@@ -1140,8 +1149,7 @@ def plot_sleep_prediction_example(outdir):
         ax.tick_params(axis="both", labelsize=5.8, pad=1.0)
         ax.set_ylabel("")
     plt.setp(k_signal.get_xticklabels(), visible=False)
-    plt.setp(k_seg.get_xticklabels(), visible=False)
-    fig_compact.subplots_adjust(left=0.060, right=0.995, top=0.935, bottom=0.160)
+    fig_compact.subplots_adjust(left=0.060, right=0.995, top=0.930, bottom=0.170)
     fig_compact.savefig(outdir / "sleep_prediction_compact.png", dpi=280)
     plt.close(fig_compact)
 

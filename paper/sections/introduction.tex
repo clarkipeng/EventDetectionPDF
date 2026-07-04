@@ -1,0 +1,38 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Time-series event detection is the interface between long recordings and discrete decisions.
+Clinical recordings, activity traces, industrial logs, audio streams, and scientific measurements can contain thousands or millions of samples, but the action taken downstream is often triggered by a much smaller set of times: an alarm, a changepoint, the beginning or end of an episode, or the next repeated action \citep{guralnik1999,aminikhanghahi2017,shoeb2010,goldberger2000,alexander2017,esper2023,azib2023universal}.
+Those detected times decide which segment is reviewed, which alert is raised, which episode enters a database, or which candidate an expert must confirm, so a detector can be accurate over most samples and still fail by being late, early, duplicated, or poorly ranked at the few times that matter.
+Modern event-detection benchmarks encode this decision interface directly.
+They sort detections by confidence, match them to annotations inside task-specific tolerance windows, and summarize the resulting precision--recall curve.
+The model is therefore judged not only by labels assigned to samples, but by how well it ranks the temporal decisions that the benchmark and downstream system will use.
+
+A common reduction is to convert sparse event annotations into a samplewise segmentation problem.
+Interval labels are expanded into per-sample states, a sequence model predicts those states, and event scores are recovered afterward from thresholds, transitions, or edge evidence.
+This reduction is natural when deployment consumes calibrated state probabilities at every sample.
+It becomes indirect when evaluation ignores most samples and rewards the timing of localized detections.
+The issue is not the use of a time-discretized sequence output, which is often the practical interface for long recordings.
+The issue is what that output is trained to estimate.
+The same distinction appears whenever long context supports a short decision, repeated events can occur within one window, several event types are scored separately, or annotation uncertainty is mostly about time rather than class identity.
+Sleep-event detection makes the contrast easy to see: a sleep interval can last for hours, while the benchmark gives credit for onset and wake-up predictions inside minute-scale windows.
+The interval interior provides evidence for the events, but event AP matches the endpoints.
+
+The broader detection literature already shows that supervision need not be uniform over an annotated region.
+Pose, audio, and temporal-action systems often emphasize keypoints, sound events, starts, or ends rather than treating every background and interior sample symmetrically \citep{newell2016stacked,xiao2018simple,luo2021,yu2022,phan2015,gao2017turn,lin2018bsn,lin2019bmn}.
+Recent time-series event work makes the same move away from hard per-sample classification by using overlap- or proximity-derived labels near annotated events \citep{azib2023universal}.
+These precedents motivate localized supervision, but they do not by themselves define what that training signal should mean after smoothing, clipping, temporal downsampling, or nearby annotations.
+When the final score is event AP, the invariant object is already present in the annotation: a time region contains zero, one, or several events.
+A training signal for this setting should preserve those event occurrences while allowing the detector to choose a resolution, a timing-uncertainty model, and a decoder.
+
+We introduce \emph{Boundary Density Likelihood} (BDL), a likelihood objective for sequence event detectors.
+BDL treats each annotation as one event occurrence of its type: smoothing can redistribute that occurrence to represent timing uncertainty, temporal binning sums it into model outputs, and a Poisson negative log-likelihood fits nonnegative predictions with units of expected events per bin.
+The units are therefore fixed by the annotation, unlike normalized position distributions, unscaled proximity scores, or samplewise state labels.
+This construction applies to empty windows, repeated events, point events, onset-only labels, interval endpoints, and multi-type streams without requiring paired endpoints.
+
+This paper makes three contributions.
+First, it gives sequence detectors a training signal aligned with the objects matched by event-level average precision: how many scored events fall in each output bin, rather than only which state label holds at each sample.
+Second, it fixes the units of localized event supervision: smoothing, clipping, and temporal binning can change where an annotation is placed on the output timeline, but not how many annotated events it represents.
+Third, it evaluates the resulting likelihood objective in controlled detector comparisons rather than as a standalone architecture change.
+On sleep-event detection, changing the supervision improves strict event AP across recurrent and convolutional backbones, while class weighting and focal segmentation do not recover the same localization performance.
+CHB-MIT, point-event, kernel, architecture, streaming-context, and state-reconstruction ablations then separate the effect of likelihood supervision from representation, output stride, calibration, event structure, and decoding choices.

@@ -1,0 +1,4 @@
+{
+  "install": ["uv venv --python 3.10 .venv"],
+  "install_timeout_seconds": 600
+}

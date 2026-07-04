@@ -1,0 +1,122 @@
+dataset,model,objective,seed,run_tag,phase,name,purpose,target_epochs,target_folds,target_batch_size,target_downsample,target_eval_every,score_required
+sleep,gru,density_custom,0,lr3e4_e2,P0,lr_screen_density_custom,Choose optimizer scale after switching to Poisson likelihood.,2,2,10,10,1,False
+sleep,gru,density_custom,0,lr1e3_e2,P0,lr_screen_density_custom,Choose optimizer scale after switching to Poisson likelihood.,2,2,10,10,1,False
+sleep,gru,density_custom,0,lr3e3_e2,P0,lr_screen_density_custom,Choose optimizer scale after switching to Poisson likelihood.,2,2,10,10,1,False
+sleep,gru,density_custom,0,lr3e3_e20_gpu_bs32_eval5,P1,current_density_candidate,First real multi-epoch CUDA run for the main method.,20,4,32,10,5,True
+sleep,gru,density_hard,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,Screen BDL kernels and segmentation losses; P1 supplies density_custom.,20,4,32,10,5,True
+sleep,gru,density_gau,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,Screen BDL kernels and segmentation losses; P1 supplies density_custom.,20,4,32,10,5,True
+sleep,gru,seg,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,Screen BDL kernels and segmentation losses; P1 supplies density_custom.,20,4,32,10,5,True
+sleep,gru,seg_weighted,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,Screen BDL kernels and segmentation losses; P1 supplies density_custom.,20,4,32,10,5,True
+sleep,gru,seg_focal,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,Screen BDL kernels and segmentation losses; P1 supplies density_custom.,20,4,32,10,5,True
+sleep,gru,density_hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,gru,density_hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,gru,density_hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,gru,seg,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,gru,seg,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,gru,seg,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet,density_hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet,density_hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet,density_hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet,seg,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet,seg,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet,seg,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet_t,density_hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet_t,density_hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet_t,density_hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet_t,seg,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet_t,seg,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,unet_t,seg,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,10,5,True
+sleep,gru,density_gau,0,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,density_gau,1,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,density_gau,2,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,density_custom,0,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,density_custom,1,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,density_custom,2,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,seg_weighted,0,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,seg_weighted,1,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,seg_weighted,2,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,seg_focal,0,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,seg_focal,1,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,gru,seg_focal,2,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,10,5,True
+sleep,unet,density_gau,0,objective_e20_bs32_eval5,P4G,gaussian_kernel_architecture_ablation,Test the Gaussian label-error target across non-GRU core architectures.,20,4,32,10,5,True
+sleep,unet,density_gau,1,objective_e20_bs32_eval5,P4G,gaussian_kernel_architecture_ablation,Test the Gaussian label-error target across non-GRU core architectures.,20,4,32,10,5,True
+sleep,unet,density_gau,2,objective_e20_bs32_eval5,P4G,gaussian_kernel_architecture_ablation,Test the Gaussian label-error target across non-GRU core architectures.,20,4,32,10,5,True
+sleep,unet_t,density_gau,0,objective_e20_bs32_eval5,P4G,gaussian_kernel_architecture_ablation,Test the Gaussian label-error target across non-GRU core architectures.,20,4,32,10,5,True
+sleep,unet_t,density_gau,1,objective_e20_bs32_eval5,P4G,gaussian_kernel_architecture_ablation,Test the Gaussian label-error target across non-GRU core architectures.,20,4,32,10,5,True
+sleep,unet_t,density_gau,2,objective_e20_bs32_eval5,P4G,gaussian_kernel_architecture_ablation,Test the Gaussian label-error target across non-GRU core architectures.,20,4,32,10,5,True
+sleep,gru,density_custom,0,prior_sparse_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-intensity initialization matters.,20,4,32,10,5,True
+sleep,gru,density_custom,0,prior_none_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-intensity initialization matters.,20,4,32,10,5,True
+sleep,gru,density_custom,1,prior_sparse_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-intensity initialization matters.,20,4,32,10,5,True
+sleep,gru,density_custom,1,prior_none_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-intensity initialization matters.,20,4,32,10,5,True
+sleep,gru,density_custom,2,prior_sparse_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-intensity initialization matters.,20,4,32,10,5,True
+sleep,gru,density_custom,2,prior_none_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-intensity initialization matters.,20,4,32,10,5,True
+sleep,gru,density_custom,0,tol05_e20_bs32_eval5,P6,target_width_ablation,Appendix sensitivity of tolerance-derived density target width.,20,4,32,10,5,True
+sleep,gru,density_custom,0,tol15_e20_bs32_eval5,P6,target_width_ablation,Appendix sensitivity of tolerance-derived density target width.,20,4,32,10,5,True
+sleep,fgru,density_hard,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,fgru,density_hard,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,fgru,density_hard,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,fgru,seg,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,fgru,seg,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,fgru,seg,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,flstm,density_hard,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,flstm,density_hard,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,flstm,density_hard,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,flstm,seg,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,flstm,seg,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,flstm,seg,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,causal_transformer,density_hard,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,causal_transformer,density_hard,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,causal_transformer,density_hard,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,causal_transformer,seg,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,causal_transformer,seg,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+sleep,causal_transformer,seg,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,10,5,True
+seizure,gru,density_hard,0,seizure_main_e20_bs32_eval5,P8,second_dataset_replication,Replicate the main comparison on seizure once that data is available.,20,4,32,10,5,True
+seizure,gru,seg,0,seizure_main_e20_bs32_eval5,P8,second_dataset_replication,Replicate the main comparison on seizure once that data is available.,20,4,32,10,5,True
+seizure,unet,density_hard,0,seizure_main_e20_bs32_eval5,P8,second_dataset_replication,Replicate the main comparison on seizure once that data is available.,20,4,32,10,5,True
+seizure,unet,seg,0,seizure_main_e20_bs32_eval5,P8,second_dataset_replication,Replicate the main comparison on seizure once that data is available.,20,4,32,10,5,True
+seizure,gru,density_gau,0,seizure_main_e20_bs32_eval5,P8G,seizure_gaussian_kernel_ablation,Check whether Gaussian label-error smoothing transfers to the seizure benchmark.,20,4,32,10,5,True
+seizure,unet,density_gau,0,seizure_main_e20_bs32_eval5,P8G,seizure_gaussian_kernel_ablation,Check whether Gaussian label-error smoothing transfers to the seizure benchmark.,20,4,32,10,5,True
+sleep,transformer_4l_64h_4a,density_hard,0,transformer_offline_e20_bs32_eval5,P9,offline_transformer_architecture_swap,Optional architecture check: compare BDL and segmentation on a matched offline Transformer.,20,4,32,10,5,True
+sleep,transformer_4l_64h_4a,density_hard,1,transformer_offline_e20_bs32_eval5,P9,offline_transformer_architecture_swap,Optional architecture check: compare BDL and segmentation on a matched offline Transformer.,20,4,32,10,5,True
+sleep,transformer_4l_64h_4a,density_hard,2,transformer_offline_e20_bs32_eval5,P9,offline_transformer_architecture_swap,Optional architecture check: compare BDL and segmentation on a matched offline Transformer.,20,4,32,10,5,True
+sleep,transformer_4l_64h_4a,seg,0,transformer_offline_e20_bs32_eval5,P9,offline_transformer_architecture_swap,Optional architecture check: compare BDL and segmentation on a matched offline Transformer.,20,4,32,10,5,True
+sleep,transformer_4l_64h_4a,seg,1,transformer_offline_e20_bs32_eval5,P9,offline_transformer_architecture_swap,Optional architecture check: compare BDL and segmentation on a matched offline Transformer.,20,4,32,10,5,True
+sleep,transformer_4l_64h_4a,seg,2,transformer_offline_e20_bs32_eval5,P9,offline_transformer_architecture_swap,Optional architecture check: compare BDL and segmentation on a matched offline Transformer.,20,4,32,10,5,True
+sleep,fgru,density_gau,0,online_smoothing_e20_bs32_eval5,P10,online_smoothing_diagnostic,Optional causal-context check: test whether smoothed BDL targets help online models.,20,4,32,10,5,True
+sleep,fgru,density_custom,0,online_smoothing_e20_bs32_eval5,P10,online_smoothing_diagnostic,Optional causal-context check: test whether smoothed BDL targets help online models.,20,4,32,10,5,True
+sleep,fgru,seg,0,online_smoothing_e20_bs32_eval5,P10,online_smoothing_diagnostic,Optional causal-context check: test whether smoothed BDL targets help online models.,20,4,32,10,5,True
+sleep,flstm,density_gau,0,online_smoothing_e20_bs32_eval5,P10,online_smoothing_diagnostic,Optional causal-context check: test whether smoothed BDL targets help online models.,20,4,32,10,5,True
+sleep,flstm,density_custom,0,online_smoothing_e20_bs32_eval5,P10,online_smoothing_diagnostic,Optional causal-context check: test whether smoothed BDL targets help online models.,20,4,32,10,5,True
+sleep,flstm,seg,0,online_smoothing_e20_bs32_eval5,P10,online_smoothing_diagnostic,Optional causal-context check: test whether smoothed BDL targets help online models.,20,4,32,10,5,True
+sleep,causal_transformer,density_gau,0,online_smoothing_e20_bs32_eval5,P10,online_smoothing_diagnostic,Optional causal-context check: test whether smoothed BDL targets help online models.,20,4,32,10,5,True
+sleep,causal_transformer,density_custom,0,online_smoothing_e20_bs32_eval5,P10,online_smoothing_diagnostic,Optional causal-context check: test whether smoothed BDL targets help online models.,20,4,32,10,5,True
+sleep,causal_transformer,seg,0,online_smoothing_e20_bs32_eval5,P10,online_smoothing_diagnostic,Optional causal-context check: test whether smoothed BDL targets help online models.,20,4,32,10,5,True
+sleep,transformer_4l_64h_4a,density_gau,0,transformer_main_candidate_lr1e3_e20_bs32_eval5,P15,transformer_main_table_candidate,Tuned offline Transformer candidate for replacing the attention-gated U-Net architecture control if the scored comparison is defensible.,20,4,32,10,5,True
+sleep,transformer_4l_64h_4a,density_custom,0,transformer_main_candidate_lr1e3_e20_bs32_eval5,P15,transformer_main_table_candidate,Tuned offline Transformer candidate for replacing the attention-gated U-Net architecture control if the scored comparison is defensible.,20,4,32,10,5,True
+sleep,transformer_4l_64h_4a,seg,0,transformer_main_candidate_lr1e3_e20_bs32_eval5,P15,transformer_main_table_candidate,Tuned offline Transformer candidate for replacing the attention-gated U-Net architecture control if the scored comparison is defensible.,20,4,32,10,5,True
+sleep,transformer_6l_128h_8a_10d,density_hard,0,transformer_strong_lr5e4_wd1e2_e20_bs8_eval5,P16,transformer_strong_candidate,Stronger offline Transformer candidate for replacing the attention-gated U-Net architecture control if matched objective scores are competitive.,20,4,8,10,5,True
+sleep,transformer_6l_128h_8a_10d,density_gau,0,transformer_strong_lr5e4_wd1e2_e20_bs8_eval5,P16,transformer_strong_candidate,Stronger offline Transformer candidate for replacing the attention-gated U-Net architecture control if matched objective scores are competitive.,20,4,8,10,5,True
+sleep,transformer_6l_128h_8a_10d,density_custom,0,transformer_strong_lr5e4_wd1e2_e20_bs8_eval5,P16,transformer_strong_candidate,Stronger offline Transformer candidate for replacing the attention-gated U-Net architecture control if matched objective scores are competitive.,20,4,8,10,5,True
+sleep,transformer_6l_128h_8a_10d,seg,0,transformer_strong_lr5e4_wd1e2_e20_bs8_eval5,P16,transformer_strong_candidate,Stronger offline Transformer candidate for replacing the attention-gated U-Net architecture control if matched objective scores are competitive.,20,4,8,10,5,True
+seizure,gru,density_hard,0,seizure_rescue_lr3e4_ds5_bs8_e20_eval5,P11,seizure_fine_stride_sensitivity,Optional CHB-MIT sensitivity check with lower learning rate and finer temporal downsampling.,20,4,8,5,5,False
+seizure,gru,density_gau,0,seizure_rescue_lr3e4_ds5_bs8_e20_eval5,P11,seizure_fine_stride_sensitivity,Optional CHB-MIT sensitivity check with lower learning rate and finer temporal downsampling.,20,4,8,5,5,False
+seizure,gru,seg,0,seizure_rescue_lr3e4_ds5_bs8_e20_eval5,P11,seizure_fine_stride_sensitivity,Optional CHB-MIT sensitivity check with lower learning rate and finer temporal downsampling.,20,4,8,5,5,False
+seizure,unet,density_hard,0,seizure_rescue_lr3e4_ds5_bs8_e20_eval5,P11,seizure_fine_stride_sensitivity,Optional CHB-MIT sensitivity check with lower learning rate and finer temporal downsampling.,20,4,8,5,5,False
+seizure,unet,density_gau,0,seizure_rescue_lr3e4_ds5_bs8_e20_eval5,P11,seizure_fine_stride_sensitivity,Optional CHB-MIT sensitivity check with lower learning rate and finer temporal downsampling.,20,4,8,5,5,False
+seizure,unet,seg,0,seizure_rescue_lr3e4_ds5_bs8_e20_eval5,P11,seizure_fine_stride_sensitivity,Optional CHB-MIT sensitivity check with lower learning rate and finer temporal downsampling.,20,4,8,5,5,False
+seizure,gru_3l_128h,seg,0,seizure_highscore_gru3l128h_ds512_bs8_e20,P12,seizure_highscore_reproduction,Reproduce the high-scoring CHB-MIT segmentation setting identified during development and compare matched BDL objectives.,20,4,8,512,1,True
+seizure,gru_3l_128h,density_hard,0,seizure_highscore_gru3l128h_ds512_bs8_e20,P12,seizure_highscore_reproduction,Reproduce the high-scoring CHB-MIT segmentation setting identified during development and compare matched BDL objectives.,20,4,8,512,1,True
+seizure,gru_3l_128h,density_gau,0,seizure_highscore_gru3l128h_ds512_bs8_e20,P12,seizure_highscore_reproduction,Reproduce the high-scoring CHB-MIT segmentation setting identified during development and compare matched BDL objectives.,20,4,8,512,1,True
+seizure,gru_3l_128h,density_custom,0,seizure_highscore_gru3l128h_ds512_bs8_e20,P12,seizure_highscore_reproduction,Reproduce the high-scoring CHB-MIT segmentation setting identified during development and compare matched BDL objectives.,20,4,8,512,1,True
+seizure,gru_3l_128h,seg,0,seizure_highscore_gru3l128h_ds256_bs8_e20,P12b,seizure_highscore_stride_ablation,Test whether a one-second output stride improves the high-score CHB-MIT configuration enough to offset longer recurrent sequences.,20,4,8,256,1,True
+seizure,gru_3l_128h,density_hard,0,seizure_highscore_gru3l128h_ds256_bs8_e20,P12b,seizure_highscore_stride_ablation,Test whether a one-second output stride improves the high-score CHB-MIT configuration enough to offset longer recurrent sequences.,20,4,8,256,1,True
+seizure,gru_3l_128h,density_gau,0,seizure_highscore_gru3l128h_ds256_bs8_e20,P12b,seizure_highscore_stride_ablation,Test whether a one-second output stride improves the high-score CHB-MIT configuration enough to offset longer recurrent sequences.,20,4,8,256,1,True
+seizure,gru_3l_128h,density_custom,0,seizure_highscore_gru3l128h_ds256_bs8_e20,P12b,seizure_highscore_stride_ablation,Test whether a one-second output stride improves the high-score CHB-MIT configuration enough to offset longer recurrent sequences.,20,4,8,256,1,True
+bowshock,gru,density_hard,0,point_event_ablation_e20,P13,bowshock_point_event_ablation,Appendix point-event ablation on the Martian bow-shock detection benchmark.,20,4,32,10,5,True
+bowshock,gru,density_gau,0,point_event_ablation_e20,P13,bowshock_point_event_ablation,Appendix point-event ablation on the Martian bow-shock detection benchmark.,20,4,32,10,5,True
+bowshock,gru,density_custom,0,point_event_ablation_e20,P13,bowshock_point_event_ablation,Appendix point-event ablation on the Martian bow-shock detection benchmark.,20,4,32,10,5,True
+bowshock,gru,seg,0,point_event_ablation_e20,P13,bowshock_point_event_ablation,Appendix point-event ablation on the Martian bow-shock detection benchmark.,20,4,32,10,5,True
+fraud,gru,density_hard,0,point_event_ablation_e20,P14,fraud_point_event_ablation,Appendix point-event ablation on the credit-card fraud detection benchmark.,20,4,32,1,5,True
+fraud,gru,density_gau,0,point_event_ablation_e20,P14,fraud_point_event_ablation,Appendix point-event ablation on the credit-card fraud detection benchmark.,20,4,32,1,5,True
+fraud,gru,density_custom,0,point_event_ablation_e20,P14,fraud_point_event_ablation,Appendix point-event ablation on the credit-card fraud detection benchmark.,20,4,32,1,5,True
+fraud,gru,seg,0,point_event_ablation_e20,P14,fraud_point_event_ablation,Appendix point-event ablation on the credit-card fraud detection benchmark.,20,4,32,1,5,True

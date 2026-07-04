@@ -1,0 +1,100 @@
+dataset,model,objective,seed,run_tag,phase,name,purpose,target_epochs,target_folds,target_batch_size,target_eval_every,score_required
+sleep,gru,density_custom,0,lr3e4_e2,P0,lr_screen_density_custom,Choose optimizer scale after switching to Poisson likelihood.,2,2,10,1,False
+sleep,gru,density_custom,0,lr1e3_e2,P0,lr_screen_density_custom,Choose optimizer scale after switching to Poisson likelihood.,2,2,10,1,False
+sleep,gru,density_custom,0,lr3e3_e2,P0,lr_screen_density_custom,Choose optimizer scale after switching to Poisson likelihood.,2,2,10,1,False
+sleep,gru,density_custom,0,lr3e3_e20_gpu_bs32_eval5,P1,current_density_candidate,First real multi-epoch CUDA run for the main method.,20,4,32,5,True
+sleep,gru,density_hard,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,"Screen BDL kernels, MSE-Hard, and segmentation losses; P1 supplies density_custom.",20,4,32,5,True
+sleep,gru,density_gau,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,"Screen BDL kernels, MSE-Hard, and segmentation losses; P1 supplies density_custom.",20,4,32,5,True
+sleep,gru,hard,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,"Screen BDL kernels, MSE-Hard, and segmentation losses; P1 supplies density_custom.",20,4,32,5,True
+sleep,gru,seg,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,"Screen BDL kernels, MSE-Hard, and segmentation losses; P1 supplies density_custom.",20,4,32,5,True
+sleep,gru,seg_weighted,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,"Screen BDL kernels, MSE-Hard, and segmentation losses; P1 supplies density_custom.",20,4,32,5,True
+sleep,gru,seg_focal,0,objective_e20_bs32_eval5,P2,gru_objective_sweep_seed0,"Screen BDL kernels, MSE-Hard, and segmentation losses; P1 supplies density_custom.",20,4,32,5,True
+sleep,gru,density_hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,gru,density_hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,gru,density_hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,gru,hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,gru,hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,gru,hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,gru,seg,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,gru,seg,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,gru,seg,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet,density_hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet,density_hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet,density_hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet,hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet,hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet,hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet,seg,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet,seg,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet,seg,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet_t,density_hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet_t,density_hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet_t,density_hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet_t,hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet_t,hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet_t,hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet_t,seg,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet_t,seg,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,unet_t,seg,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,prectime,density_hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,prectime,density_hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,prectime,density_hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,prectime,hard,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,prectime,hard,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,prectime,hard,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,prectime,seg,0,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,prectime,seg,1,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,prectime,seg,2,objective_e20_bs32_eval5,P3,core_model_main_table,Main table: density likelihood versus strongest non-density baselines.,20,4,32,5,True
+sleep,gru,density_gau,0,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,density_gau,1,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,density_gau,2,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,density_custom,0,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,density_custom,1,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,density_custom,2,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,seg_weighted,0,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,seg_weighted,1,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,seg_weighted,2,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,seg_focal,0,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,seg_focal,1,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,seg_focal,2,objective_e20_bs32_eval5,P4,kernel_and_segmentation_ablation,Appendix ablations for BDL kernel choice and stronger segmentation losses.,20,4,32,5,True
+sleep,gru,density_custom,0,prior_sparse_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-rate initialization matters.,20,4,32,5,True
+sleep,gru,density_custom,0,prior_none_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-rate initialization matters.,20,4,32,5,True
+sleep,gru,density_custom,1,prior_sparse_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-rate initialization matters.,20,4,32,5,True
+sleep,gru,density_custom,1,prior_none_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-rate initialization matters.,20,4,32,5,True
+sleep,gru,density_custom,2,prior_sparse_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-rate initialization matters.,20,4,32,5,True
+sleep,gru,density_custom,2,prior_none_e20_bs32_eval5,P5,prior_ablation,Measure whether sparse-rate initialization matters.,20,4,32,5,True
+sleep,gru,density_custom,0,tol05_e20_bs32_eval5,P6,target_width_ablation,Appendix sensitivity of tolerance-derived density target width.,20,4,32,5,True
+sleep,gru,density_custom,0,tol15_e20_bs32_eval5,P6,target_width_ablation,Appendix sensitivity of tolerance-derived density target width.,20,4,32,5,True
+sleep,fgru,density_hard,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,fgru,density_hard,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,fgru,density_hard,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,fgru,hard,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,fgru,hard,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,fgru,hard,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,fgru,seg,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,fgru,seg,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,fgru,seg,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,flstm,density_hard,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,flstm,density_hard,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,flstm,density_hard,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,flstm,hard,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,flstm,hard,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,flstm,hard,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,flstm,seg,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,flstm,seg,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,flstm,seg,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,causal_transformer,density_hard,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,causal_transformer,density_hard,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,causal_transformer,density_hard,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,causal_transformer,hard,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,causal_transformer,hard,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,causal_transformer,hard,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,causal_transformer,seg,0,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,causal_transformer,seg,1,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+sleep,causal_transformer,seg,2,online_e20_bs32_eval5,P7,online_model_ablation,Show whether the likelihood gain persists in causal/online models.,20,4,32,5,True
+seizure,gru,density_hard,0,seizure_main_e20_bs32_eval5,P8,second_dataset_replication,Replicate the main comparison on seizure once that data is available.,20,4,32,5,True
+seizure,gru,hard,0,seizure_main_e20_bs32_eval5,P8,second_dataset_replication,Replicate the main comparison on seizure once that data is available.,20,4,32,5,True
+seizure,gru,seg,0,seizure_main_e20_bs32_eval5,P8,second_dataset_replication,Replicate the main comparison on seizure once that data is available.,20,4,32,5,True
+seizure,unet,density_hard,0,seizure_main_e20_bs32_eval5,P8,second_dataset_replication,Replicate the main comparison on seizure once that data is available.,20,4,32,5,True
+seizure,unet,hard,0,seizure_main_e20_bs32_eval5,P8,second_dataset_replication,Replicate the main comparison on seizure once that data is available.,20,4,32,5,True
+seizure,unet,seg,0,seizure_main_e20_bs32_eval5,P8,second_dataset_replication,Replicate the main comparison on seizure once that data is available.,20,4,32,5,True

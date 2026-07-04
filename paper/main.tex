@@ -1,0 +1,87 @@
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[margin=0.72in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[font=small,labelfont=bf,hypcap=false]{caption}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{xurl}
+\Urlmuskip=0mu plus 1mu
+\setlength{\columnsep}{0.24in}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\renewcommand{\dbltopfraction}{0.92}
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\textfraction}{0.05}
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{8pt plus 2pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\setlength{\@dblfptop}{0pt}
+\setlength{\@dblfpsep}{8pt plus 2pt}
+\setlength{\@dblfpbot}{0pt plus 1fil}
+\makeatother
+\raggedbottom
+\emergencystretch=1.5em
+\hbadness=10000
+
+\graphicspath{{figures/}{figures/generated/}}
+
+\title{Boundary Density Likelihood for Time-Series Event Detection}
+\author{Clark Peng \and Tolga Dincer}
+\date{}
+
+\newcommand{\xseq}{x_{1:T}}
+\newcommand{\rate}{\lambda}
+\newcommand{\kernel}{\kappa}
+\newcommand{\Rnonneg}{\mathbb{R}_{\ge 0}}
+\newcommand{\methodteaser}{\includegraphics[width=\textwidth]{method_overview.png}}
+
+\begin{document}
+\twocolumn[
+\begin{@twocolumnfalse}
+\maketitle
+
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+\vspace{0.55em}
+\begin{center}
+\methodteaser
+\captionof{figure}{Sparse annotations can support samplewise state labels when deployment uses per-sample decisions, or expected events per output bin when evaluation ranks event times.
+BDL keeps one event per annotation through smoothing and binning, then ranks peaks in the learned score sequences.}
+\label{fig:method-overview}
+\end{center}
+\vspace{0.4em}
+\end{@twocolumnfalse}
+]
+
+\input{sections/introduction}
+\input{sections/method}
+\input{sections/related_work}
+\input{sections/experiments}
+\input{sections/results}
+\input{sections/limitations}
+\input{sections/conclusion}
+
+\bibliographystyle{plainnat}
+\begingroup
+\renewcommand{\baselinestretch}{0.76}\selectfont
+\providecommand{\doi}[1]{doi: \url{#1}}
+\renewcommand{\doi}[1]{doi: \url{#1}}
+\setlength{\bibhang}{0.9em}
+\setlength{\bibsep}{0pt plus 0.2ex}
+\bibliography{main}
+\endgroup
+
+\clearpage
+\onecolumn
+\appendix
+\input{sections/appendix}
+
+\end{document}

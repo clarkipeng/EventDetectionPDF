@@ -1,0 +1,279 @@
+% Local NeurIPS 2026 compatibility style for workshop draft compilation.
+% This mirrors the public NeurIPS layout conventions needed by this repo:
+% single-column letter paper, anonymous workshop title block, optional line
+% numbers, natbib by default, and a first-page submission notice.
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{neurips_2026}[2026/06/27 local NeurIPS 2026 workshop style]
+
+\newif\if@anonymous
+\@anonymoustrue
+\newif\if@neuripsfinal
+\@neuripsfinalfalse
+\newif\if@natbib
+\@natbibtrue
+\newif\if@preprint
+\@preprintfalse
+\newif\if@workshop
+\@workshopfalse
+\newif\if@neuripslinenumbers
+\@neuripslinenumberstrue
+
+\newcommand{\@neuripsordinal}{40th}
+\newcommand{\@neuripsyear}{2026}
+\newcommand{\@workshoptitle}{}
+\newcommand{\workshoptitle}[1]{\renewcommand{\@workshoptitle}{#1}}
+\newcommand{\@trackname}{\@neuripsordinal\ Conference on Neural Information Processing Systems (NeurIPS \@neuripsyear).}
+
+\DeclareOption{final}{%
+  \@neuripsfinaltrue
+  \@anonymousfalse
+}
+\DeclareOption{nonatbib}{\@natbibfalse}
+\DeclareOption{nolinenumbers}{\@neuripslinenumbersfalse}
+\DeclareOption{preprint}{%
+  \@preprinttrue
+  \@anonymousfalse
+}
+\DeclareOption{main}{%
+  \renewcommand{\@trackname}{\@neuripsordinal\ Conference on Neural Information Processing Systems (NeurIPS \@neuripsyear).}
+}
+\DeclareOption{position}{%
+  \renewcommand{\@trackname}{\@neuripsordinal\ Conference on Neural Information Processing Systems (NeurIPS \@neuripsyear) Position Paper Track.}
+}
+\DeclareOption{eandd}{%
+  \@anonymousfalse
+  \renewcommand{\@trackname}{\@neuripsordinal\ Conference on Neural Information Processing Systems (NeurIPS \@neuripsyear) Evaluations and Datasets Track.}
+}
+\DeclareOption{creativeai}{%
+  \@anonymousfalse
+  \renewcommand{\@trackname}{\@neuripsordinal\ Conference on Neural Information Processing Systems (NeurIPS \@neuripsyear) Creative AI Track.}
+}
+\DeclareOption{education}{%
+  \@anonymousfalse
+  \renewcommand{\@trackname}{\@neuripsordinal\ Conference on Neural Information Processing Systems (NeurIPS \@neuripsyear) Education Track.}
+}
+\DeclareOption{sglblindworkshop}{%
+  \@workshoptrue
+  \@anonymousfalse
+}
+\DeclareOption{dblblindworkshop}{%
+  \@workshoptrue
+}
+
+\ProcessOptions\relax
+
+\renewcommand{\rmdefault}{ptm}
+\renewcommand{\sfdefault}{phv}
+
+\RequirePackage[letterpaper]{geometry}
+\AtBeginDocument{%
+  \newgeometry{%
+    textheight=9in,
+    textwidth=5.5in,
+    top=1in,
+    headheight=12pt,
+    headsep=25pt,
+    footskip=30pt%
+  }%
+}
+
+\if@natbib
+  \RequirePackage{natbib}
+\fi
+
+\RequirePackage{environ}
+\newcommand{\acksection}{\section*{Acknowledgments and Disclosure of Funding}}
+\NewEnviron{ack}{\acksection\BODY}
+
+\widowpenalty=10000
+\clubpenalty=10000
+\flushbottom
+\sloppy
+
+\renewcommand{\normalsize}{%
+  \@setfontsize\normalsize\@xpt\@xipt
+  \abovedisplayskip      7\p@ \@plus 2\p@ \@minus 5\p@
+  \abovedisplayshortskip \z@ \@plus 3\p@
+  \belowdisplayskip      \abovedisplayskip
+  \belowdisplayshortskip 4\p@ \@plus 3\p@ \@minus 3\p@
+}
+\normalsize
+\renewcommand{\small}{%
+  \@setfontsize\small\@ixpt\@xpt
+  \abovedisplayskip      6\p@ \@plus 1.5\p@ \@minus 4\p@
+  \abovedisplayshortskip \z@  \@plus 2\p@
+  \belowdisplayskip      \abovedisplayskip
+  \belowdisplayshortskip 3\p@ \@plus 2\p@ \@minus 2\p@
+}
+\renewcommand{\footnotesize}{\@setfontsize\footnotesize\@ixpt\@xpt}
+\renewcommand{\scriptsize}{\@setfontsize\scriptsize\@viipt\@viiipt}
+\renewcommand{\tiny}{\@setfontsize\tiny\@vipt\@viipt}
+\renewcommand{\large}{\@setfontsize\large\@xiipt{14}}
+\renewcommand{\Large}{\@setfontsize\Large\@xivpt{16}}
+\renewcommand{\LARGE}{\@setfontsize\LARGE\@xviipt{20}}
+\renewcommand{\huge}{\@setfontsize\huge\@xxpt{23}}
+\renewcommand{\Huge}{\@setfontsize\Huge\@xxvpt{28}}
+
+\renewcommand{\section}{%
+  \@startsection{section}{1}{\z@}%
+                {-2.0ex \@plus -0.5ex \@minus -0.2ex}%
+                { 1.5ex \@plus  0.3ex \@minus  0.2ex}%
+                {\large\bf\raggedright}%
+}
+\renewcommand{\subsection}{%
+  \@startsection{subsection}{2}{\z@}%
+                {-1.8ex \@plus -0.5ex \@minus -0.2ex}%
+                { 0.8ex \@plus  0.2ex}%
+                {\normalsize\bf\raggedright}%
+}
+\renewcommand{\paragraph}{%
+  \@startsection{paragraph}{4}{\z@}%
+                {1.5ex \@plus 0.5ex \@minus 0.2ex}%
+                {-1em}%
+                {\normalsize\bf}%
+}
+
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.4}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.7}
+\setlength{\abovecaptionskip}{7\p@}
+\setlength{\belowcaptionskip}{\z@}
+
+\setlength{\footnotesep}{6.65\p@}
+\setlength{\skip\footins}{9\p@ \@plus 4\p@ \@minus 2\p@}
+\renewcommand{\footnoterule}{\kern-3\p@ \hrule width 12pc \kern 2.6\p@}
+\setcounter{footnote}{0}
+
+\setlength{\parindent}{\z@}
+\setlength{\parskip}{5.5\p@}
+
+\setlength{\topsep}{4\p@ \@plus 1\p@ \@minus 2\p@}
+\setlength{\partopsep}{1\p@ \@plus 0.5\p@ \@minus 0.5\p@}
+\setlength{\itemsep}{2\p@ \@plus 1\p@ \@minus 0.5\p@}
+\setlength{\parsep}{2\p@ \@plus 1\p@ \@minus 0.5\p@}
+
+\renewcommand{\maketitle}{%
+  \par
+  \begingroup
+    \renewcommand{\thefootnote}{\fnsymbol{footnote}}
+    \renewcommand{\@makefnmark}{\hbox to \z@{$^{\@thefnmark}$\hss}}
+    \long\def\@makefntext##1{%
+      \parindent 1em\noindent
+      \hbox to 1.8em{\hss $\m@th ^{\@thefnmark}$}##1%
+    }%
+    \thispagestyle{empty}
+    \@maketitle
+    \@thanks
+    \@notice
+  \endgroup
+  \let\maketitle\relax
+  \let\thanks\relax
+}
+
+\newcommand{\@toptitlebar}{%
+  \hrule height 4\p@
+  \vskip 0.25in
+  \vskip -\parskip
+}
+\newcommand{\@bottomtitlebar}{%
+  \vskip 0.29in
+  \vskip -\parskip
+  \hrule height 1\p@
+  \vskip 0.09in
+}
+
+\renewcommand{\@maketitle}{%
+  \vbox{%
+    \hsize\textwidth
+    \linewidth\hsize
+    \vskip 0.1in
+    \@toptitlebar
+    \centering
+    {\LARGE\bf \@title\par}
+    \@bottomtitlebar
+    \if@anonymous
+      \begin{tabular}[t]{c}\bf\rule{\z@}{24\p@}
+        Anonymous Author(s) \\
+        Affiliation \\
+        Address \\
+        \texttt{email} \\
+      \end{tabular}%
+    \else
+      \def\And{%
+        \end{tabular}\hfil\linebreak[0]\hfil%
+        \begin{tabular}[t]{c}\bf\rule{\z@}{24\p@}\ignorespaces%
+      }%
+      \def\AND{%
+        \end{tabular}\hfil\linebreak[4]\hfil%
+        \begin{tabular}[t]{c}\bf\rule{\z@}{24\p@}\ignorespaces%
+      }%
+      \begin{tabular}[t]{c}\bf\rule{\z@}{24\p@}\@author\end{tabular}%
+    \fi
+    \vskip 0.3in \@minus 0.1in
+  }%
+}
+
+\newcommand{\ftype@noticebox}{8}
+\newcommand{\@notice}{%
+  \enlargethispage{2\baselineskip}%
+  \@float{noticebox}[b]%
+    \footnotesize\@noticestring
+  \end@float%
+}
+
+\renewenvironment{abstract}{%
+  \vskip 0.075in
+  \centerline{\large\bf Abstract}
+  \vspace{0.5ex}
+  \begin{quote}
+}{%
+  \par
+  \end{quote}
+  \vskip 1ex
+}
+
+\if@preprint
+  \newcommand{\@noticestring}{Preprint.}
+\else
+  \if@neuripsfinal
+    \newcommand{\@noticestring}{\@trackname}
+  \else
+    \newcommand{\@noticestring}{%
+      Submitted to \if@workshop \@workshoptitle\ at \fi
+      the \@neuripsordinal\/ Conference on Neural Information Processing
+      Systems (NeurIPS \@neuripsyear). Do not distribute.%
+    }
+    \NewEnviron{hide}{}
+    \let\ack\hide
+    \let\endack\endhide
+    \if@neuripslinenumbers
+      \RequirePackage{lineno}
+      \linenumbers
+      \AtBeginDocument{%
+        \@ifpackageloaded{amsmath}{%
+          \newcommand*\patchAmsMathEnvironmentForLineno[1]{%
+            \expandafter\let\csname old#1\expandafter\endcsname\csname #1\endcsname
+            \expandafter\let\csname oldend#1\expandafter\endcsname\csname end#1\endcsname
+            \renewenvironment{#1}%
+                            {\linenomath\csname old#1\endcsname}%
+                            {\csname oldend#1\endcsname\endlinenomath}%
+          }%
+          \newcommand*\patchBothAmsMathEnvironmentsForLineno[1]{%
+            \patchAmsMathEnvironmentForLineno{#1}%
+            \patchAmsMathEnvironmentForLineno{#1*}%
+          }%
+          \patchBothAmsMathEnvironmentsForLineno{equation}%
+          \patchBothAmsMathEnvironmentsForLineno{align}%
+          \patchBothAmsMathEnvironmentsForLineno{flalign}%
+          \patchBothAmsMathEnvironmentsForLineno{alignat}%
+          \patchBothAmsMathEnvironmentsForLineno{gather}%
+          \patchBothAmsMathEnvironmentsForLineno{multline}%
+        }{}%
+      }%
+    \fi
+  \fi
+\fi
+
+\endinput

@@ -1,7 +1,100 @@
+# OS/editor noise
 .DS_Store
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+.envrc
+kaggle.json
+.kaggle/
+
+# Python/uv runtime state
+.venv/
+.uv-cache/
+.cache/
 __pycache__/
-models/__pycache__/
-src/__pycache__/
-experiments/
+*/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.ipynb
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Experiment data, checkpoints, predictions, and dashboards
 data/
-data/*
+experiments/
+wandb/
+.wandb/
+mlruns/
+lightning_logs/
+tb_logs/
+tensorboard/
+runs/
+outputs/
+artifacts/
+checkpoints/
+predictions/
+cache/
+data_cache/
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+*.onnx
+*.joblib
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.parquet
+*.sqlite
+*.sqlite3
+*.db
+*.h5
+*.hdf5
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# Generated paper artifacts
+# paper/build/
+# paper/generated_runs/
+# paper/run_logs/
+# paper/figures/generated/
+# paper/results/
+paper/*.pdf
+paper/*.png
+paper/*.dvi
+paper/*.xdv
+*.log
+*.out
+*.err
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fls
+*.fdb_latexmk
+*.run.xml
+*.synctex.gz
+*.toc
+
+# Local tools and hosted Trace state
+.tools/
+.trace/
+otrace_*_runspec.yaml
+trace_*_runspec.yaml
+
+# Source Markdown policy: keep repo docs consolidated.
+*.md
+!README.md
+!paper/PAPER_OPS.md

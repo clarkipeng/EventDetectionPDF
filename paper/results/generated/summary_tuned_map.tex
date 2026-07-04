@@ -1,0 +1,90 @@
+\begin{tabular}{llllll}
+\toprule
+Dataset & Model & Objective & Run & Candidate decoder & mAP \\
+\midrule
+Bowshock & GRU & BDL-Hard & Point-event ablation & Event-score peaks & 0.988 \\
+Bowshock & GRU & BDL-Tolerance & Point-event ablation & Event-score peaks & 0.983 \\
+Bowshock & GRU & BDL-Gaussian & Point-event ablation & Event-score peaks & 0.988 \\
+Bowshock & GRU & Cross-entropy & Point-event ablation & Segmentation transitions & 0.987 \\
+Bowshock & GRU & Cross-entropy & Point-event ablation & Segmentation transitions & 0.987 \\
+Fraud & GRU & BDL-Hard & Point-event ablation & Event-score peaks & 0.755 \\
+Fraud & GRU & BDL-Tolerance & Point-event ablation & Event-score peaks & 0.704 \\
+Fraud & GRU & BDL-Gaussian & Point-event ablation & Event-score peaks & 0.734 \\
+Fraud & GRU & Cross-entropy & Point-event ablation & Segmentation transitions & 0.532 \\
+Fraud & GRU & Cross-entropy & Point-event ablation & Segmentation transitions & 0.532 \\
+CHB-MIT & GRU & BDL-Hard & CHB-MIT sweep & Event-score peaks & 0.010 \\
+CHB-MIT & GRU & BDL-Gaussian & CHB-MIT sweep & Event-score peaks & 0.018 \\
+CHB-MIT & GRU & Cross-entropy & CHB-MIT sweep & Segmentation transitions & 0.000 \\
+CHB-MIT & GRU & Cross-entropy & CHB-MIT sweep & Segmentation transitions & 0.031 \\
+CHB-MIT & GRU & BDL-Hard & seizure\_rescue\_lr3e4\_ds5\_bs8\_e20\_eval5 & Event-score peaks & 0.014 \\
+CHB-MIT & GRU & BDL-Gaussian & seizure\_rescue\_lr3e4\_ds5\_bs8\_e20\_eval5 & Event-score peaks & 0.014 \\
+CHB-MIT & GRU & Cross-entropy & seizure\_rescue\_lr3e4\_ds5\_bs8\_e20\_eval5 & Segmentation transitions & 0.021 \\
+CHB-MIT & GRU & Cross-entropy & seizure\_rescue\_lr3e4\_ds5\_bs8\_e20\_eval5 & Segmentation transitions & 0.046 \\
+CHB-MIT & GRU 3x128 & BDL-Hard & High-capacity GRU, 1 s stride & Event-score peaks & 0.388 \\
+CHB-MIT & GRU 3x128 & BDL-Tolerance & High-capacity GRU, 1 s stride & Event-score peaks & 0.278 \\
+CHB-MIT & GRU 3x128 & BDL-Gaussian & High-capacity GRU, 1 s stride & Event-score peaks & 0.356 \\
+CHB-MIT & GRU 3x128 & Cross-entropy & High-capacity GRU, 1 s stride & Segmentation transitions & 0.287 \\
+CHB-MIT & GRU 3x128 & Cross-entropy & High-capacity GRU, 1 s stride & Segmentation transitions & 0.103 \\
+CHB-MIT & GRU 3x128 & BDL-Hard & High-capacity GRU, 2 s stride & Event-score peaks & 0.317 \\
+CHB-MIT & GRU 3x128 & BDL-Tolerance & High-capacity GRU, 2 s stride & Event-score peaks & 0.267 \\
+CHB-MIT & GRU 3x128 & BDL-Gaussian & High-capacity GRU, 2 s stride & Event-score peaks & 0.360 \\
+CHB-MIT & GRU 3x128 & Cross-entropy & High-capacity GRU, 2 s stride & Segmentation transitions & 0.252 \\
+CHB-MIT & GRU 3x128 & Cross-entropy & High-capacity GRU, 2 s stride & Segmentation transitions & 0.096 \\
+CHB-MIT & U-Net & BDL-Hard & CHB-MIT sweep & Event-score peaks & 0.015 \\
+CHB-MIT & U-Net & BDL-Gaussian & CHB-MIT sweep & Event-score peaks & 0.055 \\
+CHB-MIT & U-Net & Cross-entropy & CHB-MIT sweep & Segmentation transitions & 0.000 \\
+CHB-MIT & U-Net & Cross-entropy & CHB-MIT sweep & Segmentation transitions & 0.022 \\
+Sleep & Causal Transformer & BDL-Hard & Online-context ablation & Event-score peaks & 0.109 \\
+Sleep & Causal Transformer & Cross-entropy & Online-context ablation & Segmentation transitions & 0.278 \\
+Sleep & Causal Transformer & Cross-entropy & Online-context ablation & Segmentation transitions & 0.331 \\
+Sleep & Causal Transformer & BDL-Tolerance & online\_smoothing\_e20\_bs32\_eval5 & Event-score peaks & 0.182 \\
+Sleep & Causal Transformer & BDL-Gaussian & online\_smoothing\_e20\_bs32\_eval5 & Event-score peaks & 0.170 \\
+Sleep & Causal Transformer & Cross-entropy & online\_smoothing\_e20\_bs32\_eval5 & Segmentation transitions & 0.202 \\
+Sleep & Causal Transformer & Cross-entropy & online\_smoothing\_e20\_bs32\_eval5 & Segmentation transitions & 0.233 \\
+Sleep & Forward GRU & BDL-Hard & Online-context ablation & Event-score peaks & 0.219 \\
+Sleep & Forward GRU & Cross-entropy & Online-context ablation & Segmentation transitions & 0.232 \\
+Sleep & Forward GRU & Cross-entropy & Online-context ablation & Segmentation transitions & 0.288 \\
+Sleep & Forward GRU & BDL-Tolerance & online\_smoothing\_e20\_bs32\_eval5 & Event-score peaks & 0.258 \\
+Sleep & Forward GRU & BDL-Gaussian & online\_smoothing\_e20\_bs32\_eval5 & Event-score peaks & 0.298 \\
+Sleep & Forward GRU & Cross-entropy & online\_smoothing\_e20\_bs32\_eval5 & Segmentation transitions & 0.213 \\
+Sleep & Forward GRU & Cross-entropy & online\_smoothing\_e20\_bs32\_eval5 & Segmentation transitions & 0.196 \\
+Sleep & Forward LSTM & BDL-Hard & Online-context ablation & Event-score peaks & 0.114 \\
+Sleep & Forward LSTM & Cross-entropy & Online-context ablation & Segmentation transitions & 0.234 \\
+Sleep & Forward LSTM & Cross-entropy & Online-context ablation & Segmentation transitions & 0.254 \\
+Sleep & Forward LSTM & BDL-Tolerance & online\_smoothing\_e20\_bs32\_eval5 & Event-score peaks & 0.153 \\
+Sleep & Forward LSTM & BDL-Gaussian & online\_smoothing\_e20\_bs32\_eval5 & Event-score peaks & 0.232 \\
+Sleep & Forward LSTM & Cross-entropy & online\_smoothing\_e20\_bs32\_eval5 & Segmentation transitions & 0.196 \\
+Sleep & Forward LSTM & Cross-entropy & online\_smoothing\_e20\_bs32\_eval5 & Segmentation transitions & 0.198 \\
+Sleep & GRU & BDL-Tolerance & Short BDL-Tolerance smoke & Event-score peaks & 0.033 \\
+Sleep & GRU & BDL-Tolerance & BDL-Tolerance candidate & Event-score peaks & 0.595 \\
+Sleep & GRU & BDL-Hard & Main sleep sweep & Event-score peaks & 0.680 \\
+Sleep & GRU & BDL-Tolerance & Main sleep sweep & Event-score peaks & 0.605 \\
+Sleep & GRU & BDL-Gaussian & Main sleep sweep & Event-score peaks & 0.660 \\
+Sleep & GRU & Cross-entropy & Main sleep sweep & Segmentation transitions & 0.536 \\
+Sleep & GRU & Cross-entropy & Main sleep sweep & Segmentation transitions & 0.575 \\
+Sleep & GRU & Weighted cross-entropy & Main sleep sweep & Weighted transitions & 0.525 \\
+Sleep & GRU & Weighted cross-entropy & Main sleep sweep & Weighted transitions & 0.544 \\
+Sleep & GRU & Focal loss & Main sleep sweep & Focal transitions & 0.424 \\
+Sleep & GRU & Focal loss & Main sleep sweep & Focal transitions & 0.525 \\
+Sleep & GRU & BDL-Tolerance & No sparse prior & Event-score peaks & 0.016 \\
+Sleep & GRU & BDL-Tolerance & Sparse prior & Event-score peaks & 0.605 \\
+Sleep & GRU & BDL-Tolerance & Tolerance width 0.5x & Event-score peaks & 0.640 \\
+Sleep & GRU & BDL-Tolerance & Tolerance width 1.5x & Event-score peaks & 0.563 \\
+Sleep & Offline Transformer & BDL-Hard & Offline Transformer diagnostic & Event-score peaks & 0.031 \\
+Sleep & Offline Transformer & Cross-entropy & Offline Transformer diagnostic & Segmentation transitions & 0.374 \\
+Sleep & Offline Transformer & Cross-entropy & Offline Transformer diagnostic & Segmentation transitions & 0.391 \\
+Sleep & Offline Transformer & BDL-Hard & Strong Transformer candidate & Event-score peaks & 0.013 \\
+Sleep & Offline Transformer & BDL-Tolerance & Strong Transformer candidate & Event-score peaks & 0.013 \\
+Sleep & Offline Transformer & BDL-Gaussian & Strong Transformer candidate & Event-score peaks & 0.013 \\
+Sleep & Offline Transformer & Cross-entropy & Strong Transformer candidate & Segmentation transitions & 0.308 \\
+Sleep & Offline Transformer & Cross-entropy & Strong Transformer candidate & Segmentation transitions & 0.299 \\
+Sleep & U-Net & BDL-Hard & Main sleep sweep & Event-score peaks & 0.578 \\
+Sleep & U-Net & BDL-Gaussian & Main sleep sweep & Event-score peaks & 0.576 \\
+Sleep & U-Net & Cross-entropy & Main sleep sweep & Segmentation transitions & 0.408 \\
+Sleep & U-Net & Cross-entropy & Main sleep sweep & Segmentation transitions & 0.416 \\
+Sleep & Attention-gated U-Net & BDL-Hard & Main sleep sweep & Event-score peaks & 0.444 \\
+Sleep & Attention-gated U-Net & BDL-Gaussian & Main sleep sweep & Event-score peaks & 0.436 \\
+Sleep & Attention-gated U-Net & Cross-entropy & Main sleep sweep & Segmentation transitions & 0.251 \\
+Sleep & Attention-gated U-Net & Cross-entropy & Main sleep sweep & Segmentation transitions & 0.275 \\
+\bottomrule
+\end{tabular}

@@ -1,0 +1,3 @@
+wait_pids=81238 85609
+started_utc=2026-06-16T07:43:12Z
+python=/home/ec2-user/EventDetectionPDF/.venv/bin/python

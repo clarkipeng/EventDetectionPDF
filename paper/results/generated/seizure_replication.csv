@@ -1,0 +1,3 @@
+model,BDL-Hard,BDL-Gaussian,Cross-entropy,seeds
+gru,0.010,0.018,0.031,1
+unet,0.015,0.055,0.022,1

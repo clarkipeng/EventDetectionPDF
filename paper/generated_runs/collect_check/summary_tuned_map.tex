@@ -1,0 +1,19 @@
+\begin{tabular}{llllllr}
+\toprule
+Dataset & Model & Objective & Run & Post-processing & mAP & Count \\
+\midrule
+Sleep & GRU & density\_custom & lr3e3\_e2 & density\_custom & 0.033 & 1 \\
+Sleep & GRU & density\_custom & lr3e3\_e20\_gpu\_bs32\_eval5 & density\_custom & 0.595 & 1 \\
+Sleep & GRU & density\_hard & objective\_e20\_bs32\_eval5 & density\_hard & 0.680 $\pm$ 0.008 & 3 \\
+Sleep & GRU & density\_gau & objective\_e20\_bs32\_eval5 & density\_gau & 0.651 & 1 \\
+Sleep & GRU & seg & objective\_e20\_bs32\_eval5 & seg1 & 0.536 $\pm$ 0.008 & 3 \\
+Sleep & GRU & seg & objective\_e20\_bs32\_eval5 & seg2 & 0.575 $\pm$ 0.004 & 3 \\
+Sleep & GRU & seg\_weighted & objective\_e20\_bs32\_eval5 & seg\_weighted1 & 0.532 & 1 \\
+Sleep & GRU & seg\_weighted & objective\_e20\_bs32\_eval5 & seg\_weighted2 & 0.552 & 1 \\
+Sleep & GRU & seg\_focal & objective\_e20\_bs32\_eval5 & seg\_focal1 & 0.412 & 1 \\
+Sleep & GRU & seg\_focal & objective\_e20\_bs32\_eval5 & seg\_focal2 & 0.514 & 1 \\
+Sleep & GRU & hard & objective\_e20\_bs32\_eval5 & hard & 0.599 $\pm$ 0.015 & 3 \\
+Sleep & GRU & gau & objective\_e20\_bs32\_eval5 & gau & 0.583 & 1 \\
+Sleep & GRU & custom & objective\_e20\_bs32\_eval5 & custom & 0.545 & 1 \\
+\bottomrule
+\end{tabular}

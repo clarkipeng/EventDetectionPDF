@@ -25,9 +25,14 @@ from math import pi, sqrt, exp
 from src.utils import *
 
 
+_SLEEP_PROCESSED_CACHE = {}
+
+
 class data_reader:
     def __init__(self, base_path: Path):
         super().__init__()
+        base_path = Path(base_path)
+        self.base_path = base_path
         self.names_mapping = {
             "submission": {
                 "path": base_path / "sample_submission.csv",
@@ -77,6 +82,23 @@ class data_reader:
         else:
             data = pl.read_csv(data_props["path"])
 
+        if "series_id" not in data.columns and "id_map" in data.columns:
+            id_map_path = self.base_path / "train_id_map.parquet"
+            if not id_map_path.exists():
+                raise FileNotFoundError(
+                    "Expected train_id_map.parquet when using id_map-encoded sleep data"
+                )
+            id_map = pl.read_parquet(id_map_path)
+            data = data.with_columns(pl.col("id_map").cast(id_map.schema["id_map"]))
+            data = data.join(id_map, on="id_map", how="left")
+
+        if data_name == "train_events" and data.schema.get("event") != pl.String:
+            data = data.with_columns(
+                pl.col("event")
+                .replace({1: "onset", 2: "wakeup"})
+                .cast(pl.String)
+            )
+
         if data_props["has_timestamp"]:
             data = self.cleaning(data)
 
@@ -89,7 +111,8 @@ class data_reader:
 
 def process_sleep_dataset(data_dir: str, use_cat: bool = False):
     data_dir = Path(data_dir)
-    processed_filepath = data_dir / "processed_data.npy"
+    processed_filename = "processed_data_cat.npy" if use_cat else "processed_data.npy"
+    processed_filepath = data_dir / processed_filename
 
     if not os.path.isfile(processed_filepath):
 
@@ -108,9 +131,10 @@ def process_sleep_dataset(data_dir: str, use_cat: bool = False):
         feats = ["anglez", "enmo"]
         # add time categorical features
         if use_cat:
-            series = series.with_columns(
-                pl.col("timestamp").str.to_datetime(format="%Y-%m-%dT%H:%M:%S%z"),
-            )
+            if series.schema.get("timestamp") == pl.String:
+                series = series.with_columns(
+                    pl.col("timestamp").str.to_datetime(format="%Y-%m-%dT%H:%M:%S%z"),
+                )
             series = series.with_columns(
                 pl.col("timestamp").dt.hour().alias("hour"),
                 pl.col("timestamp").dt.weekday().alias("wd") - 1,
@@ -160,8 +184,23 @@ def process_sleep_dataset(data_dir: str, use_cat: bool = False):
                     offset.append(event.iloc[i + 1].step)
             targets[series_id] = (np.array(onset), np.array(offset))
 
-        np.save(processed_filepath, (ids, events, data, targets))
+        np.save(
+            processed_filepath,
+            np.array((ids, events, data, targets), dtype=object),
+        )
     return processed_filepath
+
+
+def load_processed_sleep_data(data_path: Path):
+    data_path = Path(data_path)
+    stat = data_path.stat()
+    key = (str(data_path.resolve()), stat.st_mtime_ns, stat.st_size)
+    cached = _SLEEP_PROCESSED_CACHE.get(key)
+    if cached is None:
+        _SLEEP_PROCESSED_CACHE.clear()
+        cached = tuple(np.load(data_path, allow_pickle=True))
+        _SLEEP_PROCESSED_CACHE[key] = cached
+    return cached
 
 
 class SleepDataset(Dataset):
@@ -193,8 +232,8 @@ class SleepDataset(Dataset):
             self.cat_feats = 0
 
         data_path = process_sleep_dataset(data_dir, use_cat)
-        self.ids, self.events, self.data, self.targets = np.load(
-            data_path, allow_pickle=True
+        self.ids, self.events, self.data, self.targets = load_processed_sleep_data(
+            data_path
         )
 
         if fold != -1:
@@ -237,7 +276,7 @@ class SleepDataset(Dataset):
                     X, y, mask, sequence_length=self.sequence_length, train=True
                 )
             X = downsample_feats(X, self.downsample, self.cat_feats, self.agg_feats)
-            y = downsample_sequence(y, self.downsample, "max")
+            y = downsample_targets(y, self.downsample, self.target_type)
             mask = mask // self.downsample
 
             return (
@@ -256,7 +295,7 @@ class SleepDataset(Dataset):
                 Xs[i] = downsample_feats(
                     Xs[i], self.downsample, self.cat_feats, self.agg_feats
                 )
-                ys[i] = downsample_sequence(ys[i], self.downsample, "max")
+                ys[i] = downsample_targets(ys[i], self.downsample, self.target_type)
                 masks[i] = masks[i] // self.downsample
 
             return Xs, ys, masks, series_id

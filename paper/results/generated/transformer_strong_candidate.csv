@@ -1,0 +1,2 @@
+model,BDL-Hard,BDL-Gaussian,BDL-Tolerance,Cross-entropy,$\Delta$,seeds
+transformer_6l_128h_8a_10d,0.013,0.013,0.013,0.308,-0.295,1

@@ -1,0 +1,4 @@
+model,BDL-Hard,Cross-entropy,$\Delta$,seeds
+fgru,0.219,0.288,-0.069,3
+flstm,0.114,0.254,-0.140,3
+causal_transformer,0.109,0.331,-0.222,3

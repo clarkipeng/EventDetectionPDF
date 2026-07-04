@@ -1,0 +1,8 @@
+run_id=required_no_mse_20260616T0708Z
+repo_root=/home/ec2-user/EventDetectionPDF
+python=/home/ec2-user/EventDetectionPDF/.venv/bin/python
+status_jsonl=/home/ec2-user/EventDetectionPDF/paper/generated_runs/required_no_mse_20260616T0708Z/experiment_events.jsonl
+log_file=/home/ec2-user/EventDetectionPDF/paper/generated_runs/required_no_mse_20260616T0708Z/experiment_output.log
+commit=6d03155
+started_utc=2026-06-16T07:41:40Z
+finished_utc=2026-06-17T18:22:11Z

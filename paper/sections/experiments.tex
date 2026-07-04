@@ -1,0 +1,63 @@
+\section{Experiments}
+\label{sec:experiments}
+
+The experiments test whether aligning the training objective with ranked detections improves event localization after the detector components around the loss are controlled.
+All methods are trained as sequence predictors and evaluated as event detectors.
+BDL ranks local maxima of its learned score sequences.
+Segmentation baselines estimate samplewise interval labels and then score transitions in that prediction.
+Within each comparison we hold the series-level splits, backbone, scorer, and post-processing search fixed whenever possible, so the comparison isolates the supervision rather than the matching protocol.
+
+The main experiments use two benchmarks.
+The Child Mind Institute sleep benchmark contains wrist-accelerometer recordings annotated with sleep onset and wake-up events \citep{alexander2017,migueles2019,robbins2019,esper2023}.
+It highlights the supervision mismatch because the annotated sleep interval can last for hours while evaluation scores minute-scale onset and wake-up matches.
+The CHB-MIT seizure benchmark contains EEG recordings with seizure intervals sampled at 256 Hz and tests rarer events with second-scale matching tolerances \citep{shoeb2010,goldberger2000,klem1999}.
+In both cases, supervision is built only for the event types scored by average precision: onset and wake-up for sleep, and seizure onset and offset for CHB-MIT.
+The two benchmarks differ by design.
+Sleep makes the mismatch visible because a long state interval is evaluated through short endpoint matches; CHB-MIT stresses the same formulation under higher sampling rate, rarer events, and stricter absolute timing.
+\IfFileExists{results/generated/point_event_ablation_ready.tex}{Additional point-event ablations on Martian bow-shock and credit-card fraud detection test the same objective families without paired interval endpoints \citep{azib2023universal}.}{}
+
+The sleep study first isolates the objective before varying the encoder.
+With a bidirectional GRU fixed, we compare BDL-Hard, BDL-Gaussian, and BDL-Tolerance against cross-entropy segmentation.
+We add class-weighted cross-entropy and focal segmentation to test whether standard imbalance handling explains the result \citep{krawczyk2016,lin2017focal}.
+We then repeat the strongest BDL and segmentation objectives with one-dimensional U-Nets and an attention-gated U-Net variant \citep{ronneberger2015,oktay2018attention}.
+The U-Net controls test whether the same objective effect appears after replacing the recurrent encoder with convolutional segmentation backbones whose multi-scale skip connections are designed to recover time-localized labels from long context.
+The attention-gated variant remains within this convolutional family: it changes skip-feature selection without changing the detector into a self-attention model.
+These segmentation-oriented backbones test whether the gap is explained by the recurrent encoder rather than by the training target.
+Offline Transformer diagnostics are reported separately because they add a self-attention detector family with different sequence-length, memory, and optimizer tradeoffs \citep{vaswani2017attention}.
+Those objective comparisons still use matched scoring and decoder calibration, but they are interpreted as backbone-specific scope checks rather than as simple skip-connection variants.
+Optimization settings are selected at the benchmark-and-backbone level for stable multi-epoch training, then held fixed inside each matched objective comparison.
+This keeps learning rate, memory, and gradient-stability choices from becoming objective-specific advantages.
+For sleep, the shared learning rate is chosen for reliable Poisson-objective training before the matched objective comparison and then reused for the segmentation controls.
+For CHB-MIT, the high-capacity GRU configurations use a smaller step size, batch size 8, and gradient clipping because the EEG sequences are longer and the recurrent state is larger.
+Calibration and post-processing parameters, such as candidate smoothing, score cutoffs, peak separation, and interval alternation, are selected on validation folds before aggregation.
+They are therefore part of the evaluated detector, but not part of the training objective.
+This protocol treats optimization and calibration as controlled experimental conditions rather than objective-specific method components.
+The candidate-smoothing grid is chosen to match each benchmark's scoring scale.
+For the reported CHB-MIT tables, decoder calibration is performed after expanding predictions back to the original 256 Hz timeline, with no smoothing, one-second smoothing, and two-second smoothing as the candidate scales.
+This post-training rescoring keeps calibration aligned with second-scale seizure endpoint tolerances and avoids treating broad sleep-scale smoothing as a default for EEG endpoint scoring.
+
+Each ablation is tied to a specific alternative explanation.
+Kernel variants, sparse-output initialization, and smoothing-width comparisons ask whether the result depends on a particular smoothing or calibration convention inside BDL.
+Because every BDL kernel assigns one event to each annotation before binning, these comparisons change the uncertainty model, initialization, or output scale without changing the event quantity being fit.
+Class-weighted and focal segmentation keep the interval-mask labels and ask whether ordinary class-imbalance handling is enough.
+Architecture controls ask whether the conclusion is specific to a recurrent encoder.
+CHB-MIT changes the signal domain and timing scale; point-event experiments remove paired endpoints; output-stride studies expose the tradeoff among localization resolution, event sparsity, sequence length, and optimization; streaming-context experiments remove future samples from the encoder; and state reconstruction changes the evaluation object back to samplewise labels.
+Together, these comparisons ask whether the improvement follows from event-level supervision or from model, calibration, and evaluation choices.
+An advantage that survives imbalance controls, encoder changes, and event-structure changes supports the training-objective explanation, while drops under stricter stride, context, or calibration settings identify detector limitations around the likelihood rather than contradictions in the event formulation.
+
+The BDL variants differ only in the unit-sum kernel used before temporal binning.
+BDL-Hard places the event at the annotated timestamp.
+BDL-Gaussian spreads it with a truncated Gaussian label-uncertainty model.
+BDL-Tolerance uses a unit-sum kernel whose support is derived from the benchmark tolerance set.
+All three are trained with the same Poisson log score.
+The segmentation variants keep the samplewise interval-state labels and vary only the class-imbalance treatment.
+
+Evaluation follows the benchmark output format.
+Candidate smoothing, peak selection, and interval alternation are selected on validation folds.
+These post-processing choices are held outside the training objective: they define how a trained score sequence is converted into ranked detections.
+Sleep AP averages onset and wake-up over one-to-thirty-minute tolerances; seizure AP uses one-to-sixty-second tolerances, with one-to-three-second AP treated as the strict boundary-localization regime.
+The output stride is selected with the metric-resolution, event-sparsity, and sequence-length heuristic in Appendix~\ref{app:derivation}.
+For high-rate EEG, a 256-sample stride corresponds to one second at the original sampling rate, matching the strictest endpoint tolerance scale while keeping recurrent training feasible.
+Coarser two-second settings are still reported as compute--accuracy controls, because output stride changes localization quantization, recurrent sequence length, and optimization difficulty at the same time.
+\IfFileExists{results/generated/seizure_highscore_ready.tex}{The high-capacity CHB-MIT comparison evaluates a coarser two-second output stride against a matched one-second stride, separating the training objective from output-timeline resolution.}{}
+We report validation-fold event mAP over series-level splits and reserve samplewise state-label metrics for the appendix analysis.

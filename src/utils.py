@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
@@ -27,6 +28,95 @@ import matplotlib.pyplot as plt
 
 from math import pi, sqrt, exp
 
+MSE_OBJECTIVES = ["hard", "gau", "custom"]
+DENSITY_OBJECTIVES = [f"density_{objective}" for objective in MSE_OBJECTIVES]
+SEGMENTATION_TRAIN_OBJECTIVES = ["seg", "seg_weighted", "seg_focal"]
+SEGMENTATION_POSTPROCESS_OBJECTIVES = [
+    "seg1",
+    "seg2",
+    "seg_weighted1",
+    "seg_weighted2",
+    "seg_focal1",
+    "seg_focal2",
+]
+SEGMENTATION_OBJECTIVES = SEGMENTATION_TRAIN_OBJECTIVES + SEGMENTATION_POSTPROCESS_OBJECTIVES
+OBJECTIVE_CHOICES = SEGMENTATION_OBJECTIVES + MSE_OBJECTIVES + DENSITY_OBJECTIVES
+
+
+def is_segmentation_objective(objective):
+    return objective[:3] == "seg"
+
+
+def is_density_objective(objective):
+    return objective.startswith("density_")
+
+
+def is_segmentation_train_objective(objective):
+    return objective in SEGMENTATION_TRAIN_OBJECTIVES
+
+
+def segmentation_postprocess_objectives(objective):
+    if objective == "seg":
+        return ["seg1", "seg2"]
+    if objective == "seg_weighted":
+        return ["seg_weighted1", "seg_weighted2"]
+    if objective == "seg_focal":
+        return ["seg_focal1", "seg_focal2"]
+    return [objective]
+
+
+def segmentation_postprocess_method(objective):
+    if objective.endswith("2"):
+        return 2
+    return 1
+
+
+def segmentation_loss_kind(objective):
+    if objective.startswith("seg_weighted"):
+        return "weighted"
+    if objective.startswith("seg_focal"):
+        return "focal"
+    return "bce"
+
+
+def base_objective(objective):
+    if is_density_objective(objective):
+        return objective[len("density_") :]
+    return objective
+
+
+def experiment_path(dataset_name, model_name, objective, seed=0, run_tag=None):
+    seed_dir = f"seed_{seed}"
+    if run_tag:
+        safe_tag = str(run_tag).replace(os.sep, "_").replace(" ", "_")
+        seed_dir = f"{seed_dir}_{safe_tag}"
+    return Path("experiments") / dataset_name / model_name / objective / seed_dir
+
+
+def str2bool(value):
+    if isinstance(value, bool):
+        return value
+    value = value.lower()
+    if value in {"true", "1", "yes", "y"}:
+        return True
+    if value in {"false", "0", "no", "n"}:
+        return False
+    raise ValueError(f"Cannot parse boolean value: {value}")
+
+
+def apply_objective_overrides(
+    dataclass,
+    gaussian_sigma=None,
+    tolerance_scale=1.0,
+):
+    if gaussian_sigma is not None:
+        dataclass.gaussian_sigma = gaussian_sigma
+    dataclass.target_tolerances = [
+        max(1, int(round(tolerance * tolerance_scale)))
+        for tolerance in dataclass.tolerances
+    ]
+    return dataclass
+
 
 def downsample_sequence(
     x,
@@ -50,8 +140,15 @@ def downsample_sequence(
         return np.mean(x, -1).T
     elif method == "max":
         return np.max(x, -1).T
+    elif method == "sum":
+        return np.sum(x, -1).T
     else:
         raise ValueError("method not available")
+
+
+def downsample_targets(y, downsample_factor, target_type):
+    method = "sum" if is_density_objective(target_type) else "max"
+    return downsample_sequence(y, downsample_factor, method)
 
 
 def downsample_feats(x, downsample_factor, cat_feat=2, agg_feats=True):
@@ -115,7 +212,8 @@ def downsample_feats(x, downsample_factor, cat_feat=2, agg_feats=True):
     return x
 
 
-def normalize_error(dataclass, ttype="gau"):
+def get_target_distribution(dataclass, ttype="gau", unit_mass=False):
+    ttype = base_objective(ttype)
 
     if ttype == "hard":
         distribution = np.ones(1)
@@ -125,11 +223,25 @@ def normalize_error(dataclass, ttype="gau"):
         r = range(-dlength, dlength + 1)
         distribution = np.array([exp((-float(x / sigma) ** 2) / 2) for x in r])
     elif ttype == "custom":
-        dlength = max(dataclass.tolerances)
+        tolerances = getattr(dataclass, "target_tolerances", dataclass.tolerances)
+        dlength = max(tolerances)
         distribution = np.zeros(dlength * 2 + 1)
-        for w in dataclass.tolerances:
+        for w in tolerances:
             i1, i2 = dlength - w, dlength + w + 1
-            distribution[i1:i2] += 1 / len(dataclass.tolerances)
+            distribution[i1:i2] += 1 / len(tolerances)
+    else:
+        raise ValueError(f"{ttype} is not implemented")
+
+    if unit_mass:
+        mass = np.sum(distribution)
+        if mass > 0:
+            distribution = distribution / mass
+
+    return distribution
+
+
+def normalize_error(dataclass, ttype="gau"):
+    distribution = get_target_distribution(dataclass, ttype)
 
     return np.sqrt(np.sum(distribution**2) / dataclass.day_length)
 
@@ -142,7 +254,7 @@ def get_targets(dataclass, length, locations, ttype="gau", normalize=True):
     else:
         raise ValueError(f"{dataclass.event_type} is not implemented")
 
-    if ttype[:3] == "seg":
+    if is_segmentation_objective(ttype):
         target = np.zeros((length, 1))
 
         if dataclass.event_type == "interval":
@@ -154,60 +266,34 @@ def get_targets(dataclass, length, locations, ttype="gau", normalize=True):
 
         return target
 
-    if ttype == "hard":
+    density_target = is_density_objective(ttype)
+    distribution = get_target_distribution(
+        dataclass, ttype, unit_mass=density_target
+    )
+    dlength = len(distribution) // 2
 
-        if dataclass.event_type == "interval":
-            for c, loc in enumerate(locations):
-                if len(loc) > 0:
-                    target[loc, c] = 1
-        elif dataclass.event_type == "point":
-            for loc in locations:
-                target[loc, 0] = 1
+    def add_boundary(i, c):
+        i1, i2 = max(0, i - dlength), min(length, i + dlength + 1)
+        dist_i1 = i1 - (i - dlength)
+        dist_i2 = len(distribution) - ((i + dlength + 1) - i2)
+        values = distribution[dist_i1:dist_i2]
+        if density_target:
+            values_sum = values.sum()
+            if values_sum > 0:
+                values = values / values_sum
+            target[i1:i2, c] += values
+        else:
+            target[i1:i2, c] = np.maximum(target[i1:i2, c], values)
 
-    else:
-        if ttype == "gau":
-            sigma = dataclass.gaussian_sigma
-            dlength = int(sigma * 3)
-            r = range(-dlength, dlength + 1)
-            distribution = np.array([exp((-float(x / sigma) ** 2) / 2) for x in r])
-        elif ttype == "custom":
-            dlength = max(dataclass.tolerances)
-            distribution = np.zeros(dlength * 2 + 1)
-            for w in dataclass.tolerances:
-                i1, i2 = dlength - w, dlength + w + 1
-                distribution[i1:i2] += 1 / len(dataclass.tolerances)
+    if dataclass.event_type == "interval":
+        for c, loc in enumerate(locations):
+            for i in loc:
+                add_boundary(int(i), c)
+    elif dataclass.event_type == "point":
+        for i in locations:
+            add_boundary(int(i), 0)
 
-        if dataclass.event_type == "interval":
-            for c, loc in enumerate(locations):
-                for i in loc:
-                    i1, i2 = max(0, i - dlength), min(length, i + dlength + 1)
-                    target[i1:i2, c] = np.max(
-                        [
-                            target[i1:i2, 0],
-                            distribution[
-                                (i1 - (i - dlength)) : (
-                                    2 * dlength + 1 - ((i + dlength + 1) - i2)
-                                )
-                            ],
-                        ],
-                        axis=0,
-                    )
-        elif dataclass.event_type == "point":
-            for i in locations:
-                i1, i2 = max(0, i - dlength), min(length, i + dlength + 1)
-                target[i1:i2, 0] = np.max(
-                    [
-                        target[i1:i2, 0],
-                        distribution[
-                            (i1 - (i - dlength)) : (
-                                2 * dlength + 1 - ((i + dlength + 1) - i2)
-                            )
-                        ],
-                    ],
-                    axis=0,
-                )
-
-    if normalize:
+    if normalize and not density_target:
         target_variance = normalize_error(dataclass, ttype)
         target = target / target_variance
 
@@ -267,9 +353,99 @@ def maskpad_to_sequence_length(
     return X, y, mask
 
 
-def get_loss(objective):
-    if objective[:3] == "seg":
+def boundary_prior_rate(dataclass=None, downsample=1, mode="sparse", eps=1e-8):
+    if mode == "none":
+        return None
+    if dataclass is None:
+        return 1e-4
+    return max(float(downsample) / float(dataclass.day_length), eps)
+
+
+def inverse_softplus(value):
+    if value > 20:
+        return value
+    return float(np.log(np.expm1(value)))
+
+
+def density_logits_to_rates(
+    prediction,
+    dataclass=None,
+    downsample=1,
+    density_prior="sparse",
+    eps=1e-8,
+):
+    prior_rate = boundary_prior_rate(dataclass, downsample, density_prior, eps)
+    if prior_rate is None:
+        return F.softplus(prediction) + eps
+    bias = torch.as_tensor(
+        inverse_softplus(prior_rate),
+        dtype=prediction.dtype,
+        device=prediction.device,
+    )
+    return F.softplus(prediction + bias) + eps
+
+
+class BoundaryDensityLoss(nn.Module):
+    def __init__(self, dataclass=None, downsample=1, density_prior="sparse", eps=1e-8):
+        super().__init__()
+        self.eps = eps
+        self.prior_rate = boundary_prior_rate(dataclass, downsample, density_prior, eps)
+        if self.prior_rate is None:
+            self.register_buffer("rate_bias", torch.tensor(0.0, dtype=torch.float32))
+        else:
+            self.register_buffer(
+                "rate_bias",
+                torch.tensor(inverse_softplus(self.prior_rate), dtype=torch.float32),
+            )
+
+    def forward(self, prediction, target):
+        rate_bias = self.rate_bias.to(dtype=prediction.dtype, device=prediction.device)
+        rate = F.softplus(prediction + rate_bias) + self.eps
+        return rate - target * torch.log(rate)
+
+
+class BalancedBCEWithLogitsLoss(nn.Module):
+    def forward(self, prediction, target):
+        loss = F.binary_cross_entropy_with_logits(prediction, target, reduction="none")
+        positives = target.sum().clamp_min(1.0)
+        negatives = (1.0 - target).sum().clamp_min(1.0)
+        pos_weight = (negatives / positives).clamp(max=100.0)
+        weights = torch.where(target > 0.5, pos_weight, torch.ones_like(target))
+        return loss * weights
+
+
+class FocalBCEWithLogitsLoss(nn.Module):
+    def __init__(self, alpha=0.25, gamma=2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, prediction, target):
+        bce = F.binary_cross_entropy_with_logits(prediction, target, reduction="none")
+        prob = torch.sigmoid(prediction)
+        p_t = torch.where(target > 0.5, prob, 1.0 - prob)
+        alpha_t = torch.where(
+            target > 0.5,
+            torch.full_like(target, self.alpha),
+            torch.full_like(target, 1.0 - self.alpha),
+        )
+        return alpha_t * (1.0 - p_t).pow(self.gamma) * bce
+
+
+def get_loss(objective, dataclass=None, downsample=1, density_prior="sparse"):
+    if is_segmentation_objective(objective):
+        kind = segmentation_loss_kind(objective)
+        if kind == "weighted":
+            return BalancedBCEWithLogitsLoss()
+        if kind == "focal":
+            return FocalBCEWithLogitsLoss()
         return nn.BCEWithLogitsLoss(reduction="none")
+    if is_density_objective(objective):
+        return BoundaryDensityLoss(
+            dataclass=dataclass,
+            downsample=downsample,
+            density_prior=density_prior,
+        )
     return nn.MSELoss(reduction="none")
 
 
@@ -312,6 +488,7 @@ class DataClass:
         self.cat_feats = cat_feats
         self.cat_uniq = cat_uniq
         self.tolerances = tolerances
+        self.target_tolerances = tolerances
         self.column_names = column_names
         self.max_distance = max_distance
         self.gaussian_sigma = gaussian_sigma

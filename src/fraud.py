@@ -118,7 +118,7 @@ class FraudDataset(Dataset):
                     X, y, mask, sequence_length=self.sequence_length, train=True
                 )
             X = downsample_feats(X, self.downsample, self.cat_feats, self.agg_feats)
-            y = downsample_sequence(y, self.downsample, "max")
+            y = downsample_targets(y, self.downsample, self.target_type)
             mask = mask // self.downsample
 
             return (
@@ -137,7 +137,7 @@ class FraudDataset(Dataset):
                 Xs[i] = downsample_feats(
                     Xs[i], self.downsample, self.cat_feats, self.agg_feats
                 )
-                ys[i] = downsample_sequence(ys[i], self.downsample, "max")
+                ys[i] = downsample_targets(ys[i], self.downsample, self.target_type)
                 masks[i] = masks[i] // self.downsample
 
             return Xs, ys, masks, series_id

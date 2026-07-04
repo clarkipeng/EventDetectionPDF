@@ -1,0 +1,146 @@
+\section{Boundary Density Likelihood}
+\label{sec:method}
+
+BDL keeps the usual sequence-model interface: an input window is mapped to per-bin predictions.
+It changes the interpretation of those predictions.
+For bin $b$ and event type $c$, the model estimates how many type-$c$ events the bin contains in expectation.
+We use ``boundary'' to mean the scored event time: for interval data this is an onset or offset, and for point-event data it is the event itself.
+The word ``density'' does not imply a probability distribution over one unknown position in the window.
+It means that nonnegative outputs add over time as estimates of event occurrences.
+Figure~\ref{fig:target-pipeline} summarizes the path from annotations to the Poisson objective on model output bins.
+
+\begin{center}
+\includegraphics[width=\columnwidth]{target_pipeline_column.png}
+\captionof{figure}{Annotations are optionally smoothed and summed into output bins; nonnegative predictions are fit as expected events per bin with a Poisson log score.}
+\label{fig:target-pipeline}
+\end{center}
+
+\subsection{Scored Temporal Detections}
+\label{subsec:scored-detections}
+
+Let $\xseq$ be a multivariate time series on a discrete timeline.
+We use $c$ to index an event type and its corresponding output channel: a point event, an onset, an offset, or another application-specific event.
+For event type $c\in\mathcal{C}$, let $B_c$ denote the annotated event times as a finite collection over $\{1,\ldots,T\}$.
+Point-event, onset-only, and multi-type datasets use the event types they need.
+An interval event of type $q$ with endpoints $(a_{j,q},b_{j,q})$ can be represented as two scored event types,
+\begin{align}
+    B_{q,\mathrm{on}} = \{a_{j,q}\}_{j=1}^{n_q},
+    \qquad
+    B_{q,\mathrm{off}} = \{b_{j,q}\}_{j=1}^{n_q}.
+\end{align}
+The likelihood therefore does not require paired endpoints.
+If an application needs valid on--off intervals, alternation or pairing is a decoder constraint applied after the event times have been scored.
+
+A detector emits scored temporal detections
+\begin{align}
+    \widehat{B}_c = \{(\hat{\tau}_{k,c}, s_{k,c})\}_{k=1}^{m_c},
+\end{align}
+where $\hat{\tau}_{k,c}$ is a proposed event time and $s_{k,c}$ is the ranking score.
+Event-level average precision sorts these predictions, matches them to nearby unmatched annotations, and counts a true positive only when the prediction falls inside a task-specific tolerance window \citep{everingham2010pascal,lin2014coco,salles2023,tatbul2018precision}.
+The matched object is an event occurrence in time: a window may contain zero, one, or many such occurrences, and the metric consumes sparse scored detections rather than per-sample labels.
+The corresponding training signal is the expected number of scored events assigned to each output bin.
+
+\subsection{Event Occurrences on the Output Timeline}
+\label{subsec:targets}
+
+For event type $c$, the annotations define a counting measure over time,
+\begin{align}
+    \mu_c = \sum_{\tau\in B_c}\delta_{\tau},
+\end{align}
+where $\delta_\tau$ denotes one count placed at event time $\tau$.
+This is the standard counting-process view of event data: a time region contains the number of event occurrences that happened there \citep{kingman1993,shchur2021neural}.
+BDL uses this counting measure for supervision without requiring a full generative point-process model.
+
+Annotation times may be uncertain, discretized, or only meaningful up to the tolerance of the benchmark.
+BDL can express that uncertainty by replacing each point mass with a nonnegative discrete kernel $\kernel:\mathbb{Z}\rightarrow\Rnonneg$ whose values sum to one,
+\begin{align}
+    \sum_{r\in\mathbb{Z}}\kernel(r)=1.
+\end{align}
+The smoothed target on the original timeline is
+\begin{align}
+    y_c(t) = \sum_{\tau\in B_c}\kernel(t-\tau),
+    \qquad t=1,\ldots,T.
+    \label{eq:smoothed-target}
+\end{align}
+If a finite training window clips the kernel support, the visible support is renormalized so that the annotation continues to contribute one event.
+Smoothing changes where the event is placed, not how many events the annotation represents.
+The resulting value can be zero, fractional after smoothing, one for a hard event, or larger than one when multiple events occupy the same region.
+
+We use three kernel families:
+\begin{align}
+    \kernel_{\mathrm{hard}}(r) &= \mathbf{1}\{r=0\}, \\
+    \kernel_{\mathrm{gau}}(r) &\propto
+        \exp\left(-\frac{r^2}{2\sigma^2}\right)\mathbf{1}\{|r|\le 3\sigma\}, \\
+    \kernel_{\mathrm{tol}}(r) &\propto
+        \frac{1}{K}\sum_{k=1}^{K}\mathbf{1}\{|r|\le \delta_k\}.
+\end{align}
+The tolerance-aligned kernel uses the same tolerance set $\{\delta_k\}_{k=1}^{K}$ as the event-localization metric before normalizing the kernel sum.
+It provides a benchmark-scale label-uncertainty model rather than a differentiable AP objective.
+Because every kernel sums to one, $\sum_t y_c(t)=|B_c|$ after finite-window renormalization.
+
+The same interpretation determines how supervision moves to a coarser output timeline.
+If $G_b$ is the set of original timesteps represented by output bin $b$, BDL defines
+\begin{align}
+    Y_c(b) = \sum_{t\in G_b} y_c(t).
+    \label{eq:downsampled-target}
+\end{align}
+Equation~\ref{eq:downsampled-target} integrates over the bin: $Y_c(b)$ may be fractional after smoothing, but summing over bins recovers the number of visible annotations.
+Summing into bins gives BDL a stable unit, unlike localized objectives whose numerical scale changes with kernel width, clipping, or pooling.
+The output stride should still be chosen with the event metric, event sparsity, and sequence length in mind.
+If a bin covers $\Delta$ original timesteps, the decoded event time is quantized at roughly the half-bin scale.
+For strict-localization studies, a conservative choice keeps the full bin width no larger than the strictest tolerance one expects to score.
+A weaker quantization check is that the half-bin scale should fit inside the tolerance window.
+For long high-rate signals, a coarser stride can still be a useful compute--accuracy tradeoff when it is reported as part of the detector and compared directly.
+For interval events, the interval duration and the endpoint tolerance impose different constraints.
+A stride that is short relative to the event duration can still preserve episode evidence, but endpoint AP is determined by how accurately the onset or offset is ranked against the tolerance window.
+The bin should also remain sparse for each event type.
+If $\rho_c$ is the local event frequency per timestep, the expected number of type-$c$ events in one bin is $m_c=\rho_c\Delta$.
+Under the same counting approximation used by the likelihood, the probability that two or more type-$c$ events land in one bin is approximately $m_c^2/2$ when $m_c$ is small.
+The practical heuristic is therefore to choose the largest stride that keeps the relevant metric-resolution error and this collision probability small enough for the comparison being made.
+BDL can represent more than one occurrence in a bin, but sparse bins keep peaks easier to rank and localize.
+Appendix~\ref{app:derivation} gives the counting-measure and stride-selection derivations.
+
+\subsection{Likelihood Objective and Decoding}
+\label{subsec:poisson}
+
+Let a sequence model with parameters $\theta$ output logits $z_{\theta,c}(b)$.
+BDL converts these logits to nonnegative predictions,
+\begin{align}
+    \rate_{\theta,c}(b\mid\xseq)
+    =
+    \operatorname{softplus}\left(z_{\theta,c}(b) + \operatorname{softplus}^{-1}(\rate_0)\right)
+    + \epsilon,
+    \label{eq:rate-param}
+\end{align}
+where $\rate_0$ initializes the output near a sparse event prior and $\epsilon>0$ prevents numerical singularities.
+
+For one bin and event type, write $Y=Y_c(b)$ and $\rate=\rate_{\theta,c}(b\mid\xseq)$.
+The Poisson negative log-likelihood is
+\begin{align}
+    \ell_{\mathrm{P}}(Y,\rate)
+    =
+    \rate - Y\log \rate + \log \Gamma(Y+1).
+\end{align}
+For smoothed fractional targets, we use the same continuous extension and omit the target-only $\log\Gamma(Y+1)$ term from optimization.
+With $\rate_{c,b}=\rate_{\theta,c}(b\mid\xseq)$, the empirical loss is
+\begin{align}
+    \mathcal{L}_{\mathrm{BDL}}(\theta)
+    =
+    \sum_c\sum_b
+    \left[
+        \rate_{c,b}
+        -
+        Y_c(b)\log \rate_{c,b}
+    \right].
+    \label{eq:bdl-loss}
+\end{align}
+Zero-event windows contribute only the prediction penalty, while repeated events contribute additional count.
+
+The likelihood gives the target construction its statistical meaning.
+Unit-sum kernels and sum binning ensure $\sum_b Y_c(b)=|B_c|$, and the conditional expected risk is minimized at $\rate^*(b,c\mid\xseq)=\mathbb{E}[Y_c(b)\mid\xseq]$.
+The fitted quantity is therefore neither a normalized position distribution nor an unscaled proximity score; it is the conditional expected number of events per output bin.
+Appendix~\ref{app:derivation} gives the derivations.
+
+At inference time, each learned score sequence is decoded by ranking local maxima.
+Domain constraints, such as alternating onset and offset labels for interval datasets, are applied after the likelihood has produced scored candidate times.
+The training objective therefore remains valid for point events and multi-type streams, while interval applications can add legality constraints when needed.

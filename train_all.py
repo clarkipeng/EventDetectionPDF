@@ -9,7 +9,16 @@ from src.bowshock import get_bowshock_dataclass
 from src.fraud import get_fraud_dataclass
 from src.seizure import get_seizure_dataclass
 
-from src.utils import get_loss, set_random_seed, DataClass
+from src.utils import (
+    DENSITY_OBJECTIVES,
+    MSE_OBJECTIVES,
+    SEGMENTATION_TRAIN_OBJECTIVES,
+    apply_objective_overrides,
+    get_loss,
+    set_random_seed,
+    str2bool,
+    DataClass,
+)
 
 import torch
 import argparse
@@ -41,7 +50,7 @@ def get_args_parser():
         choices=["stat", "none", "all"],
         help="stat - aggregates mean, max, min, and std across downsampled series. none - pure downsampling. all - no signal is lost, all features are retained",
     )
-    parser.add_argument("--use_cat", default=True, type=bool)
+    parser.add_argument("--use_cat", default=True, type=str2bool)
     parser.add_argument(
         "--sequence_length",
         default=None,
@@ -52,7 +61,29 @@ def get_args_parser():
     parser.add_argument("--bs", default=10, type=int)
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--folds", default=4, type=int)
-    parser.add_argument("--normalize", default=True, type=bool)
+    parser.add_argument("--normalize", default=True, type=str2bool)
+    parser.add_argument(
+        "--density_prior",
+        default="sparse",
+        choices=["sparse", "none"],
+    )
+    parser.add_argument(
+        "--best_metric",
+        default="mAP",
+        choices=["mAP", "loss"],
+    )
+    parser.add_argument("--save_all_epochs", default=False, type=str2bool)
+    parser.add_argument("--lr", default=1e-3, type=float)
+    parser.add_argument("--weight_decay", default=0.0, type=float)
+    parser.add_argument("--clip_grad_norm", default=1e-1, type=float)
+    parser.add_argument("--run_tag", default=None, type=str)
+    parser.add_argument("--tune_cutoff_steps", default=11, type=int)
+    parser.add_argument("--tune_smooth_values", default="none,1,10,100,1000", type=str)
+    parser.add_argument("--tune_alternating", default=True, type=str2bool)
+    parser.add_argument("--score_after_train", default=True, type=str2bool)
+    parser.add_argument("--eval_every", default=1, type=int)
+    parser.add_argument("--gaussian_sigma", default=None, type=float)
+    parser.add_argument("--tolerance_scale", default=1.0, type=float)
     # helper
     parser.add_argument(
         "--device", default=("cuda" if torch.cuda.is_available() else "cpu"), type=str
@@ -86,9 +117,14 @@ if __name__ == "__main__":
     sequence_length = args.sequence_length
     if not sequence_length:
         sequence_length = dataclass.default_sequence_length
+    dataclass = apply_objective_overrides(
+        dataclass,
+        gaussian_sigma=args.gaussian_sigma,
+        tolerance_scale=args.tolerance_scale,
+    )
 
     for model in ["gru", "unet", "unet_t", "prectime"]:
-        for objective in ["seg", "hard", "gau", "custom"]:
+        for objective in SEGMENTATION_TRAIN_OBJECTIVES + MSE_OBJECTIVES + DENSITY_OBJECTIVES:
 
             train(
                 dataclass=dataclass,
@@ -105,4 +141,17 @@ if __name__ == "__main__":
                 use_cat=args.use_cat,
                 device=args.device,
                 workers=args.workers,
+                seed=args.seed,
+                density_prior=args.density_prior,
+                best_metric=args.best_metric,
+                save_all_epochs=args.save_all_epochs,
+                lr=args.lr,
+                weight_decay=args.weight_decay,
+                clip_grad_norm=args.clip_grad_norm,
+                run_tag=args.run_tag,
+                tune_cutoff_steps=args.tune_cutoff_steps,
+                tune_smooth_values=args.tune_smooth_values,
+                tune_alternating=args.tune_alternating,
+                score_after_train=args.score_after_train,
+                eval_every=args.eval_every,
             )

@@ -165,7 +165,7 @@ GRU, a one-dimensional U-Net, and an attention-gated U-Net
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.98\linewidth]{sleep_main_results.png}
+\includegraphics[width=\linewidth]{sleep_main_results.png}
 \caption{Sleep-event results under matched folds and event scoring.
 BDL's advantage is largest at strict tolerances (A), remains above
 segmentation losses in the objective sweep (B), and persists across recurrent
@@ -181,7 +181,7 @@ The difference is concentrated where timing is strict: one-minute AP improves
 from 0.051 to 0.219, and three-minute AP from 0.283 to 0.530.
 At thirty minutes the curves nearly meet, 0.821 versus 0.838, suggesting that
 both methods often find the sleep episode, while BDL better ranks localized
-endpoints.
+endpoints (Figure~\ref{fig:qualitative}).
 BDL-Gaussian and BDL-Tolerance reach 0.660 and 0.605 mAP, so smoothing alone
 does not explain the gain.
 

@@ -98,13 +98,26 @@ PALETTE = {
 }
 
 
+# Shared paper-figure formatting. Both main-text figures use the same source
+# width and are included at \linewidth, so they share one on-page scale; with
+# identical source font sizes they render identically and look uniform.
+PAPER_FIG_WIDTH = 8.1  # inches
+FS_TITLE = 8.0         # panel titles ("A. ...")
+FS_AXIS = 8.0          # axis labels
+FS_TICK = 6.8          # tick labels
+FS_LEGEND = 6.2        # legend text
+
+
 def apply_plot_style():
     plt.rcParams.update(
         {
             "font.family": "DejaVu Sans",
-            "font.size": 8.4,
-            "axes.titlesize": 8.4,
-            "axes.labelsize": 8.2,
+            "font.size": FS_TICK,
+            "axes.titlesize": FS_TITLE,
+            "axes.labelsize": FS_AXIS,
+            "xtick.labelsize": FS_TICK,
+            "ytick.labelsize": FS_TICK,
+            "legend.fontsize": FS_LEGEND,
             "axes.edgecolor": "#3A3A3A",
             "axes.labelcolor": PALETTE["text"],
             "xtick.color": PALETTE["text"],
@@ -113,7 +126,7 @@ def apply_plot_style():
             "grid.color": PALETTE["grid"],
             "grid.linewidth": 0.55,
             "grid.alpha": 0.62,
-            "axes.titleweight": "medium",
+            "axes.titleweight": "semibold",
             "legend.frameon": False,
             "figure.facecolor": "white",
             "axes.facecolor": "white",
@@ -793,7 +806,7 @@ def plot_sleep_main_results(scores, outdir):
     tolerance_frame["display_tolerance"] = tolerance_frame["tolerance"] / 12.0
 
     objective_colors = {objective: objective_color(objective) for objective in objectives}
-    fig = plt.figure(figsize=(8.10, 5.15), facecolor="white")
+    fig = plt.figure(figsize=(PAPER_FIG_WIDTH, PAPER_FIG_WIDTH * 5.15 / 8.10), facecolor="white")
     gs = fig.add_gridspec(
         2,
         2,
@@ -822,13 +835,13 @@ def plot_sleep_main_results(scores, outdir):
             label=objective_label(objective),
             alpha=0.98 if objective == "density_hard" else 0.84,
         )
-    ax_tol.set_xlabel("Tolerance (minutes)", fontsize=7.8)
-    ax_tol.set_ylabel("AP", fontsize=7.8)
-    ax_tol.set_title("A. AP by tolerance", loc="left", weight="semibold", fontsize=7.1)
+    ax_tol.set_xlabel("Tolerance (minutes)", fontsize=FS_AXIS)
+    ax_tol.set_ylabel("AP", fontsize=FS_AXIS)
+    ax_tol.set_title("A. AP by tolerance", loc="left", weight="semibold", fontsize=FS_TITLE)
     ax_tol.legend(
         loc="upper center",
         bbox_to_anchor=(0.55, -0.11),
-        fontsize=5.9,
+        fontsize=FS_LEGEND,
         ncols=2,
         handlelength=1.05,
         columnspacing=0.85,
@@ -840,10 +853,10 @@ def plot_sleep_main_results(scores, outdir):
     y = np.arange(len(objective_frame))[::-1]
     ax_obj.barh(y, objective_frame["score"], color=colors, height=0.46, edgecolor="white", linewidth=0.55)
     ax_obj.set_yticks(y)
-    ax_obj.set_yticklabels([objective_label(obj) for obj in objective_frame["objective"]], fontsize=6.7)
+    ax_obj.set_yticklabels([objective_label(obj) for obj in objective_frame["objective"]], fontsize=FS_TICK)
     ax_obj.set_xlim(0, max(objective_frame["score"]) * 1.12)
-    ax_obj.set_xlabel("mAP", fontsize=7.8)
-    ax_obj.set_title("B. Objectives", loc="left", weight="semibold", fontsize=7.1)
+    ax_obj.set_xlabel("mAP", fontsize=FS_AXIS)
+    ax_obj.set_title("B. Objectives", loc="left", weight="semibold", fontsize=FS_TITLE)
     ax_obj.xaxis.grid(True)
     ax_obj.yaxis.grid(False)
 
@@ -857,7 +870,7 @@ def plot_sleep_main_results(scores, outdir):
         bdl_values.append(float(bdl.iloc[0]["score"]) if not bdl.empty else np.nan)
         seg_values.append(float(seg.iloc[0]["score"]) if not seg.empty else np.nan)
     y_arch = np.arange(len(models))[::-1] * 0.72
-    ax_arch.set_title("C. Backbones", loc="left", weight="semibold", fontsize=7.1)
+    ax_arch.set_title("C. Backbones", loc="left", weight="semibold", fontsize=FS_TITLE)
     for yi, model_name, bdl, seg in zip(y_arch, model_names, bdl_values, seg_values):
         if not (np.isfinite(bdl) and np.isfinite(seg)):
             continue
@@ -865,15 +878,15 @@ def plot_sleep_main_results(scores, outdir):
         ax_arch.scatter(seg, yi, s=24, color=PALETTE["seg"], edgecolor="white", linewidth=0.42, zorder=3)
         ax_arch.scatter(bdl, yi, s=28, color=PALETTE["bdl"], edgecolor="white", linewidth=0.48, zorder=4)
     ax_arch.set_yticks(y_arch)
-    ax_arch.set_yticklabels(model_names, fontsize=6.7, linespacing=0.95)
-    ax_arch.set_xlabel("mAP", fontsize=7.8)
+    ax_arch.set_yticklabels(model_names, fontsize=FS_TICK, linespacing=0.95)
+    ax_arch.set_xlabel("mAP", fontsize=FS_AXIS)
     ax_arch.set_xlim(0.20, max(np.nanmax(bdl_values), np.nanmax(seg_values)) * 1.18)
     ax_arch.set_ylim(y_arch.min() - 0.34, y_arch.max() + 0.34)
     ax_arch.xaxis.grid(True)
     ax_arch.yaxis.grid(False)
     ax_arch.scatter([], [], s=24, color=PALETTE["seg"], label="CE")
     ax_arch.scatter([], [], s=28, color=PALETTE["bdl"], label="BDL")
-    ax_arch.legend(loc="lower right", fontsize=5.9, handlelength=0.55, borderaxespad=0.20, frameon=False)
+    ax_arch.legend(loc="lower right", fontsize=FS_LEGEND, handlelength=0.55, borderaxespad=0.20, frameon=False)
 
     for ax in (ax_obj, ax_arch, ax_tol):
         ax.set_facecolor("white")
@@ -916,16 +929,24 @@ def plot_sleep_prediction_example(outdir):
 
     start = int(onset_step - margin_steps)
     stop = int(wake_step + margin_steps)
-    try:
-        series = pd.read_parquet(
-            paths["series"],
-            filters=[("id_map", "=", id_map), ("step", ">=", start), ("step", "<=", stop)],
-        ).sort_values("step")
-    except Exception:
-        for filename in prediction_outputs:
-            save_placeholder(outdir, filename, "Sleep validation example")
-        return
-    if series.empty:
+    # Raw competition parquet keys rows by series_id; an older preprocessed
+    # parquet keyed them by integer id_map. Try series_id first, fall back.
+    series = None
+    for key_col, key_val in (("series_id", series_id), ("id_map", id_map)):
+        try:
+            series = pd.read_parquet(
+                paths["series"],
+                filters=[
+                    (key_col, "=", key_val),
+                    ("step", ">=", start),
+                    ("step", "<=", stop),
+                ],
+            ).sort_values("step")
+            if not series.empty:
+                break
+        except Exception:
+            series = None
+    if series is None or series.empty:
         for filename in prediction_outputs:
             save_placeholder(outdir, filename, "Sleep validation example")
         return
@@ -1078,7 +1099,7 @@ def plot_sleep_prediction_example(outdir):
     fig_col.savefig(outdir / "sleep_prediction_column.png", dpi=260)
     plt.close(fig_col)
 
-    fig_compact = plt.figure(figsize=(6.75, 2.90))
+    fig_compact = plt.figure(figsize=(PAPER_FIG_WIDTH, PAPER_FIG_WIDTH * 2.90 / 6.75))
     gs_compact = fig_compact.add_gridspec(
         2,
         2,
@@ -1099,7 +1120,7 @@ def plot_sleep_prediction_example(outdir):
         for spine in ("top", "right"):
             ax.spines[spine].set_visible(False)
 
-    k_signal.set_title("A. Signal", loc="left", fontsize=6.8, weight="semibold", pad=1.0)
+    k_signal.set_title("A. Signal", loc="left", fontsize=FS_TITLE, weight="semibold", pad=1.0)
     k_signal.plot(hours_raw, angle_norm, color=PALETTE["raw"], linewidth=0.66, label="anglez")
     k_signal.fill_between(hours_raw, 0, enmo_norm, color=PALETTE["gold"], alpha=0.20, label="ENMO")
     k_signal.set_ylim(-1.9, 2.1)
@@ -1107,24 +1128,24 @@ def plot_sleep_prediction_example(outdir):
     k_signal.set_xlim(hours_raw.min(), hours_raw.max())
     k_signal.legend(
         loc="upper right",
-        fontsize=5.2,
+        fontsize=FS_LEGEND,
         ncols=2,
         handlelength=1.05,
         columnspacing=0.7,
         borderaxespad=0.05,
     )
 
-    k_seg.set_title("B. Segmentation", loc="left", fontsize=6.8, weight="semibold", pad=1.0)
+    k_seg.set_title("B. Segmentation", loc="left", fontsize=FS_TITLE, weight="semibold", pad=1.0)
     k_seg.plot(hours_pred, seg, color=PALETTE["seg"], linewidth=1.05)
     k_seg.plot(hours_pred, transition, color=PALETTE["seg_dark"], linewidth=0.55, alpha=0.50)
     k_seg.fill_between(hours_pred, 0, seg, color=PALETTE["seg"], alpha=0.08)
     k_seg.set_ylim(-0.04, 1.04)
     k_seg.set_xlim(hours_raw.min(), hours_raw.max())
     k_seg.set_yticks([0, 1])
-    k_seg.set_yticklabels(["0", "1"], fontsize=5.7)
-    k_seg.set_xlabel("Hours relative to onset", fontsize=6.6)
+    k_seg.set_yticklabels(["0", "1"], fontsize=FS_TICK)
+    k_seg.set_xlabel("Hours relative to onset", fontsize=FS_AXIS)
 
-    k_bdl.set_title("C. BDL", loc="left", fontsize=6.8, weight="semibold", pad=1.0)
+    k_bdl.set_title("C. BDL", loc="left", fontsize=FS_TITLE, weight="semibold", pad=1.0)
     k_bdl.plot(hours_pred, bdl_on, color=PALETTE["bdl"], linewidth=1.10)
     k_bdl.plot(hours_pred, bdl_off, color=PALETTE["accent"], linewidth=1.10)
     k_bdl.fill_between(hours_pred, 0, bdl_on, color=PALETTE["bdl"], alpha=0.10)
@@ -1140,13 +1161,20 @@ def plot_sleep_prediction_example(outdir):
     )
     k_bdl.set_ylim(-0.04, 1.05)
     k_bdl.set_yticks([0, 1])
-    k_bdl.set_yticklabels(["0", "1"], fontsize=5.7)
-    k_bdl.set_xlabel("Hours relative to onset", fontsize=6.6)
+    k_bdl.set_yticklabels(["0", "1"], fontsize=FS_TICK)
+    k_bdl.set_xlabel("Hours relative to onset", fontsize=FS_AXIS)
     k_bdl.set_xlim(hours_raw.min(), hours_raw.max())
+    # B and C share one time axis: identical x-tickers, bottom only.
+    shared_xticks = [t for t in (-5.0, -2.5, 0.0, 2.5, 5.0, 7.5, 10.0, 12.5)
+                     if hours_raw.min() <= t <= hours_raw.max()]
+    for ax in (k_seg, k_bdl):
+        ax.set_xticks(shared_xticks)
+        ax.set_xlim(hours_raw.min(), hours_raw.max())
     for ax in k_axes:
         ax.axvline(onset_hour, color=PALETTE["bdl_dark"], linestyle="--", linewidth=0.88, zorder=8)
         ax.axvline(wake_hour, color=PALETTE["accent"], linestyle="--", linewidth=0.88, zorder=8)
-        ax.tick_params(axis="both", labelsize=5.8, pad=1.0)
+        ax.tick_params(axis="both", labelsize=FS_TICK, pad=1.0)
+        ax.xaxis.set_ticks_position("bottom")
         ax.set_ylabel("")
     plt.setp(k_signal.get_xticklabels(), visible=False)
     fig_compact.subplots_adjust(left=0.060, right=0.995, top=0.930, bottom=0.170)

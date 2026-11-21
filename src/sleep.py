@@ -87,81 +87,96 @@ class data_reader:
         return data
 
 
+FEATS = ["anglez", "enmo", "hour", "wd"]
+
+
+def _load_events(data_dir: Path) -> pd.DataFrame:
+    events = pl.read_csv(data_dir / "train_events.csv")
+    events = events.filter(pl.col("timestamp").is_not_null())
+    events = events.sort(["series_id", "step"]).with_columns(pl.col("step").cast(pl.Int32))
+    events = events.to_pandas().sort_values(["series_id", "step"]).reset_index(drop=True)
+    events.loc[events.event == "wakeup", "event"] = "offset"
+    return events
+
+
 def process_sleep_dataset(data_dir: str, use_cat: bool = False):
+    """Stream train_series.parquet row group by row group into flat arrays on disk.
+
+    The full series is ~128M rows; materializing it as pandas frames needs well over
+    20 GiB, so we write one contiguous array per column plus per-series offsets and
+    memory-map them at load time. Features match the original pipeline: anglez, enmo,
+    and the UTC hour and weekday (0-6) parsed from the timestamp.
+    """
     data_dir = Path(data_dir)
-    processed_filepath = data_dir / "processed_data.npy"
+    out = data_dir / "processed"
+    if (out / "done").exists():
+        return out
+    out.mkdir(exist_ok=True)
 
-    if not os.path.isfile(processed_filepath):
-
-        reader = data_reader(data_dir)
-        series = reader.load_data(data_name="train_series")
-        events = reader.load_data(data_name="train_events")
-        del reader
-
-        # merge series with events to get the relevant event times
-        series = series.join(
-            events.select(["series_id", "step", "event"]),
-            on=["series_id", "step"],
-            how="left",
+    pf = ParquetFile(data_dir / "train_series.parquet")
+    n = pf.metadata.num_rows
+    steps = np.lib.format.open_memmap(out / "step.npy", "w+", np.int32, (n,))
+    feats = np.lib.format.open_memmap(out / "feats.npy", "w+", np.float32, (n, len(FEATS)))
+    sid_codes = np.empty(n, dtype=np.int32)
+    names: dict = {}
+    i = 0
+    for rg in tqdm(range(pf.num_row_groups), desc="preprocess"):
+        df = pl.from_arrow(pf.read_row_group(rg))
+        df = df.with_columns(
+            pl.col("timestamp").str.to_datetime(format="%Y-%m-%dT%H:%M:%S%z")
+        ).with_columns(
+            pl.col("timestamp").dt.hour().alias("hour"),
+            (pl.col("timestamp").dt.weekday() - 1).alias("wd"),
         )
+        k = len(df)
+        steps[i : i + k] = df["step"].to_numpy()
+        feats[i : i + k] = df.select(FEATS).to_numpy().astype(np.float32)
+        sid_codes[i : i + k] = [names.setdefault(x, len(names)) for x in df["series_id"].to_list()]
+        i += k
+        del df
+    assert i == n
 
-        feats = ["anglez", "enmo"]
-        # add time categorical features
-        if use_cat:
-            series = series.with_columns(
-                pl.col("timestamp").str.to_datetime(format="%Y-%m-%dT%H:%M:%S%z"),
-            )
-            series = series.with_columns(
-                pl.col("timestamp").dt.hour().alias("hour"),
-                pl.col("timestamp").dt.weekday().alias("wd") - 1,
-            )
-            feats += ["hour", "wd"]
-            gc.collect()
+    # rows must be grouped by series and sorted by step within each series
+    order = np.argsort(np.array(list(names.keys())))
+    rank = np.empty_like(order)
+    rank[order] = np.arange(len(order))
+    key = rank[sid_codes]
+    if not (np.all(np.diff(key) >= 0)):
+        raise ValueError("train_series.parquet is not grouped by sorted series_id")
+    ids = np.array(list(names.keys()))[order]
+    bounds = np.concatenate([[0], np.flatnonzero(np.diff(key)) + 1, [n]])
+    steps.flush(); feats.flush()
+    np.save(out / "ids.npy", ids)
+    np.save(out / "bounds.npy", bounds)
 
-        # pandas dataframe can iterate throught groups
-        series = (
-            series.to_pandas().sort_values(["series_id", "step"]).reset_index(drop=True)
-        )
-        events = (
-            events.to_pandas().sort_values(["series_id", "step"]).reset_index(drop=True)
-        )
-        series.loc[series.event == "wakeup", "event"] = "offset"
-        events.loc[events.event == "wakeup", "event"] = "offset"
-        ids = series.series_id.unique()
+    # sleep windows: an onset immediately followed by an offset
+    events = _load_events(data_dir)
+    targets = {}
+    for series_id, ev in events.groupby("series_id", sort=False):
+        e, st = ev.event.values, ev.step.values
+        onset = [st[j] for j in range(len(e) - 1) if e[j] == "onset" and e[j + 1] == "offset"]
+        offset = [st[j + 1] for j in range(len(e) - 1) if e[j] == "onset" and e[j + 1] == "offset"]
+        targets[series_id] = (np.array(onset), np.array(offset))
+    pd.to_pickle(targets, out / "targets.pkl")
+    (out / "done").touch()
+    return out
 
-        # store the data and targets into dictionaries
-        data = {}
-        targets = {}
 
-        for series_id, viz_series in tqdm(
-            series[["series_id", "step"] + feats].groupby("series_id", sort=False)
-        ):
-            data[series_id] = viz_series
-            targets[series_id] = ([], [])
+class _SeriesStore:
+    """Read-only view of one series: memory-mapped step and feature columns."""
 
-        for series_id, event in tqdm(
-            series.loc[
-                series.event.isin(["onset", "offset"]),
-                [
-                    "series_id",
-                    "event",
-                    "step",
-                ],
-            ].groupby("series_id", sort=False)
-        ):
-            onset, offset = [], []
+    def __init__(self, steps, feats):
+        self.steps, self.feats = steps, feats
 
-            for i in range(len(event) - 1):
-                if (
-                    event.iloc[i].event == "onset"
-                    and event.iloc[i + 1].event == "offset"
-                ):
-                    onset.append(event.iloc[i].step)
-                    offset.append(event.iloc[i + 1].step)
-            targets[series_id] = (np.array(onset), np.array(offset))
+    def __getitem__(self, cols):
+        if cols == ["step"]:
+            return pd.DataFrame({"step": np.asarray(self.steps)})
+        return _Values(np.asarray(self.feats[:, [FEATS.index(c) for c in cols]]))
 
-        np.save(processed_filepath, (ids, events, data, targets))
-    return processed_filepath
+
+class _Values:
+    def __init__(self, values):
+        self.values = values
 
 
 class SleepDataset(Dataset):
@@ -192,10 +207,14 @@ class SleepDataset(Dataset):
         else:
             self.cat_feats = 0
 
-        data_path = process_sleep_dataset(data_dir, use_cat)
-        self.ids, self.events, self.data, self.targets = np.load(
-            data_path, allow_pickle=True
-        )
+        out = process_sleep_dataset(data_dir, use_cat)
+        self.ids = np.load(out / "ids.npy", allow_pickle=True)
+        bounds = np.load(out / "bounds.npy")
+        steps = np.load(out / "step.npy", mmap_mode="r")
+        feats = np.load(out / "feats.npy", mmap_mode="r")
+        all_targets = pd.read_pickle(out / "targets.pkl")
+        self.events = _load_events(Path(data_dir))
+        span = {sid: (bounds[j], bounds[j + 1]) for j, sid in enumerate(self.ids)}
 
         if fold != -1:
             idxs = list(kfold.split(self.ids))[fold][0 if training else 1]
@@ -203,11 +222,14 @@ class SleepDataset(Dataset):
             del idxs
 
         self.events = self.events.loc[self.events.series_id.isin(self.ids)]
-        self.data = {id: self.data[id] for id in self.ids}
-        self.targets = {id: self.targets[id] for id in self.ids}
+        self.data = {
+            id: _SeriesStore(steps[span[id][0] : span[id][1]], feats[span[id][0] : span[id][1]])
+            for id in self.ids
+        }
+        self.targets = {id: all_targets.get(id, ([], [])) for id in self.ids}
 
     def get_step(self, series_id, idx):
-        return self.data[series_id][["step"]].iloc[idx].astype(np.int32)
+        return pd.DataFrame({"step": np.asarray(self.data[series_id].steps[idx], dtype=np.int32)})
 
     def __len__(self):
         return len(self.ids)

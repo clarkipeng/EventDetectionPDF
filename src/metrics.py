@@ -335,7 +335,7 @@ def event_detection_all(
                 lambda group: f1_score(
                     group["matched"].to_numpy(),
                     group[score_column_name].to_numpy(),
-                    class_counts[group[event_column_name].iat[0]],
+                    class_counts[group.name[0]],
                 )
             )
         )
@@ -353,7 +353,7 @@ def event_detection_all(
                 lambda group: average_precision_score(
                     group["matched"].to_numpy(),
                     group[score_column_name].to_numpy(),
-                    class_counts[group[event_column_name].iat[0]],
+                    class_counts[group.name[0]],
                 )
             )
         )
